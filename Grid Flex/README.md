@@ -271,3 +271,4 @@ See `backend/.env.example` for all values. Important keys:
 
 - See `DEPLOYMENT.md` for production deployment runbooks for Railway, Render, and Fly.io.
 - See `PRODUCTION_READINESS.md` for the prioritized go-live hardening tracker (P0/P1/P2).
+# GridFlexAi

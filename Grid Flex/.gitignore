@@ -15,6 +15,7 @@ playwright-report
 test-results
 go-live-reports/*
 !go-live-reports/README.md
+backend/certs/*.pfx
 
 # Editor directories and files
 .vscode/*
