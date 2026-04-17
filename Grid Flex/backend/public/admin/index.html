@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GridFlex Admin Console</title>
+    <link rel="stylesheet" href="/admin/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="topbar">
+        <div>
+          <h1>GridFlex Admin Console</h1>
+          <p>Remote backend operations dashboard</p>
+        </div>
+        <div class="topbar-actions">
+          <button id="refresh-btn" class="secondary-btn">Refresh</button>
+          <button id="logout-btn" class="secondary-btn">Logout</button>
+        </div>
+      </header>
+
+      <section id="status-message" class="status-message hidden"></section>
+
+      <section id="login-card" class="card login-card">
+        <h2>Admin Login</h2>
+        <form id="login-form" class="form-grid">
+          <label>
+            Email
+            <input id="login-email" type="email" value="admin@gridflex.ai" required />
+          </label>
+          <label>
+            Password
+            <input id="login-password" type="password" value="Admin@12345" required />
+          </label>
+          <button type="submit" class="primary-btn">Sign In</button>
+        </form>
+      </section>
+
+      <section id="dashboard-section" class="hidden">
+        <section class="kpi-grid">
+          <article class="card"><h3>Users</h3><p id="kpi-users" class="kpi-value">-</p></article>
+          <article class="card"><h3>Sessions</h3><p id="kpi-sessions" class="kpi-value">-</p></article>
+          <article class="card"><h3>Nodes</h3><p id="kpi-nodes" class="kpi-value">-</p></article>
+          <article class="card"><h3>Readings 24h</h3><p id="kpi-readings" class="kpi-value">-</p></article>
+          <article class="card"><h3>Alert Nodes</h3><p id="kpi-alerts" class="kpi-value">-</p></article>
+        </section>
+
+        <section class="card section-card">
+          <h2>Create Client</h2>
+          <form id="client-form" class="form-grid form-inline">
+            <input id="client-name" placeholder="Client name" required />
+            <input id="client-slug" placeholder="client-slug" required />
+            <input id="client-email" placeholder="Contact email (optional)" />
+            <button type="submit" class="primary-btn">Add Client</button>
+          </form>
+          <div id="clients-list" class="list"></div>
+        </section>
+
+        <section class="card section-card">
+          <h2>Create Site</h2>
+          <form id="site-form" class="form-grid form-inline">
+            <select id="site-client" required></select>
+            <input id="site-name" placeholder="Site name" required />
+            <input id="site-code" placeholder="SITE-CODE" required />
+            <input id="site-location" placeholder="Location" required />
+            <button type="submit" class="primary-btn">Add Site</button>
+          </form>
+          <div id="sites-list" class="list"></div>
+        </section>
+
+        <section class="card section-card">
+          <h2>Manage Nodes</h2>
+          <div id="nodes-list" class="list"></div>
+        </section>
+
+        <section class="card section-card">
+          <h2>API Registry</h2>
+          <form id="credential-form" class="form-grid form-inline">
+            <select id="credential-provider">
+              <option value="openai">openai</option>
+              <option value="openweather">openweather</option>
+              <option value="accuweather">accuweather</option>
+              <option value="custom">custom</option>
+            </select>
+            <input id="credential-name" placeholder="Credential name" required />
+            <input id="credential-key" placeholder="API key" required />
+            <select id="credential-client"></select>
+            <select id="credential-site"></select>
+            <button type="submit" class="primary-btn">Add Credential</button>
+          </form>
+          <div id="credentials-list" class="list"></div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="/admin/app.js"></script>
+  </body>
+</html>
