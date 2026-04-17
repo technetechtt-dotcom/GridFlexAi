@@ -1,0 +1,9 @@
+export const API_PREFIX = "/api";
+export const BCRYPT_ROUNDS = 12;
+export const LIVE_READING_EVENT = "live-reading";
+export const NODE_STATUS_UPDATE_EVENT = "node-status-update";
+export const NEW_NODE_EVENT = "new-node";
+export const REFRESH_COOKIE_NAME = "gridflex_refresh_token";
+export const FORECAST_CACHE_TTL_MS = 45 * 60 * 1000;
+export const DEFAULT_FORECAST_TILT = 28;
+export const DEFAULT_FORECAST_AZIMUTH = 0;

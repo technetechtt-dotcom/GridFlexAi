@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: gridflex-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gridflex
+    ports:
+      - "5432:5432"
+    volumes:
+      - gridflex-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gridflex"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: gridflex-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - gridflex-redis-data:/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gridflex-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gridflex?schema=public
+      JWT_SECRET: change-this-in-production
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 30d
+      CORS_ORIGIN: http://localhost:5173
+      REDIS_URL: redis://redis:6379
+      FORECAST_CIRCUIT_FAILURE_THRESHOLD: 3
+      FORECAST_CIRCUIT_OPEN_MS: 180000
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+      ACCUWEATHER_API_KEY: ${ACCUWEATHER_API_KEY:-}
+    ports:
+      - "4000:4000"
+
+volumes:
+  gridflex-postgres-data:
+  gridflex-redis-data:

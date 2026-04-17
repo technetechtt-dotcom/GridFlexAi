@@ -1,0 +1,12 @@
+process.env.NODE_ENV = "test";
+process.env.PORT = "4001";
+process.env.DATABASE_URL = process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/gridflex_test";
+process.env.JWT_SECRET = process.env.JWT_SECRET ?? "test-secret-key-with-minimum-length";
+process.env.JWT_ACCESS_EXPIRES_IN = "15m";
+process.env.JWT_REFRESH_EXPIRES_IN = "30d";
+process.env.CORS_ORIGIN = "http://localhost:5173";
+process.env.EDGE_INGEST_SHARED_SECRET = "test-edge-shared-secret-123";
+process.env.EDGE_INGEST_MAX_SKEW_SECONDS = "300";
+process.env.FORCE_HTTPS = "false";
+process.env.ADMIN_REQUIRE_HTTPS = "false";
+process.env.ADMIN_ALLOWED_EMAILS = "admin@gridflex.ai,dev@gridflex.ai";

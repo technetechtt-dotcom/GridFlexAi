@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Audit frontend production dependencies
+        run: npm audit --omit=dev --audit-level=critical
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Audit backend production dependencies
+        run: npm audit --omit=dev --audit-level=critical
+        working-directory: backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Typecheck frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Install Playwright browser
+        run: npm run e2e:install
+
+      - name: Run frontend E2E tests
+        run: npm run e2e
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gridflex_test
+      JWT_SECRET: test-secret-with-minimum-length
+      CORS_ORIGIN: http://localhost:5173
+      ADMIN_ALLOWED_EMAILS: admin@gridflex.ai
+      ADMIN_ALLOWED_IPS: ""
+      ADMIN_REQUIRE_HTTPS: false
+      EDGE_INGEST_SHARED_SECRET: test-edge-secret-with-minimum-length
+      OPENAI_API_KEY: test-key
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Typecheck backend
+        run: npm run typecheck
+
+      - name: Build backend
+        run: npm run build
+
+      - name: Run backend tests
+        run: npm test
+
+      - name: Health route smoke test
+        run: npx jest tests/health.routes.test.ts --runInBand
