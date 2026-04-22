@@ -114,6 +114,8 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
   }
 
   if (problems.length > 0) {
+    const problemList = problems.map((p) => `  - ${p}`).join("\n");
+    process.stderr.write(`[env] Production safety checks failed:\n${problemList}\n`);
     throw new Error(`Unsafe production environment configuration: ${problems.join(" ")}`);
   }
 };
