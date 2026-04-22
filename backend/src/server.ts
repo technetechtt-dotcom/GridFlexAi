@@ -92,7 +92,39 @@ const start = async (): Promise<void> => {
   });
 };
 
-void start();
+process.on("uncaughtException", (err) => {
+  process.stderr.write(
+    JSON.stringify({
+      level: "error",
+      message: "Uncaught exception — process will exit",
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      timestamp: new Date().toISOString()
+    }) + "\n"
+  );
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  process.stderr.write(
+    JSON.stringify({
+      level: "error",
+      message: "Unhandled promise rejection — process will exit",
+      error: reason instanceof Error ? reason.message : String(reason),
+      stack: reason instanceof Error ? reason.stack : undefined,
+      timestamp: new Date().toISOString()
+    }) + "\n"
+  );
+  process.exit(1);
+});
+
+start().catch((err: unknown) => {
+  logger.error("Fatal error during startup — process will exit", {
+    error: err instanceof Error ? err.message : String(err),
+    stack: err instanceof Error ? err.stack : undefined
+  });
+  process.exit(1);
+});
 
 const shutdown = async () => {
   forecastCronTask?.stop();
