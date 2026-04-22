@@ -87,8 +87,8 @@ const start = async (): Promise<void> => {
   await prisma.$connect();
   forecastCronTask = startForecastCron();
 
-  webServer.server.listen(webServer.port, () => {
-    logger.info(`GridFlex backend listening on ${webServer.protocol}://localhost:${webServer.port}`);
+  webServer.server.listen(webServer.port, "0.0.0.0", () => {
+    logger.info(`GridFlex backend listening on ${webServer.protocol}://0.0.0.0:${webServer.port}`);
   });
 };
 
