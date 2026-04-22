@@ -27,3 +27,4 @@ backend/certs/*.pfx
 *.njsproj
 *.sln
 *.sw?
+node_modules
