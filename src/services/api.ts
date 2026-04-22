@@ -1044,28 +1044,14 @@ export async function fetchForecast(params: {
 
 // Mock data fetchers (replace with actual API calls)
 export async function fetchElectrolyzerStatus(): Promise<ElectrolyzerStatus> {
-  try {
-    const summary = await fetchDashboardSummary();
-    return {
-      loadMW: Math.max(0, Number(summary.averages.inverterPower.toFixed(1))),
-      productionRate: Math.max(0, Number((summary.averages.power * 1.2).toFixed(1))),
-      efficiency: 52.4,
-      lcoh: 45.2,
-      mode: 'excess',
-      waterUsage: Math.max(1000, Number((summary.averages.power * 10).toFixed(0))),
-      stackTemp: 72
-    };
-  } catch {
-    // Fall back to demo values when backend data is unavailable.
-  }
-
+  const summary = await fetchDashboardSummary();
   return {
-    loadMW: 325,
-    productionRate: 420,
+    loadMW: Math.max(0, Number(summary.averages.inverterPower.toFixed(1))),
+    productionRate: Math.max(0, Number((summary.averages.power * 1.2).toFixed(1))),
     efficiency: 52.4,
     lcoh: 45.2,
     mode: 'excess',
-    waterUsage: 3850,
+    waterUsage: Math.max(1000, Number((summary.averages.power * 10).toFixed(0))),
     stackTemp: 72
   };
 }
@@ -1073,70 +1059,57 @@ export async function fetchElectrolyzerStatus(): Promise<ElectrolyzerStatus> {
 export async function fetchDispatchRecommendations(): Promise<
   DispatchRecommendation[]>
 {
-  try {
-    const [summary, nodes] = await Promise.all([
-      fetchDashboardSummary(),
-      fetchNodes()
-    ]);
-    const primaryNode = nodes[0];
-    const curtailmentMw = summary.averages.curtailment;
-    const inverterMw = summary.averages.inverterPower;
-    const powerMw = summary.averages.power;
-    const onlineRatio = summary.nodes.total > 0 ? summary.nodes.online / summary.nodes.total : 0;
+  const [summary, nodes] = await Promise.all([
+    fetchDashboardSummary(),
+    fetchNodes()
+  ]);
+  const primaryNode = nodes[0];
+  const curtailmentMw = summary.averages.curtailment;
+  const inverterMw = summary.averages.inverterPower;
+  const powerMw = summary.averages.power;
+  const onlineRatio = summary.nodes.total > 0 ? summary.nodes.online / summary.nodes.total : 0;
 
-    const recommendations: DispatchRecommendation[] = [
-      {
-        id: 1,
-        type: 'curtailment',
-        title: curtailmentMw > 2 ? 'Reduce curtailment pressure now' : 'Maintain current curtailment strategy',
-        description: curtailmentMw > 2 ?
-          `Average curtailment is ${curtailmentMw.toFixed(2)} MW. Prioritize rerouting excess generation to flexible loads.` :
-          `Curtailment is ${curtailmentMw.toFixed(2)} MW. Keep dispatch plan and continue monitoring.`,
-        impact: `${curtailmentMw.toFixed(2)} MW current curtailment signal`,
-        status: curtailmentMw > 2 ? 'pending' : 'approved'
-      },
-      {
-        id: 2,
-        type: 'battery',
-        title: 'Align battery schedule with inverter profile',
-        description: `Inverter output averages ${inverterMw.toFixed(2)} MW. Charge during surplus periods and reserve discharge for peak demand windows.`,
-        impact: `Base dispatch load ${powerMw.toFixed(2)} MW`,
-        status: 'pending'
-      },
-      {
-        id: 3,
-        type: 'dispatch',
-        title: 'Stabilize fleet availability',
-        description: `${summary.nodes.online}/${summary.nodes.total} nodes are online${primaryNode ? `, anchored by ${primaryNode.name}` : ''}. Prioritize dispatch on online assets to reduce outage risk.`,
-        impact: `${Math.round(onlineRatio * 100)}% node availability`,
-        status: onlineRatio > 0.8 ? 'approved' : 'pending'
-      }
-    ];
-
-    if (curtailmentMw > 0.8) {
-      recommendations.push({
-        id: 4,
-        type: 'hyshift',
-        title: 'Route excess power to HyShift',
-        description: 'Use electrolyzer demand response to absorb curtailed generation before issuing down-dispatch commands.',
-        impact: `Potentially recover up to ${Math.max(1, Math.round(curtailmentMw * 0.7))} MW`,
-        status: 'pending'
-      });
+  const recommendations: DispatchRecommendation[] = [
+    {
+      id: 1,
+      type: 'curtailment',
+      title: curtailmentMw > 2 ? 'Reduce curtailment pressure now' : 'Maintain current curtailment strategy',
+      description: curtailmentMw > 2 ?
+        `Average curtailment is ${curtailmentMw.toFixed(2)} MW. Prioritize rerouting excess generation to flexible loads.` :
+        `Curtailment is ${curtailmentMw.toFixed(2)} MW. Keep dispatch plan and continue monitoring.`,
+      impact: `${curtailmentMw.toFixed(2)} MW current curtailment signal`,
+      status: curtailmentMw > 2 ? 'pending' : 'approved'
+    },
+    {
+      id: 2,
+      type: 'battery',
+      title: 'Align battery schedule with inverter profile',
+      description: `Inverter output averages ${inverterMw.toFixed(2)} MW. Charge during surplus periods and reserve discharge for peak demand windows.`,
+      impact: `Base dispatch load ${powerMw.toFixed(2)} MW`,
+      status: 'pending'
+    },
+    {
+      id: 3,
+      type: 'dispatch',
+      title: 'Stabilize fleet availability',
+      description: `${summary.nodes.online}/${summary.nodes.total} nodes are online${primaryNode ? `, anchored by ${primaryNode.name}` : ''}. Prioritize dispatch on online assets to reduce outage risk.`,
+      impact: `${Math.round(onlineRatio * 100)}% node availability`,
+      status: onlineRatio > 0.8 ? 'approved' : 'pending'
     }
+  ];
 
-    return recommendations;
-  } catch {
-    return [
-      {
-        id: 1,
-        type: 'dispatch',
-        title: 'Backend dispatch feed unavailable',
-        description: 'Unable to fetch live dispatch signals. Verify API connectivity and retry.',
-        impact: 'Using degraded mode',
-        status: 'pending'
-      }
-    ];
+  if (curtailmentMw > 0.8) {
+    recommendations.push({
+      id: 4,
+      type: 'hyshift',
+      title: 'Route excess power to HyShift',
+      description: 'Use electrolyzer demand response to absorb curtailed generation before issuing down-dispatch commands.',
+      impact: `Potentially recover up to ${Math.max(1, Math.round(curtailmentMw * 0.7))} MW`,
+      status: 'pending'
+    });
   }
+
+  return recommendations;
 }
 
 export async function submitAIPrompt(
@@ -1254,54 +1227,17 @@ region = 'Free State')
 }
 
 export async function fetchProactiveAlerts(): Promise<ProactiveAlert[]> {
-  try {
-    const summary = await fetchDashboardSummary();
-    const severity = summary.averages.curtailment > 5 ? 'high' : summary.averages.curtailment > 2 ? 'medium' : 'info';
+  const summary = await fetchDashboardSummary();
+  const severity = summary.averages.curtailment > 5 ? 'high' : summary.averages.curtailment > 2 ? 'medium' : 'info';
 
-    return [{
-      id: 'backend-alert-curtailment',
-      issuedAt: new Date(),
-      severity,
-      title: 'Live curtailment signal detected',
-      recommendation: `Average curtailment in latest window is ${summary.averages.curtailment.toFixed(2)} MW. Review dispatch strategy.`,
-      trigger: `${summary.readingsWindow} recent readings analyzed from backend stream.`,
-      actionPage: 'dispatch'
-    }];
-  } catch {
-    // Fall back to demo values when backend data is unavailable.
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 250));
-  return [
-  {
-    id: 'alert-1',
+  return [{
+    id: 'backend-alert-curtailment',
     issuedAt: new Date(),
-    severity: 'high',
-    title: 'Pre-charge batteries before wind drop-off',
-    recommendation:
-    'Charge BESS to 92% by 14:30, then hold reserve for 15:00-17:00 wind decline.',
-    trigger: 'AI ensemble predicts 31% wind drop with 86% confidence.',
+    severity,
+    title: 'Live curtailment signal detected',
+    recommendation: `Average curtailment in latest window is ${summary.averages.curtailment.toFixed(2)} MW. Review dispatch strategy.`,
+    trigger: `${summary.readingsWindow} recent readings analyzed from backend stream.`,
     actionPage: 'dispatch'
-  },
-  {
-    id: 'alert-2',
-    issuedAt: new Date(Date.now() - 1000 * 60 * 8),
-    severity: 'medium',
-    title: 'Enable DLR on Gauteng industrial corridor',
-    recommendation:
-    'Switch to dynamic line rating and unlock ~18% transfer headroom for peak window.',
-    trigger: 'Ambient cooling and crosswind increase thermal capacity.',
-    actionPage: 'congestion'
-  },
-  {
-    id: 'alert-3',
-    issuedAt: new Date(Date.now() - 1000 * 60 * 15),
-    severity: 'info',
-    title: 'HyShift arbitrage window opened',
-    recommendation:
-    'Increase electrolyzer loading during low-price interval and store H2 for evening offtake.',
-    trigger: 'Spot price below modeled LCOH break-even threshold.',
-    actionPage: 'hyshift'
   }];
 }
 
@@ -1328,130 +1264,63 @@ export async function fetchHydrogenTwinState(): Promise<HydrogenTwinState> {
 }
 
 export async function fetchESGMetrics(): Promise<ESGMetric[]> {
-  try {
-    const now = new Date();
-    const endDate = now.toISOString();
-    const startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const [dashboard, dailySummary] = await Promise.all([
-      fetchDashboardSummary(),
-      fetchReadingsSummary({ startDate, endDate })
-    ]);
-    const totalEnergyKwh = dailySummary.reduce((total, row) => total + row.totalEnergyKwh, 0);
-    const avgCurtailmentMw = dashboard.averages.curtailment;
-    const renewableShare = Math.max(0, Math.min(100, 100 - avgCurtailmentMw * 4));
-    const co2AvoidedTonnes = totalEnergyKwh * 0.0009;
-    const waterIntensity = Math.max(4.5, 10 - renewableShare / 20);
-    const greenCredits = Math.round(totalEnergyKwh / 8);
+  const now = new Date();
+  const endDate = now.toISOString();
+  const startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const [dashboard, dailySummary] = await Promise.all([
+    fetchDashboardSummary(),
+    fetchReadingsSummary({ startDate, endDate })
+  ]);
+  const totalEnergyKwh = dailySummary.reduce((total, row) => total + row.totalEnergyKwh, 0);
+  const avgCurtailmentMw = dashboard.averages.curtailment;
+  const renewableShare = Math.max(0, Math.min(100, 100 - avgCurtailmentMw * 4));
+  const co2AvoidedTonnes = totalEnergyKwh * 0.0009;
+  const waterIntensity = Math.max(4.5, 10 - renewableShare / 20);
+  const greenCredits = Math.round(totalEnergyKwh / 8);
 
-    return [
-      {
-        key: 'co2_avoided',
-        label: 'CO2 Avoided',
-        value: Number(co2AvoidedTonnes.toFixed(2)),
-        unit: 'tCO2e',
-        changePercent: 8.4
-      },
-      {
-        key: 'water_intensity',
-        label: 'Water Intensity',
-        value: Number(waterIntensity.toFixed(2)),
-        unit: 'L/kg H2',
-        changePercent: -3.1
-      },
-      {
-        key: 'renewable_h2_share',
-        label: 'Renewable H2 Share',
-        value: Number(renewableShare.toFixed(1)),
-        unit: '%',
-        changePercent: 4.7
-      },
-      {
-        key: 'verified_green_credits',
-        label: 'Verified Green Credits',
-        value: greenCredits,
-        unit: 'tokens',
-        changePercent: 6.2
-      }
-    ];
-  } catch {
-    return [
-      {
-        key: 'co2_avoided',
-        label: 'CO2 Avoided',
-        value: 0,
-        unit: 'tCO2e',
-        changePercent: 0
-      },
-      {
-        key: 'water_intensity',
-        label: 'Water Intensity',
-        value: 0,
-        unit: 'L/kg H2',
-        changePercent: 0
-      },
-      {
-        key: 'renewable_h2_share',
-        label: 'Renewable H2 Share',
-        value: 0,
-        unit: '%',
-        changePercent: 0
-      },
-      {
-        key: 'verified_green_credits',
-        label: 'Verified Green Credits',
-        value: 0,
-        unit: 'tokens',
-        changePercent: 0
-      }
-    ];
-  }
+  return [
+    {
+      key: 'co2_avoided',
+      label: 'CO2 Avoided',
+      value: Number(co2AvoidedTonnes.toFixed(2)),
+      unit: 'tCO2e',
+      changePercent: 8.4
+    },
+    {
+      key: 'water_intensity',
+      label: 'Water Intensity',
+      value: Number(waterIntensity.toFixed(2)),
+      unit: 'L/kg H2',
+      changePercent: -3.1
+    },
+    {
+      key: 'renewable_h2_share',
+      label: 'Renewable H2 Share',
+      value: Number(renewableShare.toFixed(1)),
+      unit: '%',
+      changePercent: 4.7
+    },
+    {
+      key: 'verified_green_credits',
+      label: 'Verified Green Credits',
+      value: greenCredits,
+      unit: 'tokens',
+      changePercent: 6.2
+    }
+  ];
 }
 
 export async function fetchIoTEdgeAssets(): Promise<IoTEdgeAsset[]> {
-  try {
-    const nodes = await fetchNodes();
-    return nodes.map((node) => ({
-      id: node.id,
-      name: node.name,
-      type: 'microgrid',
-      location: node.location,
-      health: node.status === 'offline' ? 'critical' : 'good',
-      powerMw: Number((node.lastReading?.power ?? 0).toFixed(1)),
-      edgeForecastConfidence: node.status === 'online' ? 0.93 : 0.74
-    }));
-  } catch {
-    // Fall back to demo values when backend data is unavailable.
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  return [
-  {
-    id: 'mg-1',
-    name: 'Free State Farm Microgrid',
+  const nodes = await fetchNodes();
+  return nodes.map((node) => ({
+    id: node.id,
+    name: node.name,
     type: 'microgrid',
-    location: 'Welkom',
-    health: 'good',
-    powerMw: 11.2,
-    edgeForecastConfidence: 0.9
-  },
-  {
-    id: 'bat-1',
-    name: 'De Aar BESS',
-    type: 'battery',
-    location: 'De Aar',
-    health: 'good',
-    powerMw: 24.6,
-    edgeForecastConfidence: 0.93
-  },
-  {
-    id: 'ely-1',
-    name: 'Upington Electrolyzer',
-    type: 'electrolyzer',
-    location: 'Upington',
-    health: 'degraded',
-    powerMw: 31.5,
-    edgeForecastConfidence: 0.84
-  }];
+    location: node.location,
+    health: node.status === 'offline' ? 'critical' : 'good',
+    powerMw: Number((node.lastReading?.power ?? 0).toFixed(1)),
+    edgeForecastConfidence: node.status === 'online' ? 0.93 : 0.74
+  }));
 }
 
 export async function fetchCongestionNodes(nodeProfiles?: ForecastNodeProfile[]): Promise<CongestionNode[]> {
@@ -1472,18 +1341,3 @@ export async function generatePilotReport(): Promise<PilotReport> {
   return response.data;
 }
 
-// Demo mode: simulated real-time updates
-export function startDemoStream(
-callback: (data: Partial<ElectrolyzerStatus>) => void,
-intervalMs = 3000)
-: () => void {
-  const id = setInterval(() => {
-    callback({
-      loadMW: 300 + Math.random() * 50,
-      productionRate: 400 + Math.random() * 40,
-      efficiency: 51 + Math.random() * 3,
-      stackTemp: 70 + Math.random() * 5
-    });
-  }, intervalMs);
-  return () => clearInterval(id);
-}
