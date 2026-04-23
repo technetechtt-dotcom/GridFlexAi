@@ -152,9 +152,26 @@ process.on("unhandledRejection", (reason) => {
       void shutdown();
     });
 
-    await prisma.$connect();
+    logger.info("Attempting to connect to database...");
+    try {
+      await Promise.race([
+        prisma.$connect(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Database connection timeout after 10s")), 10_000)
+        )
+      ]);
+      logger.info("Database connected successfully");
+    } catch (dbErr) {
+      logger.error("Database connection failed", {
+        error: dbErr instanceof Error ? dbErr.message : String(dbErr)
+      });
+      throw dbErr;
+    }
+
+    logger.info("Starting forecast cron...");
     forecastCronTask = startForecastCron();
 
+    logger.info("Starting web server...");
     webServer.server.listen(webServer.port, "0.0.0.0", () => {
       logger.info(`GridFlex backend listening on ${webServer.protocol}://0.0.0.0:${webServer.port}`);
     });
