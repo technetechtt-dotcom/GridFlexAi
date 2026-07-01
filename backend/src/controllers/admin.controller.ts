@@ -4,6 +4,8 @@ import type {
   AdminNodeUpdateBody,
   ApiCredentialBody,
   ApiCredentialUpdateBody,
+  BillingAccountBody,
+  BillingAccountUpdateBody,
   ClientBody,
   ClientUpdateBody,
   SiteBody,
@@ -11,16 +13,20 @@ import type {
 "../schemas/request.schemas.js";
 import {
   createApiCredential,
+  createBillingAccount,
   createClient,
   createSite,
   deleteApiCredential,
+  deleteBillingAccount,
   deleteClient,
   deleteSite,
   listApiCredentials,
+  listBillingAccounts,
   listClients,
   listManagedNodes,
   listSites,
   updateApiCredential,
+  updateBillingAccount,
   updateClient,
   updateManagedNode,
   updateSite } from
@@ -127,4 +133,33 @@ export const removeApiCredential = asyncHandler(async (
 ) => {
   await deleteApiCredential(req.params.id);
   res.status(200).json({ message: "API credential deleted." });
+});
+
+export const getBillingAccounts = asyncHandler(async (_req: Request, res: Response) => {
+  const data = await listBillingAccounts();
+  res.status(200).json({ data });
+});
+
+export const postBillingAccount = asyncHandler(async (
+  req: Request<Record<string, never>, unknown, BillingAccountBody>,
+  res: Response
+) => {
+  const data = await createBillingAccount(req.body);
+  res.status(201).json({ data });
+});
+
+export const patchBillingAccount = asyncHandler(async (
+  req: Request<IdParam, unknown, BillingAccountUpdateBody>,
+  res: Response
+) => {
+  const data = await updateBillingAccount(req.params.id, req.body);
+  res.status(200).json({ data });
+});
+
+export const removeBillingAccount = asyncHandler(async (
+  req: Request<IdParam>,
+  res: Response
+) => {
+  await deleteBillingAccount(req.params.id);
+  res.status(200).json({ message: "Billing account deleted." });
 });

@@ -112,8 +112,36 @@ model Client {
   updatedAt    DateTime        @updatedAt
   sites        Site[]
   credentials  ApiCredential[]
+  billingAccount BillingAccount?
 
   @@index([status])
+}
+
+model BillingAccount {
+  id           String      @id @default(cuid())
+  clientId     String      @unique
+  client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  plan         String      @default("starter") // starter, pro, enterprise
+  status       String      @default("active")  // active, suspended, past_due
+  billingEmail String?
+  taxId        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  invoices     Invoice[]
+}
+
+model Invoice {
+  id               String         @id @default(cuid())
+  billingAccountId String
+  billingAccount   BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+  amountDue        Float
+  currency         String         @default("USD")
+  status           String         @default("draft") // draft, open, paid, void, uncollectible
+  dueDate          DateTime?
+  paidAt           DateTime?
+  invoicePdfUrl    String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 }
 
 model Site {

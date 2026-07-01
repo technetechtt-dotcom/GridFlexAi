@@ -328,6 +328,22 @@ export type AdminApiCredential = {
   createdAt: string;
 };
 
+export type AdminBillingAccount = {
+  id: string;
+  clientId: string;
+  client: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  plan: 'starter' | 'pro' | 'enterprise';
+  status: 'active' | 'suspended' | 'past_due';
+  billingEmail: string | null;
+  taxId: string | null;
+  createdAt: string;
+  invoiceCount: number;
+};
+
 export type AdminPlatformOverview = {
   generatedAt: string;
   database: { healthy: boolean };
@@ -844,6 +860,47 @@ export async function fetchAdminApiCredentials(): Promise<AdminApiCredential[]> 
     auth: true
   });
   return response.data;
+}
+
+export async function fetchAdminBillingAccounts(): Promise<AdminBillingAccount[]> {
+  const response = await apiRequest<ApiEnvelope<AdminBillingAccount[]>>('/admin/billing-accounts', {
+    auth: true
+  });
+  return response.data;
+}
+
+export async function createAdminBillingAccount(payload: {
+  clientId: string;
+  plan: 'starter' | 'pro' | 'enterprise';
+  status: 'active' | 'suspended' | 'past_due';
+  billingEmail?: string;
+  taxId?: string;
+}): Promise<void> {
+  await apiRequest<{data: unknown;}>('/admin/billing-accounts', {
+    method: 'POST',
+    auth: true,
+    body: payload
+  });
+}
+
+export async function updateAdminBillingAccount(id: string, payload: {
+  plan?: 'starter' | 'pro' | 'enterprise';
+  status?: 'active' | 'suspended' | 'past_due';
+  billingEmail?: string;
+  taxId?: string;
+}): Promise<void> {
+  await apiRequest<{data: unknown;}>(`/admin/billing-accounts/${id}`, {
+    method: 'PATCH',
+    auth: true,
+    body: payload
+  });
+}
+
+export async function deleteAdminBillingAccount(id: string): Promise<void> {
+  await apiRequest<{message: string;}>(`/admin/billing-accounts/${id}`, {
+    method: 'DELETE',
+    auth: true
+  });
 }
 
 export async function createAdminApiCredential(payload: {

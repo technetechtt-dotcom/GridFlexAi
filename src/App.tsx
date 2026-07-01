@@ -35,12 +35,16 @@ const AdminLayout = lazy(() => import('./pages/admin/AdminLayout').then((module)
 const AdminOverview = lazy(() => import('./pages/admin/AdminOverview').then((module) => ({ default: module.AdminOverview })));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage').then((module) => ({ default: module.AdminUsersPage })));
 const AdminNodesPage = lazy(() => import('./pages/admin/AdminNodesPage').then((module) => ({ default: module.AdminNodesPage })));
+const AdminBillingPage = lazy(() => import('./pages/admin/AdminBillingPage').then((module) => ({ default: module.AdminBillingPage })));
+const AdminDataPage = lazy(() => import('./pages/admin/AdminDataPage').then((module) => ({ default: module.AdminDataPage })));
 const AdminMetricsPage = lazy(() => import('./pages/admin/AdminMetricsPage').then((module) => ({ default: module.AdminMetricsPage })));
 const AdminLogsPage = lazy(() => import('./pages/admin/AdminLogsPage').then((module) => ({ default: module.AdminLogsPage })));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
+const SuperAdminShell = lazy(() => import('./pages/admin/SuperAdminShell').then((module) => ({ default: module.SuperAdminShell })));
 
 const pageToPath: Record<Page, string> = {
   dashboard: '/',
-  'admin-dashboard': '/admin',
+  'admin-dashboard': '/ops',
   congestion: '/congestion',
   dispatch: '/dispatch',
   scenario: '/scenario',
@@ -61,7 +65,7 @@ const pageToPath: Record<Page, string> = {
 };
 
 function mapPathToPage(pathname: string): Page {
-  if (pathname.startsWith('/admin')) return 'admin-dashboard';
+  if (pathname.startsWith('/ops')) return 'admin-dashboard';
   if (pathname.startsWith('/congestion')) return 'congestion';
   if (pathname.startsWith('/dispatch-status')) return 'dispatch-status';
   if (pathname.startsWith('/dispatch')) return 'dispatch';
@@ -184,12 +188,17 @@ function AppRoutes() {
           <Route path="/hyshift" element={<HyShiftControl onNavigate={routeNavigate} />} />
           <Route path="/sector-coupling" element={<SectorCouplingSimulator onNavigate={routeNavigate} />} />
           <Route path="/provider-diagnostics" element={<ProviderDiagnostics onNavigate={routeNavigate} />} />
+        </Route>
 
-          <Route element={<RequireAdmin />}>
-            <Route path="/admin" element={<AdminLayout />}>
+        <Route element={<RequireAdmin />}>
+          <Route element={<SuperAdminShell />}>
+            <Route path="/ops" element={<AdminLayout />}>
               <Route index element={<AdminOverview />} />
+              <Route path="management" element={<AdminDashboard onNavigate={routeNavigate} />} />
               <Route path="users" element={<AdminUsersPage />} />
               <Route path="nodes" element={<AdminNodesPage />} />
+              <Route path="billing" element={<AdminBillingPage />} />
+              <Route path="data" element={<AdminDataPage />} />
               <Route path="metrics" element={<AdminMetricsPage />} />
               <Route path="logs" element={<AdminLogsPage />} />
             </Route>

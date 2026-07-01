@@ -24,6 +24,8 @@ const navItemClass = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-300 hover:bg-slate-800'
 }`;
 
+import { AdminBillingPage } from './AdminBillingPage';
+
 export function AdminLayout() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
@@ -66,19 +68,28 @@ export function AdminLayout() {
             </div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <NavLink to="/admin" end className={navItemClass}>
+            <NavLink to="/ops" end className={navItemClass}>
               Overview
             </NavLink>
-            <NavLink to="/admin/users" className={navItemClass}>
+            <NavLink to="/ops/management" className={navItemClass}>
+              Management
+            </NavLink>
+            <NavLink to="/ops/users" className={navItemClass}>
               Users
             </NavLink>
-            <NavLink to="/admin/nodes" className={navItemClass}>
+            <NavLink to="/ops/nodes" className={navItemClass}>
               Nodes
             </NavLink>
-            <NavLink to="/admin/metrics" className={navItemClass}>
+            <NavLink to="/ops/billing" className={navItemClass}>
+              Billing
+            </NavLink>
+            <NavLink to="/ops/data" className={navItemClass}>
+              Data Explorer
+            </NavLink>
+            <NavLink to="/ops/metrics" className={navItemClass}>
               Metrics
             </NavLink>
-            <NavLink to="/admin/logs" className={navItemClass}>
+            <NavLink to="/ops/logs" className={navItemClass}>
               Audit Logs
             </NavLink>
           </div>

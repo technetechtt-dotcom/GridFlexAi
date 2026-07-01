@@ -2,17 +2,21 @@ import { Router } from "express";
 
 import {
   getApiCredentials,
+  getBillingAccounts,
   getClients,
   getNodes,
   getSites,
   patchApiCredential,
+  patchBillingAccount,
   patchClient,
   patchNode,
   patchSite,
   postApiCredential,
+  postBillingAccount,
   postClient,
   postSite,
   removeApiCredential,
+  removeBillingAccount,
   removeClient,
   removeSite } from
 "../controllers/admin.controller.js";
@@ -33,6 +37,8 @@ import {
   adminUserRoleUpdateBodySchema,
   apiCredentialBodySchema,
   apiCredentialUpdateBodySchema,
+  billingAccountBodySchema,
+  billingAccountUpdateBodySchema,
   clientBodySchema,
   clientUpdateBodySchema,
   siteBodySchema,
@@ -69,5 +75,10 @@ router.get("/api-credentials", getApiCredentials);
 router.post("/api-credentials", validateRequest({ body: apiCredentialBodySchema }), postApiCredential);
 router.patch("/api-credentials/:id", validateRequest({ body: apiCredentialUpdateBodySchema }), patchApiCredential);
 router.delete("/api-credentials/:id", removeApiCredential);
+
+router.get("/billing-accounts", getBillingAccounts);
+router.post("/billing-accounts", validateRequest({ body: billingAccountBodySchema }), postBillingAccount);
+router.patch("/billing-accounts/:id", validateRequest({ body: billingAccountUpdateBodySchema }), patchBillingAccount);
+router.delete("/billing-accounts/:id", removeBillingAccount);
 
 export default router;

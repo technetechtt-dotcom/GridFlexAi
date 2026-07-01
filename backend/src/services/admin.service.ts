@@ -364,3 +364,86 @@ export const deleteApiCredential = async (id: string) => {
     message: "Deleted API credential"
   });
 };
+
+export const listBillingAccounts = async () => {
+  const accounts = await prisma.billingAccount.findMany({
+    orderBy: [{ createdAt: "desc" }],
+    include: {
+      client: {
+        select: {
+          id: true,
+          name: true,
+          slug: true
+        }
+      },
+      _count: {
+        select: {
+          invoices: true
+        }
+      }
+    }
+  });
+
+  return accounts.map((acc) => ({
+    id: acc.id,
+    clientId: acc.clientId,
+    client: acc.client,
+    plan: acc.plan,
+    status: acc.status,
+    billingEmail: acc.billingEmail,
+    taxId: acc.taxId,
+    createdAt: acc.createdAt.toISOString(),
+    invoiceCount: acc._count.invoices
+  }));
+};
+
+export const createBillingAccount = async (input: { clientId: string; plan: string; status: string; billingEmail?: string; taxId?: string }) => {
+  const account = await prisma.billingAccount.create({
+    data: {
+      plan: input.plan,
+      status: input.status,
+      billingEmail: input.billingEmail,
+      taxId: input.taxId,
+      client: {
+        connect: { id: input.clientId }
+      }
+    }
+  });
+  await recordAuditLog({
+    action: "admin.billingAccount.create",
+    entityType: "BillingAccount",
+    entityId: account.id,
+    message: `Created billing account for client ${input.clientId}`
+  });
+  return account;
+};
+
+export const updateBillingAccount = async (id: string, input: any) => {
+  const payload: Prisma.BillingAccountUpdateInput = {};
+  if (typeof input.plan === "string") payload.plan = input.plan;
+  if (typeof input.status === "string") payload.status = input.status;
+  if (typeof input.billingEmail === "string") payload.billingEmail = input.billingEmail;
+  if (typeof input.taxId === "string") payload.taxId = input.taxId;
+
+  const account = await prisma.billingAccount.update({
+    where: { id },
+    data: payload
+  });
+  await recordAuditLog({
+    action: "admin.billingAccount.update",
+    entityType: "BillingAccount",
+    entityId: account.id,
+    message: `Updated billing account`
+  });
+  return account;
+};
+
+export const deleteBillingAccount = async (id: string) => {
+  await prisma.billingAccount.delete({ where: { id } });
+  await recordAuditLog({
+    action: "admin.billingAccount.delete",
+    entityType: "BillingAccount",
+    entityId: id,
+    message: "Deleted billing account"
+  });
+};

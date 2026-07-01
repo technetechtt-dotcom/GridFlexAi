@@ -129,6 +129,28 @@ export const adminUserRoleUpdateBodySchema = z.object({
   role: z.enum(["operator", "manager", "admin", "developer"])
 });
 
+export const billingAccountBodySchema = z.object({
+  clientId: z.string().min(1),
+  plan: z.enum(["starter", "pro", "enterprise"]).default("starter"),
+  status: z.enum(["active", "suspended", "past_due"]).default("active"),
+  billingEmail: z.string().email().optional(),
+  taxId: z.string().optional()
+});
+
+export const billingAccountUpdateBodySchema = billingAccountBodySchema.partial();
+
+export const invoiceBodySchema = z.object({
+  billingAccountId: z.string().min(1),
+  amountDue: z.coerce.number().min(0),
+  currency: z.string().default("USD"),
+  status: z.enum(["draft", "open", "paid", "void", "uncollectible"]).default("draft"),
+  dueDate: z.string().datetime().optional()
+});
+
+export const invoiceUpdateBodySchema = invoiceBodySchema.partial().extend({
+  paidAt: z.string().datetime().nullable().optional()
+});
+
 export const emptyBodySchema = z.object({}).strict();
 
 export type RegisterBody = z.infer<typeof registerBodySchema>;
@@ -148,3 +170,7 @@ export type AdminNodeUpdateBody = z.infer<typeof adminNodeUpdateBodySchema>;
 export type ApiCredentialBody = z.infer<typeof apiCredentialBodySchema>;
 export type ApiCredentialUpdateBody = z.infer<typeof apiCredentialUpdateBodySchema>;
 export type AdminUserRoleUpdateBody = z.infer<typeof adminUserRoleUpdateBodySchema>;
+export type BillingAccountBody = z.infer<typeof billingAccountBodySchema>;
+export type BillingAccountUpdateBody = z.infer<typeof billingAccountUpdateBodySchema>;
+export type InvoiceBody = z.infer<typeof invoiceBodySchema>;
+export type InvoiceUpdateBody = z.infer<typeof invoiceUpdateBodySchema>;

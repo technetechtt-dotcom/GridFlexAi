@@ -68,7 +68,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
   ...(user?.role === 'admin' || user?.role === 'developer' ?
   ([{
     id: 'admin-dashboard',
-    label: 'Admin Dashboard',
+    label: 'Ops Center',
     icon: Settings
   }] as Array<{id: Page;label: string;icon: React.ComponentType<{className?: string}>;}>) :
   []),

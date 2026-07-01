@@ -142,7 +142,7 @@ export function AdminOverview() {
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-100">Last Quick Action Results</h2>
           <Link
-            to="/admin/logs"
+            to="/ops/logs"
             className="text-xs font-medium text-cyan-300 hover:text-cyan-200">
             View all logs
           </Link>
