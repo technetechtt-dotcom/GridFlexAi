@@ -66,6 +66,7 @@ const pageToPath: Record<Page, string> = {
 
 function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/ops')) return 'admin-dashboard';
+  if (pathname.startsWith('/admin')) return 'admin-dashboard';
   if (pathname.startsWith('/congestion')) return 'congestion';
   if (pathname.startsWith('/dispatch-status')) return 'dispatch-status';
   if (pathname.startsWith('/dispatch')) return 'dispatch';
@@ -99,7 +100,7 @@ function RequireAuth() {
 
 function RequireAdmin() {
   const { user } = useAuth();
-  if (!user || (user.role !== 'admin' && user.role !== 'developer')) {
+  if (!user || (user.role !== 'admin' && user.role !== 'developer' && user.role !== 'manager')) {
     return <Navigate to="/" replace />;
   }
   return <Outlet />;

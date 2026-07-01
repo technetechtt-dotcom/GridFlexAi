@@ -65,7 +65,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     label: 'Dashboard',
     icon: LayoutDashboard
   },
-  ...(user?.role === 'admin' || user?.role === 'developer' ?
+  ...(user?.role === 'admin' || user?.role === 'developer' || user?.role === 'manager' ?
   ([{
     id: 'admin-dashboard',
     label: 'Ops Center',
