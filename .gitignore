@@ -17,6 +17,9 @@ go-live-reports/*
 !go-live-reports/README.md
 backend/certs/*.pfx
 
+# Neon configs
+.neon
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

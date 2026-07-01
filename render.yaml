@@ -7,11 +7,11 @@ services:
   - type: web
     name: gridflex-backend
     env: node
-    rootDir: Grid Flex/backend
+    rootDir: backend
     plan: starter
     autoDeploy: true
     healthCheckPath: /api/health/live
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci && npm run prisma:generate && npm run build
     startCommand: npx prisma migrate deploy && npm run start
     envVars:
       - key: NODE_ENV
@@ -69,7 +69,7 @@ services:
   - type: web
     name: gridflex-frontend
     env: static
-    rootDir: Grid Flex
+    rootDir: .
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     pullRequestPreviewsEnabled: true
