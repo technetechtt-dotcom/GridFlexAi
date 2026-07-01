@@ -11,7 +11,7 @@ services:
     plan: starter
     autoDeploy: true
     healthCheckPath: /api/health/live
-    buildCommand: npm ci && npm run prisma:generate && npm run build
+    buildCommand: npm install && npm run prisma:generate && npm run build
     startCommand: npx prisma migrate deploy && npm run start
     envVars:
       - key: NODE_ENV
@@ -68,7 +68,7 @@ services:
     name: gridflex-frontend
     env: static
     rootDir: .
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     staticPublishPath: dist
     pullRequestPreviewsEnabled: true
     envVars:
