@@ -9,7 +9,8 @@ import type {
   ClientBody,
   ClientUpdateBody,
   SiteBody,
-  SiteUpdateBody } from
+  SiteUpdateBody,
+  AdminUserPasswordResetBody } from
 "../schemas/request.schemas.js";
 import {
   createApiCredential,
@@ -29,7 +30,8 @@ import {
   updateBillingAccount,
   updateClient,
   updateManagedNode,
-  updateSite } from
+  updateSite,
+  resetUserPassword } from
 "../services/admin.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
@@ -162,4 +164,12 @@ export const removeBillingAccount = asyncHandler(async (
 ) => {
   await deleteBillingAccount(req.params.id);
   res.status(200).json({ message: "Billing account deleted." });
+});
+
+export const patchUserPassword = asyncHandler(async (
+  req: Request<IdParam, unknown, AdminUserPasswordResetBody>,
+  res: Response
+) => {
+  await resetUserPassword(req.params.id, req.body.newPassword);
+  res.status(200).json({ message: "User password reset successfully." });
 });

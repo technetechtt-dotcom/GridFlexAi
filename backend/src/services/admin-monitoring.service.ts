@@ -125,6 +125,7 @@ export const getAdminNodesOverview = async () => {
     name: node.name,
     location: node.location,
     status: node.status,
+    isActive: node.isActive,
     lastSeen: node.lastSeen ? node.lastSeen.toISOString() : null,
     readingsCount: node._count.readings
   }));

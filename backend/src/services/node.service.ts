@@ -64,6 +64,7 @@ export const listNodesWithLastReading = async () => {
       latitude: node.latitude,
       longitude: node.longitude,
       status: node.status,
+      isActive: node.isActive,
       lastSeen: node.lastSeen,
       createdAt: node.createdAt,
       lastReading: node.readings[0] ?? null,
@@ -89,6 +90,7 @@ export type NodeResolution = {
     latitude: number | null;
     longitude: number | null;
     status: NodeStatus;
+    isActive: boolean;
     lastSeen: Date | null;
     createdAt: Date;
   };
@@ -100,6 +102,9 @@ export const resolveNodeForIngestion = async (nodeId?: string, deviceKey?: strin
     const existingNode = await prisma.edgeNode.findUnique({ where: { id: nodeId } });
     if (!existingNode) {
       throw new AppError("Provided nodeId does not exist.", 404);
+    }
+    if (existingNode.isActive === false) {
+      throw new AppError("Node is currently suspended and cannot ingest data.", 403);
     }
 
     return {
@@ -113,6 +118,9 @@ export const resolveNodeForIngestion = async (nodeId?: string, deviceKey?: strin
       where: { deviceKey }
     });
     if (existingDeviceNode) {
+      if (existingDeviceNode.isActive === false) {
+        throw new AppError("Node is currently suspended and cannot ingest data.", 403);
+      }
       return {
         node: existingDeviceNode,
         isNewNode: false

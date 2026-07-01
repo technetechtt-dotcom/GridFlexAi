@@ -200,6 +200,8 @@ export const deleteSite = async (id: string) => {
   });
 };
 
+import { hashPassword } from "../utils/password.js";
+
 export const listManagedNodes = async () => {
   const nodes = await prisma.edgeNode.findMany({
     orderBy: [{ createdAt: "desc" }],
@@ -236,6 +238,7 @@ export const updateManagedNode = async (id: string, input: AdminNodeUpdateBody) 
   if (typeof input.name === "string") payload.name = input.name;
   if (typeof input.location === "string") payload.location = input.location;
   if (typeof input.status === "string") payload.status = input.status === "online" ? NodeStatus.online : NodeStatus.offline;
+  if (typeof input.isActive === "boolean") payload.isActive = input.isActive;
   if (input.siteId !== undefined) {
     payload.site = input.siteId ? { connect: { id: input.siteId } } : { disconnect: true };
   }
@@ -251,6 +254,23 @@ export const updateManagedNode = async (id: string, input: AdminNodeUpdateBody) 
     message: `Updated node ${node.name}`
   });
   return node;
+};
+
+export const resetUserPassword = async (id: string, newPassword: string) => {
+  const hashedPassword = await hashPassword(newPassword);
+  const user = await prisma.user.update({
+    where: { id },
+    data: { password: hashedPassword }
+  });
+  
+  await recordAuditLog({
+    action: "admin.user.passwordReset",
+    entityType: "User",
+    entityId: id,
+    message: `Password reset by admin`
+  });
+  
+  return user;
 };
 
 export const listApiCredentials = async () => {

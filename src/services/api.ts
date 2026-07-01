@@ -132,6 +132,7 @@ export type BackendNode = {
   latitude: number | null;
   longitude: number | null;
   status: 'online' | 'offline';
+  isActive?: boolean;
   lastSeen: string | null;
   createdAt: string;
   lastReading: BackendReading | null;
@@ -293,6 +294,7 @@ export type AdminNode = {
   name: string;
   location: string;
   status: 'online' | 'offline';
+  isActive?: boolean;
   lastSeen: string | null;
   siteId: string | null;
   site: {
@@ -384,6 +386,7 @@ export type AdminMonitoringNode = {
   name: string;
   location: string;
   status: 'online' | 'offline';
+  isActive?: boolean;
   lastSeen: string | null;
   readingsCount: number;
 };
@@ -730,13 +733,24 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
 }
 
 export async function updateAdminUserRole(
-id: string,
-role: 'operator' | 'manager' | 'admin' | 'developer'
+  id: string,
+  role: 'operator' | 'manager' | 'admin' | 'developer'
 ): Promise<void> {
   await apiRequest<{ data: AdminUser }>(`/admin/users/${id}/role`, {
     method: 'PATCH',
     auth: true,
     body: { role }
+  });
+}
+
+export async function adminResetUserPassword(
+  id: string,
+  newPassword: string
+): Promise<void> {
+  await apiRequest<{ message: string }>(`/admin/users/${id}/password`, {
+    method: 'PATCH',
+    auth: true,
+    body: { newPassword }
   });
 }
 
@@ -845,6 +859,7 @@ payload: {
   name?: string;
   location?: string;
   status?: 'online' | 'offline';
+  isActive?: boolean;
   siteId?: string | null;
 }
 ): Promise<void> {

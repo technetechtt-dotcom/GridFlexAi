@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { fetchAdminUsers, type AdminUser, updateAdminUserRole } from '../../services/api';
+import { KeyRound } from 'lucide-react';
+import { adminResetUserPassword, fetchAdminUsers, type AdminUser, updateAdminUserRole } from '../../services/api';
 import { useAdminRefresh } from './AdminLayout';
 
 const POLL_MS = 20000;
@@ -57,6 +58,25 @@ export function AdminUsersPage() {
     }
   };
 
+  const onResetPassword = async (user: AdminUser) => {
+    const newPassword = prompt(`Enter new password for ${user.email} (min 8 characters):`);
+    if (!newPassword) return;
+    if (newPassword.length < 8) {
+      alert('Password must be at least 8 characters long.');
+      return;
+    }
+    
+    setBusyId(user.id);
+    try {
+      await adminResetUserPassword(user.id, newPassword);
+      alert('Password reset successfully.');
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to reset password.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -90,6 +110,7 @@ export function AdminUsersPage() {
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2">Last Login</th>
               <th className="px-3 py-2">Created</th>
+              <th className="px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -114,6 +135,16 @@ export function AdminUsersPage() {
                 <td className="px-3 py-2">{user.status}</td>
                 <td className="px-3 py-2">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'}</td>
                 <td className="px-3 py-2">{new Date(user.createdAt).toLocaleDateString()}</td>
+                <td className="px-3 py-2 text-right">
+                  <button
+                    onClick={() => onResetPassword(user)}
+                    disabled={busyId === user.id}
+                    title="Reset Password"
+                    className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 disabled:opacity-50 transition-colors"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

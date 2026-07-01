@@ -104,6 +104,7 @@ export const adminNodeUpdateBodySchema = z.object({
   name: z.string().min(2).max(120).optional(),
   location: z.string().min(2).max(160).optional(),
   status: z.enum(["online", "offline"]).optional(),
+  isActive: z.boolean().optional(),
   siteId: z.string().nullable().optional()
 });
 
@@ -127,6 +128,10 @@ export const apiCredentialUpdateBodySchema = z.object({
 
 export const adminUserRoleUpdateBodySchema = z.object({
   role: z.enum(["operator", "manager", "admin", "developer"])
+});
+
+export const adminUserPasswordResetBodySchema = z.object({
+  newPassword: z.string().min(8)
 });
 
 export const billingAccountBodySchema = z.object({
@@ -170,6 +175,7 @@ export type AdminNodeUpdateBody = z.infer<typeof adminNodeUpdateBodySchema>;
 export type ApiCredentialBody = z.infer<typeof apiCredentialBodySchema>;
 export type ApiCredentialUpdateBody = z.infer<typeof apiCredentialUpdateBodySchema>;
 export type AdminUserRoleUpdateBody = z.infer<typeof adminUserRoleUpdateBodySchema>;
+export type AdminUserPasswordResetBody = z.infer<typeof adminUserPasswordResetBodySchema>;
 export type BillingAccountBody = z.infer<typeof billingAccountBodySchema>;
 export type BillingAccountUpdateBody = z.infer<typeof billingAccountUpdateBodySchema>;
 export type InvoiceBody = z.infer<typeof invoiceBodySchema>;

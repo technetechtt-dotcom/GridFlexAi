@@ -79,6 +79,7 @@ export function AdminNodesPage() {
                 <th className="px-3 py-3">Node</th>
                 <th className="px-3 py-3">Location</th>
                 <th className="px-3 py-3">Status</th>
+                <th className="px-3 py-3">Billing State</th>
                 <th className="px-3 py-3">Last Seen</th>
                 <th className="px-3 py-3">Readings</th>
                 <th className="px-3 py-3 text-right">Actions</th>
@@ -97,19 +98,48 @@ export function AdminNodesPage() {
                       {node.status}
                     </span>
                   </td>
+                  <td className="px-3 py-4">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      node.isActive !== false ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    }`}>
+                      {node.isActive !== false ? 'Active' : 'Suspended'}
+                    </span>
+                  </td>
                   <td className="px-3 py-4 text-slate-400">{node.lastSeen ? new Date(node.lastSeen).toLocaleString() : 'Never'}</td>
                   <td className="px-3 py-4 text-slate-400">{node.readingsCount}</td>
                   <td className="px-3 py-4 text-right">
-                    <button
-                      disabled={processingId === node.id}
-                      onClick={() => toggleStatus(node)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        node.status === 'online' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
-                      }`}
-                    >
-                      <RotateCcw className={`w-3.5 h-3.5 ${processingId === node.id ? 'animate-spin' : ''}`} />
-                      Force {node.status === 'online' ? 'Offline' : 'Online'}
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        disabled={processingId === node.id}
+                        onClick={async () => {
+                          if (!confirm(`Are you sure you want to ${node.isActive !== false ? 'suspend' : 'activate'} billing state for ${node.name}?`)) return;
+                          setProcessingId(node.id);
+                          try {
+                            await updateAdminNode(node.id, { isActive: node.isActive === false ? true : false });
+                            triggerRefresh();
+                          } catch (e) {
+                            alert('Failed to update node active state.');
+                          } finally {
+                            setProcessingId(null);
+                          }
+                        }}
+                        className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          node.isActive !== false ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20' : 'bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20'
+                        }`}
+                      >
+                        {node.isActive !== false ? 'Suspend' : 'Activate'}
+                      </button>
+                      <button
+                        disabled={processingId === node.id}
+                        onClick={() => toggleStatus(node)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          node.status === 'online' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                        }`}
+                      >
+                        <RotateCcw className={`w-3.5 h-3.5 ${processingId === node.id ? 'animate-spin' : ''}`} />
+                        Force {node.status === 'online' ? 'Offline' : 'Online'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

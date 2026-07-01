@@ -49,6 +49,7 @@ model EdgeNode {
   latitude  Float?
   longitude Float?
   status    NodeStatus      @default(offline)
+  isActive  Boolean         @default(true)
   lastSeen  DateTime?
   createdAt DateTime        @default(now())
   readings  SensorReading[]

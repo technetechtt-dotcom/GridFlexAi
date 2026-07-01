@@ -18,7 +18,8 @@ import {
   removeApiCredential,
   removeBillingAccount,
   removeClient,
-  removeSite } from
+  removeSite,
+  patchUserPassword } from
 "../controllers/admin.controller.js";
 import {
   getAdminMetricsHandler,
@@ -35,6 +36,7 @@ import { validateRequest } from "../middleware/validateRequest.js";
 import {
   adminNodeUpdateBodySchema,
   adminUserRoleUpdateBodySchema,
+  adminUserPasswordResetBodySchema,
   apiCredentialBodySchema,
   apiCredentialUpdateBodySchema,
   billingAccountBodySchema,
@@ -52,6 +54,7 @@ router.use(authenticate, authorizeRoles("admin", "developer"));
 router.get("/overview", getAdminPlatformOverviewHandler);
 router.get("/users", getAdminUsersHandler);
 router.patch("/users/:id/role", validateRequest({ body: adminUserRoleUpdateBodySchema }), patchAdminUserRoleHandler);
+router.patch("/users/:id/password", validateRequest({ body: adminUserPasswordResetBodySchema }), patchUserPassword);
 router.get("/nodes", getAdminNodesOverviewHandler);
 router.get("/metrics", getAdminMetricsHandler);
 router.get("/logs", getAuditLogsHandler);
