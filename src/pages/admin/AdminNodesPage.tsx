@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Power, RotateCcw, Activity } from 'lucide-react';
+import { Power, RotateCcw, Activity, LayoutDashboard } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import { useRealTime } from '../../context/RealTimeContext';
 import { fetchAdminNodesOverview, updateAdminNode, type AdminMonitoringNode } from '../../services/api';
@@ -8,8 +9,9 @@ import { useAdminRefresh } from './AdminLayout';
 const POLL_MS = 15000;
 
 export function AdminNodesPage() {
+  const navigate = useNavigate();
   const { autoRefresh, refreshTick, triggerRefresh } = useAdminRefresh();
-  const { backendNodes } = useRealTime();
+  const { backendNodes, setSelectedNodeNames } = useRealTime();
   const [nodes, setNodes] = useState<AdminMonitoringNode[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -109,6 +111,17 @@ export function AdminNodesPage() {
                   <td className="px-3 py-4 text-slate-400">{node.readingsCount}</td>
                   <td className="px-3 py-4 text-right">
                     <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedNodeNames([node.name]);
+                          navigate('/');
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
+                        title="View Node Dashboard"
+                      >
+                        <LayoutDashboard className="w-3.5 h-3.5" />
+                        View
+                      </button>
                       <button
                         disabled={processingId === node.id}
                         onClick={async () => {
