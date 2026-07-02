@@ -146,7 +146,13 @@ export const postBillingAccount = asyncHandler(async (
   req: Request<Record<string, never>, unknown, BillingAccountBody>,
   res: Response
 ) => {
-  const data = await createBillingAccount(req.body);
+  const data = await createBillingAccount({
+    clientId: req.body.clientId,
+    plan: req.body.plan,
+    status: req.body.status,
+    billingEmail: req.body.billingEmail,
+    taxId: req.body.taxId
+  });
   res.status(201).json({ data });
 });
 
@@ -154,7 +160,12 @@ export const patchBillingAccount = asyncHandler(async (
   req: Request<IdParam, unknown, BillingAccountUpdateBody>,
   res: Response
 ) => {
-  const data = await updateBillingAccount(req.params.id, req.body);
+  const data = await updateBillingAccount(req.params.id, {
+    plan: req.body.plan,
+    status: req.body.status,
+    billingEmail: req.body.billingEmail,
+    taxId: req.body.taxId
+  });
   res.status(200).json({ data });
 });
 

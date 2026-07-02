@@ -438,7 +438,7 @@ export const createBillingAccount = async (input: { clientId: string; plan: stri
   return account;
 };
 
-export const updateBillingAccount = async (id: string, input: any) => {
+export const updateBillingAccount = async (id: string, input: { plan?: string; status?: string; billingEmail?: string; taxId?: string }) => {
   const payload: Prisma.BillingAccountUpdateInput = {};
   if (typeof input.plan === "string") payload.plan = input.plan;
   if (typeof input.status === "string") payload.status = input.status;
