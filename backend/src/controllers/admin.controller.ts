@@ -150,8 +150,8 @@ export const postBillingAccount = asyncHandler(async (
     clientId: req.body.clientId,
     plan: req.body.plan,
     status: req.body.status,
-    billingEmail: req.body.billingEmail,
-    taxId: req.body.taxId
+    ...(req.body.billingEmail !== undefined && { billingEmail: req.body.billingEmail }),
+    ...(req.body.taxId !== undefined && { taxId: req.body.taxId })
   });
   res.status(201).json({ data });
 });
@@ -161,10 +161,10 @@ export const patchBillingAccount = asyncHandler(async (
   res: Response
 ) => {
   const data = await updateBillingAccount(req.params.id, {
-    plan: req.body.plan,
-    status: req.body.status,
-    billingEmail: req.body.billingEmail,
-    taxId: req.body.taxId
+    ...(req.body.plan !== undefined && { plan: req.body.plan }),
+    ...(req.body.status !== undefined && { status: req.body.status }),
+    ...(req.body.billingEmail !== undefined && { billingEmail: req.body.billingEmail }),
+    ...(req.body.taxId !== undefined && { taxId: req.body.taxId })
   });
   res.status(200).json({ data });
 });

@@ -417,17 +417,24 @@ export const listBillingAccounts = async () => {
   }));
 };
 
-export const createBillingAccount = async (input: { clientId: string; plan: string; status: string; billingEmail?: string; taxId?: string }) => {
-  const account = await prisma.billingAccount.create({
-    data: {
-      plan: input.plan,
-      status: input.status,
-      billingEmail: input.billingEmail,
-      taxId: input.taxId,
-      client: {
-        connect: { id: input.clientId }
-      }
+export const createBillingAccount = async (input: { clientId: string; plan: string; status: string; billingEmail?: string | null | undefined; taxId?: string | null | undefined }) => {
+  const payload: Prisma.BillingAccountCreateInput = {
+    plan: input.plan,
+    status: input.status,
+    client: {
+      connect: { id: input.clientId }
     }
+  };
+  
+  if (typeof input.billingEmail === "string") {
+    payload.billingEmail = input.billingEmail;
+  }
+  if (typeof input.taxId === "string") {
+    payload.taxId = input.taxId;
+  }
+
+  const account = await prisma.billingAccount.create({
+    data: payload
   });
   await recordAuditLog({
     action: "admin.billingAccount.create",
@@ -438,7 +445,7 @@ export const createBillingAccount = async (input: { clientId: string; plan: stri
   return account;
 };
 
-export const updateBillingAccount = async (id: string, input: { plan?: string; status?: string; billingEmail?: string; taxId?: string }) => {
+export const updateBillingAccount = async (id: string, input: { plan?: string; status?: string; billingEmail?: string | null | undefined; taxId?: string | null | undefined }) => {
   const payload: Prisma.BillingAccountUpdateInput = {};
   if (typeof input.plan === "string") payload.plan = input.plan;
   if (typeof input.status === "string") payload.status = input.status;
