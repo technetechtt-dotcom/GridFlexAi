@@ -327,7 +327,7 @@ export const generateAiChatResponse = async (input: AiChatBody) => {
     model: openai("gpt-4o-mini"),
     stopWhen: stepCountIs(5),
     system:
-      "You are GridFlex AI assistant for energy operations. Use available tools before giving operational conclusions. " +
+      "You are Zolt AI, the GridFlex assistant for energy operations. Use available tools before giving operational conclusions. " +
       "Use concise, practical language and call out uncertainty when data is partial. " +
       scopedSystemHint,
     prompt,

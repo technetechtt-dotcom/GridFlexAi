@@ -104,7 +104,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
   },
   {
     id: 'ai-assistant',
-    label: 'AI Assistant',
+    label: 'Zolt AI',
     icon: Bot
   },
   {
@@ -210,8 +210,8 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
                     <MessageSquareMore className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">AI Chat</p>
-                    <p className="text-xs text-emerald-200/80">Ask GridFlex now</p>
+                    <p className="text-sm font-semibold">Zolt AI</p>
+                    <p className="text-xs text-emerald-200/80">Ask Zolt AI now</p>
                   </div>
                 </div>
                 <span className="text-[10px] uppercase tracking-wider bg-emerald-500/20 px-2 py-1 rounded-full">

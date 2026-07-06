@@ -242,7 +242,7 @@ export function AIInsights({ onNavigate }: AIInsightsProps) {
           className="flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors font-medium shadow-lg shadow-emerald-500/20">
 
           <Bot className="w-4 h-4 mr-2" />
-          Ask AI Assistant
+          Ask Zolt AI
         </button>
       </div>
 

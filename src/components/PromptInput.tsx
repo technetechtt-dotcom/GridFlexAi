@@ -14,7 +14,7 @@ interface PromptInputProps {
 }
 export function PromptInput({
   onSubmit,
-  placeholder = 'Ask GridFlex AI...',
+  placeholder = 'Ask Zolt AI...',
   templates = [],
   isSubmitting = false
 }: PromptInputProps) {

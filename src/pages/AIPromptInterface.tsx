@@ -212,7 +212,7 @@ export function AIPromptInterface({ onNavigate }: AIPromptInterfaceProps) {
             </div>
             <div>
               <h3 className="font-semibold text-slate-100">
-                GridFlex AI Assistant
+                Zolt AI
               </h3>
               <p className="text-xs text-slate-400">
                 Powered by LLM & Grid Physics Engine
@@ -262,7 +262,7 @@ export function AIPromptInterface({ onNavigate }: AIPromptInterfaceProps) {
                 <Bot className="w-5 h-5" />
               </div>
               <div className="p-4 rounded-2xl text-sm leading-relaxed shadow-sm bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none">
-                Hello! I am the GridFlex AI assistant. Ask about congestion, dispatch, forecast risk, node health, or curtailment trends.
+                Hello! I am Zolt AI. Ask about congestion, dispatch, forecast risk, node health, or curtailment trends.
               </div>
             </motion.div>
           }
@@ -323,14 +323,14 @@ export function AIPromptInterface({ onNavigate }: AIPromptInterfaceProps) {
                   'text-[10px] mt-2 opacity-50',
                   msg.role === 'user' ? 'text-emerald-100' : 'text-slate-500'
                 )}>
-                  {msg.role === 'assistant' ? 'Assistant' : 'You'}
+                  {msg.role === 'assistant' ? 'Zolt AI' : 'You'}
                 </div>
               </div>
             </motion.div>
           );})}
           {isAiOfflineError &&
           <div className="text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 space-y-1">
-              <p className="font-medium text-amber-100">AI offline: backend key missing</p>
+              <p className="font-medium text-amber-100">Zolt AI offline: backend key missing</p>
               <p>
                 Add <code className="text-amber-100">OPENAI_API_KEY</code> in
                 <code className="ml-1 text-amber-100">backend/.env</code>, then restart backend.

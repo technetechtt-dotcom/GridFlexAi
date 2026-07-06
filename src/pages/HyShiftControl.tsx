@@ -465,7 +465,7 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
           <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
             <PromptInput
               onSubmit={(val) => submitPrompt(val, 'hyshift')}
-              placeholder="Ask HyShift AI (e.g., 'Optimize ramp rate for upcoming wind gust')"
+              placeholder="Ask Zolt AI (e.g., 'Optimize ramp rate for upcoming wind gust')"
               templates={[
               {
                 label: 'Optimize Efficiency',

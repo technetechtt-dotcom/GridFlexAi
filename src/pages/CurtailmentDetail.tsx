@@ -166,7 +166,7 @@ export function CurtailmentDetail({ onNavigate }: CurtailmentDetailProps) {
           onClick={() => onNavigate('ai-assistant')}
           className="inline-flex items-center justify-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors font-medium shadow-lg shadow-emerald-500/20">
           <Bot className="w-4 h-4 mr-2" />
-          Ask AI About Curtailment
+          Ask Zolt AI About Curtailment
         </button>
       </div>
 
@@ -417,7 +417,7 @@ export function CurtailmentDetail({ onNavigate }: CurtailmentDetailProps) {
           <button
             onClick={() => onNavigate('ai-assistant')}
             className="w-full mt-4 py-2 text-sm text-emerald-400 hover:text-emerald-300 font-medium border border-emerald-500/20 hover:bg-emerald-500/10 rounded-lg transition-all">
-            Open AI Chat
+            Open Zolt AI
           </button>
         </div>
       </div>

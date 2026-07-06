@@ -248,7 +248,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             onClick={() => onNavigate('ai-assistant')}
             className="hidden md:flex items-center space-x-2 px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-colors">
             <Bot className="w-4 h-4" />
-            <span className="text-sm font-medium">AI Chat</span>
+            <span className="text-sm font-medium">Zolt AI</span>
           </button>
           <button
             onClick={() => setMicrogridMode(!microgridMode)}
