@@ -324,7 +324,7 @@ export const generateAiChatResponse = async (input: AiChatBody) => {
     "No scoped nodes were provided; choose the best tool target from the request.";
 
   return streamText({
-    model: openai("gpt-4o-mini"),
+    model: openai(env.OPENAI_MODEL),
     stopWhen: stepCountIs(5),
     system:
       "You are Zolt AI, the GridFlex assistant for energy operations. Use available tools before giving operational conclusions. " +

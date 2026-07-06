@@ -51,6 +51,7 @@ const envSchema = z.object({
   OPENWEATHER_API_KEY: z.string().optional(),
   ACCUWEATHER_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default("gpt-4o-mini"),
   FORECAST_CIRCUIT_FAILURE_THRESHOLD: z.coerce.number().int().min(1).default(3),
   FORECAST_CIRCUIT_OPEN_MS: z.coerce.number().int().min(1000).default(180000)
 });
