@@ -25,7 +25,7 @@ export const getNodes = asyncHandler(async (
   req: Request<Record<string, never>, unknown, unknown, ParsedQs>,
   res: Response
 ) => {
-  const nodes = await listNodesWithLastReading(req.query as unknown as NodeQuery);
+  const nodes = await listNodesWithLastReading(req.query as unknown as NodeQuery, req.user);
   res.status(200).json({ data: nodes });
 });
 
@@ -33,7 +33,7 @@ export const getNode = asyncHandler(async (
   req: Request<IdParam>,
   res: Response
 ) => {
-  const node = await getNodeDetail(req.params.id);
+  const node = await getNodeDetail(req.params.id, req.user);
   res.status(200).json({ data: node });
 });
 
@@ -73,6 +73,6 @@ export const postNodeMaintenanceRequest = asyncHandler(async (
   req: Request<IdParam, unknown, MaintenanceRequestBody>,
   res: Response
 ) => {
-  const request = await createNodeMaintenanceRequest(req.params.id, req.body, req.user?.id);
+  const request = await createNodeMaintenanceRequest(req.params.id, req.body, req.user?.id, req.user);
   res.status(201).json({ data: request });
 });

@@ -1,4 +1,5 @@
 import NodeCache from "node-cache";
+import { Prisma } from "@prisma/client";
 
 import { DEFAULT_FORECAST_AZIMUTH, DEFAULT_FORECAST_TILT, FORECAST_CACHE_TTL_MS } from "../config/constants.js";
 import { env } from "../config/env.js";
@@ -6,6 +7,7 @@ import { prisma } from "../lib/prisma.js";
 import { getRedisClient } from "../lib/redis.js";
 import { AppError } from "../utils/AppError.js";
 import { CircuitBreaker } from "../utils/circuitBreaker.js";
+import { getOptionalSiteAccessScope, type AccessActor } from "./access-scope.service.js";
 
 type ForecastParams = {
   lat: number;
@@ -832,22 +834,29 @@ export const getDailyForecastPredictions = async ({
   endDate,
   page,
   pageSize
-}: DailyPredictionsFilters): Promise<DailyForecastPredictionsResponse> => {
+}: DailyPredictionsFilters, actor?: AccessActor): Promise<DailyForecastPredictionsResponse> => {
   if (startDate && endDate && startDate > endDate) {
     throw new AppError("startDate must be before or equal to endDate.", 400);
   }
 
-  const where = {
-    ...(nodeId ? { nodeId } : {}),
-    ...(startDate || endDate ?
-    {
-      forecastDate: {
-        ...(startDate ? { gte: startDate } : {}),
-        ...(endDate ? { lte: endDate } : {})
+  const scope = await getOptionalSiteAccessScope(actor);
+  const where: Prisma.DailyForecastPredictionWhereInput = {};
+  if (nodeId) {
+    where.nodeId = nodeId;
+  }
+  if (startDate || endDate) {
+    where.forecastDate = {
+      ...(startDate ? { gte: startDate } : {}),
+      ...(endDate ? { lte: endDate } : {})
+    };
+  }
+  if (scope.kind === "site") {
+    where.node = {
+      is: {
+        siteId: scope.siteId
       }
-    } :
-    {})
-  };
+    };
+  }
 
   const skip = (page - 1) * pageSize;
 

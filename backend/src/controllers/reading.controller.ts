@@ -43,7 +43,7 @@ export const listReadings = asyncHandler(async (
     filters.windowHours = query.windowHours;
   }
 
-  const result = await getReadings(filters);
+  const result = await getReadings(filters, req.user);
 
   res.status(200).json({
     data: result.items,
@@ -82,6 +82,6 @@ export const getReadingsSummaryController = asyncHandler(async (
     filters.endDate = new Date(query.endDate);
   }
 
-  const data = await getReadingsSummary(filters);
+  const data = await getReadingsSummary(filters, req.user);
   res.status(200).json({ data });
 });

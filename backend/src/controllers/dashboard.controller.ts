@@ -8,10 +8,10 @@ type DashboardResponse = {
 };
 
 export const getDashboardSummary = asyncHandler(async (
-  _req: Request<Record<string, never>, DashboardResponse>,
+  req: Request<Record<string, never>, DashboardResponse>,
   res: Response<DashboardResponse>
 ) => {
-  const summary = await getDashboardOverview();
+  const summary = await getDashboardOverview(req.user);
   res.status(200).json({ data: summary });
 });
 

@@ -2,6 +2,8 @@ import { getDashboardOverview } from "./dashboard.service.js";
 import { getHybridForecast } from "./forecast.service.js";
 import { listNodesWithLastReading } from "./node.service.js";
 import { getReadingsSummary } from "./reading.service.js";
+import { AppError } from "../utils/AppError.js";
+import { getOptionalSiteAccessScope, type AccessActor } from "./access-scope.service.js";
 
 type SimulationNodeProfile = {
   id?: string | undefined;
@@ -46,8 +48,11 @@ const toRisk = (peak: number): CongestionNode["risk"] => {
   return "low";
 };
 
-const inferProfilesFromNodes = async (): Promise<SimulationNodeProfile[]> => {
-  const nodes = await listNodesWithLastReading();
+const inferProfilesFromNodes = async (actor?: AccessActor): Promise<SimulationNodeProfile[]> => {
+  const [scope, nodes] = await Promise.all([
+    getOptionalSiteAccessScope(actor),
+    listNodesWithLastReading({}, actor)
+  ]);
   const mapped = nodes.flatMap((node) => {
     if (typeof node.latitude !== "number" || typeof node.longitude !== "number") {
       return [];
@@ -65,18 +70,49 @@ const inferProfilesFromNodes = async (): Promise<SimulationNodeProfile[]> => {
     ];
   });
 
-  return mapped.length > 0 ? mapped.slice(0, 8) : fallbackProfiles;
+  if (mapped.length > 0) {
+    return mapped.slice(0, 8);
+  }
+
+  if (scope.kind === "site") {
+    throw new AppError("No forecast-capable nodes are assigned to your site/plant.", 404);
+  }
+
+  return fallbackProfiles;
 };
 
-const resolveProfiles = async (profiles?: SimulationNodeProfile[]): Promise<SimulationNodeProfile[]> => {
-  if (profiles && profiles.length > 0) {
+const resolveProfiles = async (
+  profiles?: SimulationNodeProfile[],
+  actor?: AccessActor
+): Promise<SimulationNodeProfile[]> => {
+  const scope = await getOptionalSiteAccessScope(actor);
+  if (scope.kind === "global" && profiles && profiles.length > 0) {
     return profiles;
   }
-  return inferProfilesFromNodes();
+
+  if (scope.kind === "site" && profiles && profiles.length > 0) {
+    const accessibleProfiles = await inferProfilesFromNodes(actor);
+    const requestedIds = new Set(profiles.map((profile) => profile.id).filter((id): id is string => Boolean(id)));
+    const requestedNames = new Set(profiles.map((profile) => profile.name));
+    const resolvedProfiles = accessibleProfiles.filter((profile) =>
+      (profile.id && requestedIds.has(profile.id)) || requestedNames.has(profile.name)
+    );
+
+    if (resolvedProfiles.length !== profiles.length || resolvedProfiles.length === 0) {
+      throw new AppError("Simulation profiles must belong to your assigned site/plant.", 403);
+    }
+
+    return resolvedProfiles;
+  }
+
+  return inferProfilesFromNodes(actor);
 };
 
-export const getCongestionNodesSimulation = async (profiles?: SimulationNodeProfile[]): Promise<CongestionNode[]> => {
-  const resolvedProfiles = await resolveProfiles(profiles);
+export const getCongestionNodesSimulation = async (
+  profiles?: SimulationNodeProfile[],
+  actor?: AccessActor
+): Promise<CongestionNode[]> => {
+  const resolvedProfiles = await resolveProfiles(profiles, actor);
   const rows = await Promise.all(
     resolvedProfiles.map(async (profile) => {
       const forecast = await getHybridForecast({
@@ -103,8 +139,8 @@ export const getCongestionNodesSimulation = async (profiles?: SimulationNodeProf
   return rows;
 };
 
-export const getDynamicLineRatingsSimulation = async () => {
-  const profiles = await resolveProfiles();
+export const getDynamicLineRatingsSimulation = async (actor?: AccessActor) => {
+  const profiles = await resolveProfiles(undefined, actor);
   const topProfiles = profiles.slice(0, 3);
 
   const rows = await Promise.all(
@@ -135,10 +171,10 @@ export const getDynamicLineRatingsSimulation = async () => {
   return rows;
 };
 
-export const getTopologyOptimizationSimulation = async () => {
+export const getTopologyOptimizationSimulation = async (actor?: AccessActor) => {
   const [dashboard, congestionNodes] = await Promise.all([
-    getDashboardOverview(),
-    getCongestionNodesSimulation()
+    getDashboardOverview(actor),
+    getCongestionNodesSimulation(undefined, actor)
   ]);
 
   const highRiskNodes = congestionNodes.filter((node) => node.risk === "high" || node.risk === "critical").length;
@@ -164,8 +200,8 @@ export const getTopologyOptimizationSimulation = async () => {
   };
 };
 
-export const getHydrogenTwinSimulation = async () => {
-  const dashboard = await getDashboardOverview();
+export const getHydrogenTwinSimulation = async (actor?: AccessActor) => {
+  const dashboard = await getDashboardOverview(actor);
   const avgPower = Math.max(dashboard.averages.power, 1);
   const stackLoadPercent = Math.max(15, Math.min(95, Math.round((dashboard.averages.inverterPower / avgPower) * 100)));
   const renewableSharePercent = Math.max(0, Math.min(100, Math.round(100 - dashboard.averages.curtailment * 4)));
@@ -192,12 +228,12 @@ export const getHydrogenTwinSimulation = async () => {
   };
 };
 
-export const getPilotReportSimulation = async () => {
+export const getPilotReportSimulation = async (actor?: AccessActor) => {
   const endDate = new Date();
   const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
   const [dashboard, summaryRows] = await Promise.all([
-    getDashboardOverview(),
-    getReadingsSummary({ startDate, endDate })
+    getDashboardOverview(actor),
+    getReadingsSummary({ startDate, endDate }, actor)
   ]);
 
   const energyKwh = summaryRows.reduce((acc, row) => acc + row.totalEnergyKwh, 0);

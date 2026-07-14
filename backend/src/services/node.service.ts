@@ -17,6 +17,11 @@ import type {
   NodeUpdateBody
 } from "../schemas/request.schemas.js";
 import { AppError } from "../utils/AppError.js";
+import {
+  getOptionalSiteAccessScope,
+  resolveScopedSiteId,
+  type AccessActor
+} from "./access-scope.service.js";
 import { recordAuditLog } from "./audit-log.service.js";
 
 const STALE_NODE_MINUTES = 30;
@@ -401,9 +406,17 @@ const buildNodeWhere = (filters: NodeQuery = {}): Prisma.EdgeNodeWhereInput => {
   return where;
 };
 
-export const listNodesWithLastReading = async (filters: NodeQuery = {}) => {
+export const listNodesWithLastReading = async (filters: NodeQuery = {}, actor?: AccessActor) => {
+  const scopedSiteId = await resolveScopedSiteId(actor, filters.siteId);
+  const scopedFilters = {
+    ...filters
+  };
+  if (scopedSiteId) {
+    scopedFilters.siteId = scopedSiteId;
+  }
+
   const nodes = await prisma.edgeNode.findMany({
-    where: buildNodeWhere(filters),
+    where: buildNodeWhere(scopedFilters),
     orderBy: [{ createdAt: "desc" }],
     include: nodeListInclude
   });
@@ -461,7 +474,7 @@ export const listNodesWithLastReading = async (filters: NodeQuery = {}) => {
   return nodes.map((node) => serializeListNode(node, statsByNode, energyByNode));
 };
 
-export const getNodeDetail = async (id: string) => {
+export const getNodeDetail = async (id: string, actor?: AccessActor) => {
   const node = await prisma.edgeNode.findUnique({
     where: { id },
     include: nodeDetailInclude
@@ -469,6 +482,12 @@ export const getNodeDetail = async (id: string) => {
   if (!node) {
     throw new AppError("Node not found.", 404);
   }
+
+  const scope = await getOptionalSiteAccessScope(actor);
+  if (scope.kind === "site" && node.siteId !== scope.siteId) {
+    throw new AppError("You can only access nodes for your assigned site/plant.", 403);
+  }
+
   return serializeDetailNode(node);
 };
 
@@ -710,11 +729,17 @@ export const bulkNodeAction = async (input: NodeBulkActionBody, userId?: string)
 export const createNodeMaintenanceRequest = async (
   nodeId: string,
   input: MaintenanceRequestBody,
-  userId?: string
+  userId?: string,
+  actor?: AccessActor
 ) => {
   const node = await prisma.edgeNode.findUnique({ where: { id: nodeId } });
   if (!node) {
     throw new AppError("Node not found.", 404);
+  }
+
+  const scope = await getOptionalSiteAccessScope(actor);
+  if (scope.kind === "site" && node.siteId !== scope.siteId) {
+    throw new AppError("You can only request maintenance for nodes at your assigned site/plant.", 403);
   }
 
   const data: Prisma.NodeMaintenanceRequestUncheckedCreateInput = {

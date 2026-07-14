@@ -1,5 +1,6 @@
 import { streamText, stepCountIs, tool } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { env } from "../config/env.js";
@@ -8,6 +9,11 @@ import type { AiChatBody } from "../schemas/request.schemas.js";
 import { getDashboardOverview } from "./dashboard.service.js";
 import { getHybridForecast } from "./forecast.service.js";
 import { AppError } from "../utils/AppError.js";
+import {
+  assertNodeSiteAccess,
+  getOptionalSiteAccessScope,
+  type AccessActor
+} from "./access-scope.service.js";
 
 type CurtailmentStats = {
   nodeId: string;
@@ -74,20 +80,30 @@ const parseScopedNodeTargets = (context: string | undefined): ScopedNodeTarget[]
   return scopedTargets;
 };
 
-const resolveScopedNodes = async (targets: ScopedNodeTarget[]) => {
-  if (!targets.length) {
+const resolveScopedNodes = async (targets: ScopedNodeTarget[], actor?: AccessActor) => {
+  const scope = await getOptionalSiteAccessScope(actor);
+  if (!targets.length && scope.kind === "global") {
     return [];
   }
 
   const ids = targets.map((target) => target.id).filter((value): value is string => Boolean(value));
   const names = targets.map((target) => target.name).filter(Boolean);
+  const where: Prisma.EdgeNodeWhereInput = scope.kind === "site" ? { siteId: scope.siteId } : {};
+  const targetMatchers: Prisma.EdgeNodeWhereInput[] = [];
+  if (ids.length) {
+    targetMatchers.push({ id: { in: ids } });
+  }
+  if (names.length) {
+    targetMatchers.push({ name: { in: names } });
+  }
+  if (targetMatchers.length > 0) {
+    where.OR = targetMatchers;
+  }
+
   const nodes = await prisma.edgeNode.findMany({
-    where: {
-      OR: [
-        ids.length ? { id: { in: ids } } : undefined,
-        names.length ? { name: { in: names } } : undefined
-      ].filter(Boolean) as Array<Record<string, unknown>>
-    },
+    where,
+    orderBy: [{ createdAt: "desc" }],
+    take: targets.length ? targets.length : 8,
     select: {
       id: true,
       name: true,
@@ -95,12 +111,22 @@ const resolveScopedNodes = async (targets: ScopedNodeTarget[]) => {
       latitude: true,
       longitude: true,
       status: true,
-      lastSeen: true
+      lastSeen: true,
+      readings: {
+        orderBy: [{ timestamp: "desc" }],
+        take: 1,
+        select: {
+          power: true
+        }
+      }
     }
   });
 
-  return targets.map((target) => {
-    const matchedNode = nodes.find((node) => node.id === target.id || node.name === target.name);
+  const toResolvedNode = (
+    matchedNode: (typeof nodes)[number],
+    target?: ScopedNodeTarget
+  ) => {
+    const latestPower = matchedNode.readings[0]?.power;
     const resolvedNode: {
       id?: string;
       name: string;
@@ -111,17 +137,55 @@ const resolveScopedNodes = async (targets: ScopedNodeTarget[]) => {
       status: string | null;
       lastSeen: Date | null;
     } = {
-      name: matchedNode?.name ?? target.name,
-      location: matchedNode?.location ?? null,
-      lat: matchedNode?.latitude ?? target.lat ?? null,
-      lon: matchedNode?.longitude ?? target.lon ?? null,
-      capacity: target.capacity ?? null,
-      status: matchedNode?.status ?? null,
-      lastSeen: matchedNode?.lastSeen ?? null
+      id: matchedNode.id,
+      name: matchedNode.name,
+      location: matchedNode.location,
+      lat: matchedNode.latitude ?? target?.lat ?? null,
+      lon: matchedNode.longitude ?? target?.lon ?? null,
+      capacity: target?.capacity ?? (typeof latestPower === "number" ? Math.max(120, Math.round(latestPower * 1.25)) : 140),
+      status: matchedNode.status,
+      lastSeen: matchedNode.lastSeen
     };
-    const resolvedId = matchedNode?.id ?? target.id;
-    if (resolvedId) {
-      resolvedNode.id = resolvedId;
+    return resolvedNode;
+  };
+
+  if (scope.kind === "site") {
+    if (!targets.length) {
+      return nodes.map((node) => toResolvedNode(node));
+    }
+
+    return targets.flatMap((target) => {
+      const matchedNode = nodes.find((node) => node.id === target.id || node.name === target.name);
+      return matchedNode ? [toResolvedNode(matchedNode, target)] : [];
+    });
+  }
+
+  return targets.map((target) => {
+    const matchedNode = nodes.find((node) => node.id === target.id || node.name === target.name);
+    if (matchedNode) {
+      return toResolvedNode(matchedNode, target);
+    }
+
+    const resolvedNode: {
+      id?: string;
+      name: string;
+      location: string | null;
+      lat: number | null;
+      lon: number | null;
+      capacity: number | null;
+      status: string | null;
+      lastSeen: Date | null;
+    } = {
+      name: target.name,
+      location: null,
+      lat: target.lat ?? null,
+      lon: target.lon ?? null,
+      capacity: target.capacity ?? null,
+      status: null,
+      lastSeen: null
+    };
+    if (target.id) {
+      resolvedNode.id = target.id;
     }
     return resolvedNode;
   });
@@ -134,7 +198,8 @@ const createScopedResolvers = (
     lat: number | null;
     lon: number | null;
     capacity: number | null;
-  }>
+  }>,
+  lockForecastToScopedNodes: boolean
 ) => {
   const primaryScopedNode = scopedNodes[0];
 
@@ -143,6 +208,14 @@ const createScopedResolvers = (
       return nodeId ?? primaryScopedNode?.id;
     },
     resolveForecastInput(input: { lat: number | undefined; lon: number | undefined; capacity: number | undefined }) {
+      if (lockForecastToScopedNodes) {
+        return {
+          lat: primaryScopedNode?.lat ?? null,
+          lon: primaryScopedNode?.lon ?? null,
+          capacity: primaryScopedNode?.capacity ?? null
+        };
+      }
+
       return {
         lat: input.lat ?? primaryScopedNode?.lat ?? null,
         lon: input.lon ?? primaryScopedNode?.lon ?? null,
@@ -153,7 +226,9 @@ const createScopedResolvers = (
   };
 };
 
-const getLiveReadings = async (nodeId: string) => {
+const getLiveReadings = async (nodeId: string, actor?: AccessActor) => {
+  await assertNodeSiteAccess(nodeId, actor);
+
   const readings = await prisma.sensorReading.findMany({
     where: { nodeId },
     orderBy: [{ timestamp: "desc" }],
@@ -186,8 +261,11 @@ const getLiveReadings = async (nodeId: string) => {
   };
 };
 
-const getNodeStatus = async () => {
+const getNodeStatus = async (actor?: AccessActor) => {
+  const scope = await getOptionalSiteAccessScope(actor);
+
   const nodes = await prisma.edgeNode.findMany({
+    where: scope.kind === "site" ? { siteId: scope.siteId } : {},
     orderBy: [{ createdAt: "desc" }],
     take: 50,
     select: {
@@ -206,13 +284,27 @@ const getNodeStatus = async () => {
   };
 };
 
-const analyzeCurtailment = async (nodeId: string | undefined, windowHours: number) => {
+const analyzeCurtailment = async (nodeId: string | undefined, windowHours: number, actor?: AccessActor) => {
+  if (nodeId) {
+    await assertNodeSiteAccess(nodeId, actor);
+  }
+
+  const scope = await getOptionalSiteAccessScope(actor);
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
+  const where: Prisma.SensorReadingWhereInput = {
+    timestamp: { gte: since },
+    ...(nodeId ? { nodeId } : {})
+  };
+  if (scope.kind === "site") {
+    where.node = {
+      is: {
+        siteId: scope.siteId
+      }
+    };
+  }
+
   const readings = await prisma.sensorReading.findMany({
-    where: {
-      timestamp: { gte: since },
-      ...(nodeId ? { nodeId } : {})
-    },
+    where,
     orderBy: [{ timestamp: "asc" }],
     select: {
       nodeId: true,
@@ -298,7 +390,7 @@ export const getAiStreamErrorMessage = (error: unknown): string => {
   return "Zolt AI could not complete the request.";
 };
 
-export const generateAiChatResponse = async (input: AiChatBody) => {
+export const generateAiChatResponse = async (input: AiChatBody, actor?: AccessActor) => {
   if (!env.OPENAI_API_KEY) {
     throw new AppError("OPENAI_API_KEY is not configured on the backend.", 503);
   }
@@ -338,8 +430,11 @@ export const generateAiChatResponse = async (input: AiChatBody) => {
   }
 
   const scopedTargets = parseScopedNodeTargets(input.context);
-  const scopedNodes = await resolveScopedNodes(scopedTargets);
-  const scopedResolvers = createScopedResolvers(scopedNodes);
+  const [scope, scopedNodes] = await Promise.all([
+    getOptionalSiteAccessScope(actor),
+    resolveScopedNodes(scopedTargets, actor)
+  ]);
+  const scopedResolvers = createScopedResolvers(scopedNodes, scope.kind === "site");
   const scopedSystemHint = scopedNodes.length ?
     `Prioritize these scoped nodes first unless the user explicitly asks for a different target: ${
       scopedNodes.map((node) => `${node.name}${node.id ? ` [${node.id}]` : ""}`).join(", ")
@@ -363,7 +458,7 @@ export const generateAiChatResponse = async (input: AiChatBody) => {
           if (!resolvedNodeId) {
             throw new AppError("No nodeId provided and no scoped node was available in chat context.", 400);
           }
-          return getLiveReadings(resolvedNodeId);
+          return getLiveReadings(resolvedNodeId, actor);
         }
       }),
       getForecast: tool({
@@ -390,17 +485,18 @@ export const generateAiChatResponse = async (input: AiChatBody) => {
       getNodeStatus: tool({
         description: "Get node online/offline status with last seen timestamps.",
         inputSchema: toolSchemas.getNodeStatus,
-        execute: async () => getNodeStatus()
+        execute: async () => getNodeStatus(actor)
       }),
       getDailySummary: tool({
         description: "Get dashboard daily summary of current fleet metrics.",
         inputSchema: toolSchemas.getDailySummary,
-        execute: async () => getDashboardOverview()
+        execute: async () => getDashboardOverview(actor)
       }),
       analyzeCurtailment: tool({
         description: "Analyze curtailment trend and estimated energy impact over a time window.",
         inputSchema: toolSchemas.analyzeCurtailment,
-        execute: async ({ nodeId, windowHours }) => analyzeCurtailment(scopedResolvers.resolveNodeId(nodeId), windowHours)
+        execute: async ({ nodeId, windowHours }) =>
+          analyzeCurtailment(scopedResolvers.resolveNodeId(nodeId), windowHours, actor)
       })
     }
   });

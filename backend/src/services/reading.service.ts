@@ -5,6 +5,7 @@ import { getSocketServer } from "../config/socket.js";
 import { prisma } from "../lib/prisma.js";
 import type { EdgeDataBody } from "../schemas/request.schemas.js";
 import { AppError } from "../utils/AppError.js";
+import { getOptionalSiteAccessScope, type AccessActor } from "./access-scope.service.js";
 import { createStatusLog, resolveNodeForIngestion } from "./node.service.js";
 
 type ReadingFilters = {
@@ -91,7 +92,24 @@ const toIsoIfDate = (value: string | Date | undefined) => {
   return value;
 };
 
-export const getReadings = async ({ nodeId, page, pageSize, sort, startDate, endDate, windowHours }: ReadingFilters) => {
+const applyReadingAccessScope = async (
+  where: Prisma.SensorReadingWhereInput,
+  actor: AccessActor | undefined
+) => {
+  const scope = await getOptionalSiteAccessScope(actor);
+  if (scope.kind === "site") {
+    where.node = {
+      is: {
+        siteId: scope.siteId
+      }
+    };
+  }
+};
+
+export const getReadings = async (
+  { nodeId, page, pageSize, sort, startDate, endDate, windowHours }: ReadingFilters,
+  actor?: AccessActor
+) => {
   const where: Prisma.SensorReadingWhereInput = {};
 
   if (nodeId) {
@@ -106,6 +124,8 @@ export const getReadings = async ({ nodeId, page, pageSize, sort, startDate, end
   if (timestampRange) {
     where.timestamp = timestampRange;
   }
+
+  await applyReadingAccessScope(where, actor);
 
   const skip = (page - 1) * pageSize;
   const [total, readings] = await Promise.all([
@@ -149,7 +169,10 @@ export const getReadings = async ({ nodeId, page, pageSize, sort, startDate, end
   };
 };
 
-export const getReadingsSummary = async ({ nodeId, startDate, endDate }: ReadingSummaryFilters) => {
+export const getReadingsSummary = async (
+  { nodeId, startDate, endDate }: ReadingSummaryFilters,
+  actor?: AccessActor
+) => {
   const where: Prisma.SensorReadingWhereInput = {};
   if (nodeId) {
     where.nodeId = nodeId;
@@ -164,6 +187,8 @@ export const getReadingsSummary = async ({ nodeId, startDate, endDate }: Reading
       where.timestamp.lte = endDate;
     }
   }
+
+  await applyReadingAccessScope(where, actor);
 
   const readings = await prisma.sensorReading.findMany({
     where,

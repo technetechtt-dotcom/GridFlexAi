@@ -1,13 +1,32 @@
-import { NodeStatus } from "@prisma/client";
+import { NodeStatus, Prisma } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
+import { getOptionalSiteAccessScope, type AccessActor } from "./access-scope.service.js";
 import { getForecastProvidersStatus } from "./forecast.service.js";
 
-export const getDashboardOverview = async () => {
+export const getDashboardOverview = async (actor?: AccessActor) => {
+  const scope = await getOptionalSiteAccessScope(actor);
+  const nodeWhere: Prisma.EdgeNodeWhereInput = scope.kind === "site" ? { siteId: scope.siteId } : {};
+  const readingWhere: Prisma.SensorReadingWhereInput = scope.kind === "site"
+    ? {
+        node: {
+          is: {
+            siteId: scope.siteId
+          }
+        }
+      }
+    : {};
+
   const [totalNodes, onlineNodes, latestReadings] = await Promise.all([
-    prisma.edgeNode.count(),
-    prisma.edgeNode.count({ where: { status: NodeStatus.online } }),
+    prisma.edgeNode.count({ where: nodeWhere }),
+    prisma.edgeNode.count({
+      where: {
+        ...nodeWhere,
+        status: NodeStatus.online
+      }
+    }),
     prisma.sensorReading.findMany({
+      where: readingWhere,
       take: 200,
       orderBy: [{ timestamp: "desc" }],
       select: {

@@ -9,7 +9,7 @@ export const postAiChat = asyncHandler(async (
   req: Request<Record<string, never>, unknown, AiChatBody>,
   res: Response
 ) => {
-  const result = await generateAiChatResponse(req.body);
+  const result = await generateAiChatResponse(req.body, req.user);
   result.pipeUIMessageStreamToResponse(res as unknown as ServerResponse, {
     onError: getAiStreamErrorMessage
   });

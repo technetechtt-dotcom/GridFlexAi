@@ -81,6 +81,6 @@ export const getDailyForecastPredictionsController = asyncHandler(async (
   if (query.endDate) {
     filters.endDate = new Date(query.endDate);
   }
-  const data = await getDailyForecastPredictions(filters);
+  const data = await getDailyForecastPredictions(filters, req.user);
   res.status(200).json(data);
 });
