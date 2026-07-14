@@ -14,6 +14,7 @@ import { LoginPage } from './pages/LoginPage';
 import { usePilotStore } from './store/pilotStore';
 
 const Dashboard = lazy(() => import('./pages/Dashboard').then((module) => ({ default: module.Dashboard })));
+const NodeDashboard = lazy(() => import('./pages/NodeDashboard').then((module) => ({ default: module.NodeDashboard })));
 const CongestionForecast = lazy(() => import('./pages/CongestionForecast').then((module) => ({ default: module.CongestionForecast })));
 const DispatchOptimization = lazy(() => import('./pages/DispatchOptimization').then((module) => ({ default: module.DispatchOptimization })));
 const ScenarioSimulation = lazy(() => import('./pages/ScenarioSimulation').then((module) => ({ default: module.ScenarioSimulation })));
@@ -46,6 +47,7 @@ const ManagerTeamPage = lazy(() => import('./pages/ManagerTeamPage').then((modul
 
 const pageToPath: Record<Page, string> = {
   dashboard: '/',
+  nodes: '/nodes',
   'admin-dashboard': '/ops',
   'manager-team': '/team',
   congestion: '/congestion',
@@ -70,6 +72,7 @@ const pageToPath: Record<Page, string> = {
 function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/ops')) return 'admin-dashboard';
   if (pathname.startsWith('/admin')) return 'admin-dashboard';
+  if (pathname.startsWith('/nodes')) return 'nodes';
   if (pathname.startsWith('/team')) return 'manager-team';
   if (pathname.startsWith('/congestion')) return 'congestion';
   if (pathname.startsWith('/dispatch-status')) return 'dispatch-status';
@@ -184,6 +187,7 @@ function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route element={<AuthShell />}>
           <Route path="/" element={<Dashboard onNavigate={routeNavigate} />} />
+          <Route path="/nodes" element={<NodeDashboard />} />
           <Route element={<RequireManager />}>
             <Route path="/team" element={<ManagerTeamPage />} />
           </Route>

@@ -5,7 +5,7 @@ import { getSocketServer } from "../config/socket.js";
 import { prisma } from "../lib/prisma.js";
 import type { EdgeDataBody } from "../schemas/request.schemas.js";
 import { AppError } from "../utils/AppError.js";
-import { resolveNodeForIngestion } from "./node.service.js";
+import { createStatusLog, resolveNodeForIngestion } from "./node.service.js";
 
 type ReadingFilters = {
   nodeId?: string;
@@ -32,6 +32,12 @@ type CreateReadingInput = {
   energyToday?: number;
   inverterPower?: number;
   curtailment?: number;
+  batteryLevel?: number;
+  signalStrength?: number;
+  firmwareVersion?: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
   timestamp?: Date;
 };
 
@@ -284,21 +290,55 @@ export const createReading = async (payload: CreateReadingInput) => {
     }
   });
 
+  const nodeUpdateData: Prisma.EdgeNodeUpdateInput = {
+    status: NodeStatus.online,
+    lastSeen: reading.timestamp
+  };
+  if (typeof payload.batteryLevel === "number") {
+    nodeUpdateData.batteryLevel = payload.batteryLevel;
+  }
+  if (typeof payload.signalStrength === "number") {
+    nodeUpdateData.signalStrength = payload.signalStrength;
+  }
+  if (typeof payload.firmwareVersion === "string") {
+    nodeUpdateData.firmwareVersion = payload.firmwareVersion;
+  }
+  if (typeof payload.location === "string") {
+    nodeUpdateData.location = payload.location;
+  }
+  if (typeof payload.latitude === "number") {
+    nodeUpdateData.latitude = payload.latitude;
+  }
+  if (typeof payload.longitude === "number") {
+    nodeUpdateData.longitude = payload.longitude;
+  }
+
   const updatedNode = await prisma.edgeNode.update({
     where: { id: node.id },
-    data: {
-      status: NodeStatus.online,
-      lastSeen: reading.timestamp
-    },
+    data: nodeUpdateData,
     select: {
       id: true,
+      serialNumber: true,
       name: true,
       location: true,
       status: true,
+      firmwareVersion: true,
+      batteryLevel: true,
+      signalStrength: true,
       lastSeen: true,
       createdAt: true
     }
   });
+
+  if (node.status !== NodeStatus.online) {
+    await createStatusLog({
+      nodeId: node.id,
+      fromStatus: node.status,
+      toStatus: NodeStatus.online,
+      action: "node.ingestion.online",
+      message: "Node reported telemetry and was marked online"
+    });
+  }
 
   return {
     reading,
@@ -326,6 +366,24 @@ export const ingestEdgeData = async (payload: EdgeDataBody, deviceKey?: string):
   }
   if (typeof payload.curtailment === "number") {
     readingInput.curtailment = payload.curtailment;
+  }
+  if (typeof payload.batteryLevel === "number") {
+    readingInput.batteryLevel = payload.batteryLevel;
+  }
+  if (typeof payload.signalStrength === "number") {
+    readingInput.signalStrength = payload.signalStrength;
+  }
+  if (typeof payload.firmwareVersion === "string") {
+    readingInput.firmwareVersion = payload.firmwareVersion;
+  }
+  if (typeof payload.location === "string") {
+    readingInput.location = payload.location;
+  }
+  if (typeof payload.latitude === "number") {
+    readingInput.latitude = payload.latitude;
+  }
+  if (typeof payload.longitude === "number") {
+    readingInput.longitude = payload.longitude;
   }
   if (payload.timestamp) {
     readingInput.timestamp = new Date(payload.timestamp);

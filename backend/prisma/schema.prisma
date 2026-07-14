@@ -17,6 +17,7 @@ enum Role {
 enum NodeStatus {
   online
   offline
+  maintenance
 }
 
 enum ApiProvider {
@@ -57,24 +58,65 @@ model ManagerOperatorProvisioning {
 }
 
 model EdgeNode {
-  id        String          @id @default(cuid())
-  deviceKey String?         @unique
-  siteId    String?
-  site      Site?           @relation(fields: [siteId], references: [id])
-  name      String
-  location  String
-  latitude  Float?
-  longitude Float?
-  status    NodeStatus      @default(offline)
-  isActive  Boolean         @default(true)
-  lastSeen  DateTime?
-  createdAt DateTime        @default(now())
-  readings  SensorReading[]
-  forecasts DailyForecastPrediction[]
+  id                  String                   @id @default(cuid())
+  deviceKey           String?                  @unique
+  serialNumber        String?                  @unique
+  siteId              String?
+  site                Site?                    @relation(fields: [siteId], references: [id])
+  name                String
+  location            String
+  latitude            Float?
+  longitude           Float?
+  status              NodeStatus               @default(offline)
+  firmwareVersion     String?
+  batteryLevel        Float?
+  signalStrength      Float?
+  installedAt         DateTime                 @default(now())
+  lastRestartedAt     DateTime?
+  isActive            Boolean                  @default(true)
+  lastSeen            DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  readings            SensorReading[]
+  forecasts           DailyForecastPrediction[]
+  statusLogs          EdgeNodeStatusLog[]
+  maintenanceRequests NodeMaintenanceRequest[]
 
   @@index([status])
   @@index([lastSeen])
   @@index([siteId])
+  @@index([serialNumber])
+}
+
+model EdgeNodeStatusLog {
+  id         String      @id @default(cuid())
+  nodeId     String
+  node       EdgeNode    @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  fromStatus NodeStatus?
+  toStatus   NodeStatus
+  action     String
+  message    String?
+  metadata   Json?
+  userId     String?
+  createdAt  DateTime    @default(now())
+
+  @@index([nodeId, createdAt])
+  @@index([toStatus])
+}
+
+model NodeMaintenanceRequest {
+  id            String    @id @default(cuid())
+  nodeId        String
+  node          EdgeNode  @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  requestedById String?
+  issueType     String
+  description   String
+  status        String    @default("open")
+  createdAt     DateTime  @default(now())
+  resolvedAt    DateTime?
+
+  @@index([nodeId, createdAt])
+  @@index([status])
 }
 
 model SensorReading {

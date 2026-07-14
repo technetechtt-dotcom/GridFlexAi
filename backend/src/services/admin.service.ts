@@ -224,9 +224,15 @@ export const listManagedNodes = async () => {
 
   return nodes.map((node) => ({
     id: node.id,
+    serialNumber: node.serialNumber,
     name: node.name,
     location: node.location,
+    latitude: node.latitude,
+    longitude: node.longitude,
     status: node.status,
+    firmwareVersion: node.firmwareVersion,
+    batteryLevel: node.batteryLevel,
+    signalStrength: node.signalStrength,
     lastSeen: node.lastSeen?.toISOString() ?? null,
     siteId: node.siteId,
     site: node.site
@@ -236,8 +242,14 @@ export const listManagedNodes = async () => {
 export const updateManagedNode = async (id: string, input: AdminNodeUpdateBody) => {
   const payload: Prisma.EdgeNodeUpdateInput = {};
   if (typeof input.name === "string") payload.name = input.name;
+  if (typeof input.serialNumber === "string") payload.serialNumber = input.serialNumber;
   if (typeof input.location === "string") payload.location = input.location;
-  if (typeof input.status === "string") payload.status = input.status === "online" ? NodeStatus.online : NodeStatus.offline;
+  if (input.latitude !== undefined) payload.latitude = input.latitude;
+  if (input.longitude !== undefined) payload.longitude = input.longitude;
+  if (typeof input.status === "string") payload.status = input.status as NodeStatus;
+  if (input.firmwareVersion !== undefined) payload.firmwareVersion = input.firmwareVersion;
+  if (input.batteryLevel !== undefined) payload.batteryLevel = input.batteryLevel;
+  if (input.signalStrength !== undefined) payload.signalStrength = input.signalStrength;
   if (typeof input.isActive === "boolean") payload.isActive = input.isActive;
   if (input.siteId !== undefined) {
     payload.site = input.siteId ? { connect: { id: input.siteId } } : { disconnect: true };

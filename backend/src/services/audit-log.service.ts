@@ -5,10 +5,10 @@ import { prisma } from "../lib/prisma.js";
 type RecordAuditLogInput = {
   action: string;
   entityType: string;
-  entityId?: string;
-  message?: string;
+  entityId?: string | undefined;
+  message?: string | undefined;
   metadata?: unknown;
-  userId?: string;
+  userId?: string | undefined;
 };
 
 export const recordAuditLog = async (input: RecordAuditLogInput): Promise<void> => {

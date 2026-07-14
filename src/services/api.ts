@@ -125,17 +125,62 @@ type ApiEnvelope<T> = {
   data: T;
 };
 
+export type NodeStatus = 'online' | 'offline' | 'maintenance';
+export type NodeStatusBadge = NodeStatus | 'warning';
+
+export type NodeAlert = {
+  id: string;
+  type: 'offline' | 'lowBattery' | 'lowSignal' | 'stale' | 'anomaly';
+  severity: 'info' | 'warning' | 'critical';
+  title: string;
+  message: string;
+};
+
 export type BackendNode = {
   id: string;
+  deviceKey: string | null;
+  serialNumber: string | null;
+  siteId: string | null;
+  site: {
+    id: string;
+    name: string;
+    code: string;
+    location: string;
+    client: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  } | null;
   name: string;
   location: string;
   latitude: number | null;
   longitude: number | null;
-  status: 'online' | 'offline';
+  status: NodeStatus;
+  statusBadge: NodeStatusBadge;
+  firmwareVersion: string | null;
+  batteryLevel: number | null;
+  signalStrength: number | null;
+  healthScore: number;
+  alerts: NodeAlert[];
   isActive?: boolean;
   lastSeen: string | null;
+  installedAt: string;
+  lastRestartedAt: string | null;
   createdAt: string;
+  updatedAt: string;
+  readingsCount: number;
+  openMaintenanceRequests: number;
   lastReading: BackendReading | null;
+  latestReadingSummary: {
+    latestTimestamp: string | null;
+    latestPowerKw: number | null;
+    latestVoltage: number | null;
+    latestCurrent: number | null;
+    avgPower24h: number | null;
+    samples24h: number;
+    energyTodayKwh: number | null;
+  };
 };
 
 export type BackendReading = {
@@ -152,8 +197,37 @@ export type BackendReading = {
     id: string;
     name: string;
     location: string;
-    status: 'online' | 'offline';
+    status: NodeStatus;
   };
+};
+
+export type NodeStatusLog = {
+  id: string;
+  nodeId: string;
+  fromStatus: NodeStatus | null;
+  toStatus: NodeStatus;
+  action: string;
+  message: string | null;
+  metadata: unknown;
+  userId: string | null;
+  createdAt: string;
+};
+
+export type NodeMaintenanceRequest = {
+  id: string;
+  nodeId: string;
+  requestedById: string | null;
+  issueType: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
+export type BackendNodeDetail = BackendNode & {
+  readings: BackendReading[];
+  statusLogs: NodeStatusLog[];
+  maintenanceRequests: NodeMaintenanceRequest[];
 };
 
 export type ReadingsSummaryPoint = {
@@ -220,7 +294,7 @@ export type AdminDashboardSummary = {
     id: string;
     name: string;
     location: string;
-    status: 'online' | 'offline';
+    status: NodeStatus;
     lastSeen: string | null;
     latestReading: {
       powerKw: number;
@@ -291,9 +365,15 @@ export type AdminSite = {
 
 export type AdminNode = {
   id: string;
+  serialNumber: string | null;
   name: string;
   location: string;
-  status: 'online' | 'offline';
+  latitude: number | null;
+  longitude: number | null;
+  status: NodeStatus;
+  firmwareVersion: string | null;
+  batteryLevel: number | null;
+  signalStrength: number | null;
   isActive?: boolean;
   lastSeen: string | null;
   siteId: string | null;
@@ -423,7 +503,7 @@ export type AdminMonitoringNode = {
   id: string;
   name: string;
   location: string;
-  status: 'online' | 'offline';
+  status: NodeStatus;
   isActive?: boolean;
   lastSeen: string | null;
   readingsCount: number;
@@ -960,8 +1040,14 @@ export async function updateAdminNode(
 id: string,
 payload: {
   name?: string;
+  serialNumber?: string;
   location?: string;
-  status?: 'online' | 'offline';
+  latitude?: number | null;
+  longitude?: number | null;
+  status?: NodeStatus;
+  firmwareVersion?: string | null;
+  batteryLevel?: number | null;
+  signalStrength?: number | null;
   isActive?: boolean;
   siteId?: string | null;
 }
@@ -1058,9 +1144,106 @@ export async function deleteAdminApiCredential(id: string): Promise<void> {
   });
 }
 
-export async function fetchNodes(): Promise<BackendNode[]> {
-  const response = await apiRequest<ApiEnvelope<BackendNode[]>>('/nodes', {
+export async function fetchNodes(params: {
+  siteId?: string;
+  status?: NodeStatus;
+  serialNumber?: string;
+  search?: string;
+} = {}): Promise<BackendNode[]> {
+  const search = new URLSearchParams();
+  if (params.siteId) search.set('siteId', params.siteId);
+  if (params.status) search.set('status', params.status);
+  if (params.serialNumber) search.set('serialNumber', params.serialNumber);
+  if (params.search) search.set('search', params.search);
+  const query = search.toString();
+  const response = await apiRequest<ApiEnvelope<BackendNode[]>>(`/nodes${query ? `?${query}` : ''}`, {
     auth: true
+  });
+  return response.data;
+}
+
+export async function fetchNodeDetail(id: string): Promise<BackendNodeDetail> {
+  const response = await apiRequest<ApiEnvelope<BackendNodeDetail>>(`/nodes/${id}`, {
+    auth: true
+  });
+  return response.data;
+}
+
+export async function createNode(payload: {
+  name: string;
+  serialNumber: string;
+  siteId?: string | null;
+  location: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  status?: NodeStatus;
+  firmwareVersion?: string | null;
+  batteryLevel?: number | null;
+  signalStrength?: number | null;
+  installedAt?: string;
+  deviceKey?: string | null;
+  isActive?: boolean;
+}): Promise<BackendNodeDetail> {
+  const response = await apiRequest<ApiEnvelope<BackendNodeDetail>>('/nodes', {
+    method: 'POST',
+    auth: true,
+    body: payload
+  });
+  return response.data;
+}
+
+export async function updateNode(id: string, payload: Partial<{
+  name: string;
+  serialNumber: string;
+  siteId: string | null;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
+  status: NodeStatus;
+  firmwareVersion: string | null;
+  batteryLevel: number | null;
+  signalStrength: number | null;
+  installedAt: string;
+  deviceKey: string | null;
+  isActive: boolean;
+}>): Promise<BackendNodeDetail> {
+  const response = await apiRequest<ApiEnvelope<BackendNodeDetail>>(`/nodes/${id}`, {
+    method: 'PATCH',
+    auth: true,
+    body: payload
+  });
+  return response.data;
+}
+
+export async function deleteNode(id: string): Promise<void> {
+  await apiRequest<{ message: string }>(`/nodes/${id}`, {
+    method: 'DELETE',
+    auth: true
+  });
+}
+
+export async function runNodeBulkAction(payload: {
+  nodeIds: string[];
+  action: 'assignSite' | 'updateStatus' | 'remoteRestart';
+  siteId?: string | null;
+  status?: NodeStatus;
+}): Promise<{ action: string; affected: number; executedAt: string }> {
+  const response = await apiRequest<ApiEnvelope<{ action: string; affected: number; executedAt: string }>>('/nodes/bulk-actions', {
+    method: 'POST',
+    auth: true,
+    body: payload
+  });
+  return response.data;
+}
+
+export async function requestNodeMaintenance(id: string, payload: {
+  issueType: string;
+  description: string;
+}): Promise<NodeMaintenanceRequest> {
+  const response = await apiRequest<ApiEnvelope<NodeMaintenanceRequest>>(`/nodes/${id}/maintenance-requests`, {
+    method: 'POST',
+    auth: true,
+    body: payload
   });
   return response.data;
 }
@@ -1100,7 +1283,8 @@ selectedNodeNames: string[]
       return [];
     }
 
-    const inferredCapacity = Math.max(120, Math.round((node.lastReading?.power ?? 140) * 1.25));
+    const baselinePower = node.lastReading?.power ?? node.latestReadingSummary.avgPower24h ?? 140;
+    const inferredCapacity = Math.max(120, Math.round(baselinePower * 1.25));
     return [{
       id: node.id,
       name: node.name,
@@ -1492,9 +1676,9 @@ export async function fetchIoTEdgeAssets(): Promise<IoTEdgeAsset[]> {
     name: node.name,
     type: 'microgrid',
     location: node.location,
-    health: node.status === 'offline' ? 'critical' : 'good',
+    health: node.status === 'offline' ? 'critical' : node.status === 'maintenance' || node.alerts.length > 0 ? 'degraded' : 'good',
     powerMw: Number((node.lastReading?.power ?? 0).toFixed(1)),
-    edgeForecastConfidence: node.status === 'online' ? 0.93 : 0.74
+    edgeForecastConfidence: node.status === 'online' ? Math.max(0.72, node.healthScore / 100) : 0.74
   }));
 }
 

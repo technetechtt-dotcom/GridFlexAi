@@ -9,6 +9,7 @@ import {
   type BackendNode,
   type BackendReading,
   type IoTEdgeAsset,
+  type NodeStatus,
   type ProactiveAlert } from
 '../services/api';
 import {
@@ -39,6 +40,13 @@ interface RealTimeContextType {
 const RealTimeContext = createContext<RealTimeContextType | undefined>(
   undefined
 );
+
+const healthFromNodeStatus = (status: NodeStatus | undefined): IoTEdgeAsset['health'] => {
+  if (status === 'offline') return 'critical';
+  if (status === 'maintenance') return 'degraded';
+  return 'good';
+};
+
 export function RealTimeProvider({ children }: {children: ReactNode;}) {
   const DEFAULT_NODE_SELECTION = ['All Nodes'];
   const [metrics, setMetrics] = useState<GridMetrics>({
@@ -193,7 +201,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
         {
           ...asset,
           powerMw: Number(reading.power.toFixed(1)),
-          health: reading.node?.status === 'offline' ? 'critical' : 'good'
+          health: healthFromNodeStatus(reading.node?.status)
         } :
         asset
         );
@@ -222,7 +230,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
           ...asset,
           name: node.name,
           location: node.location,
-          health: node.status === 'offline' ? 'critical' : 'good'
+          health: healthFromNodeStatus(node.status)
         } :
         asset
         );
@@ -234,7 +242,12 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
         ...assetNode,
         name: node.name,
         location: node.location,
-        status: node.status
+        status: node.status,
+        statusBadge: node.status,
+        firmwareVersion: node.firmwareVersion ?? assetNode.firmwareVersion,
+        batteryLevel: node.batteryLevel ?? assetNode.batteryLevel,
+        signalStrength: node.signalStrength ?? assetNode.signalStrength,
+        lastSeen: node.lastSeen ?? assetNode.lastSeen
       } :
       assetNode
       )
@@ -251,7 +264,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
           name: node.name,
           type: 'microgrid',
           location: node.location,
-          health: node.status === 'offline' ? 'critical' : 'good',
+          health: healthFromNodeStatus(node.status),
           powerMw: 0,
           edgeForecastConfidence: 0.78
         }, ...prev];
@@ -263,13 +276,38 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
 
         return [{
           id: node.id,
+          deviceKey: null,
+          serialNumber: node.serialNumber,
+          siteId: null,
+          site: null,
           name: node.name,
           location: node.location,
           latitude: null,
           longitude: null,
           status: node.status,
-          lastSeen: null,
-          createdAt: new Date().toISOString(),
+          statusBadge: node.status,
+          firmwareVersion: node.firmwareVersion,
+          batteryLevel: node.batteryLevel,
+          signalStrength: node.signalStrength,
+          healthScore: node.status === 'online' ? 80 : node.status === 'maintenance' ? 60 : 25,
+          alerts: [],
+          isActive: true,
+          lastSeen: node.lastSeen,
+          installedAt: node.createdAt,
+          lastRestartedAt: null,
+          createdAt: node.createdAt,
+          updatedAt: new Date().toISOString(),
+          readingsCount: 0,
+          openMaintenanceRequests: 0,
+          latestReadingSummary: {
+            latestTimestamp: null,
+            latestPowerKw: null,
+            latestVoltage: null,
+            latestCurrent: null,
+            avgPower24h: null,
+            samples24h: 0,
+            energyTodayKwh: null
+          },
           lastReading: null
         }, ...prev];
       });

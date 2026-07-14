@@ -22,6 +22,7 @@ import {
   type AdminDashboardSummary,
   type AdminNode,
   type AdminSite,
+  type NodeStatus,
   updateAdminNode } from
 '../services/api';
 
@@ -250,7 +251,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     }
   };
 
-  const [nodeDrafts, setNodeDrafts] = useState<Record<string, {siteId: string | null;status: 'online' | 'offline';}>>({});
+  const [nodeDrafts, setNodeDrafts] = useState<Record<string, {siteId: string | null;status: NodeStatus;}>>({});
 
   useEffect(() => {
     setNodeDrafts((prev) => {
@@ -396,7 +397,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             <div key={node.id} className="bg-slate-900/50 border border-slate-700/60 rounded-lg p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-slate-200 font-medium">{node.name}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded ${node.status === 'online' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-red-500/10 text-red-300'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded ${node.status === 'online' ? 'bg-emerald-500/10 text-emerald-300' : node.status === 'maintenance' ? 'bg-amber-500/10 text-amber-300' : 'bg-red-500/10 text-red-300'}`}>
                     {node.status}
                   </span>
                 </div>
@@ -527,7 +528,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                 <div key={node.id} className="bg-slate-900/50 border border-slate-700/60 rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-slate-200 font-medium">{node.name}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded ${draft.status === 'online' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-red-500/10 text-red-300'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded ${draft.status === 'online' ? 'bg-emerald-500/10 text-emerald-300' : draft.status === 'maintenance' ? 'bg-amber-500/10 text-amber-300' : 'bg-red-500/10 text-red-300'}`}>
                       {draft.status}
                     </span>
                   </div>
@@ -543,10 +544,11 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                     </select>
                     <select
                       value={draft.status}
-                      onChange={(e) => setNodeDrafts((prev) => ({ ...prev, [node.id]: { ...draft, status: e.target.value as 'online' | 'offline' } }))}
+                      onChange={(e) => setNodeDrafts((prev) => ({ ...prev, [node.id]: { ...draft, status: e.target.value as NodeStatus } }))}
                       className="bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200">
                       <option value="online">online</option>
                       <option value="offline">offline</option>
+                      <option value="maintenance">maintenance</option>
                     </select>
                     <button
                       disabled={busy}

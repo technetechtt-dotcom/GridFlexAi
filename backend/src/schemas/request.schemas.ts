@@ -36,6 +36,12 @@ export const edgeDataBodySchema = z.object({
   energyToday: z.coerce.number().finite().optional(),
   inverterPower: z.coerce.number().finite().optional(),
   curtailment: z.coerce.number().finite().optional(),
+  batteryLevel: z.coerce.number().min(0).max(100).optional(),
+  signalStrength: z.coerce.number().finite().optional(),
+  firmwareVersion: z.string().min(1).max(80).optional(),
+  location: z.string().min(2).max(160).optional(),
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
   timestamp: z.string().datetime().optional()
 });
 
@@ -102,10 +108,68 @@ export const siteUpdateBodySchema = siteBodySchema.partial();
 
 export const adminNodeUpdateBodySchema = z.object({
   name: z.string().min(2).max(120).optional(),
+  serialNumber: z.string().min(2).max(120).optional(),
   location: z.string().min(2).max(160).optional(),
-  status: z.enum(["online", "offline"]).optional(),
+  latitude: z.coerce.number().min(-90).max(90).nullable().optional(),
+  longitude: z.coerce.number().min(-180).max(180).nullable().optional(),
+  status: z.enum(["online", "offline", "maintenance"]).optional(),
+  firmwareVersion: z.string().min(1).max(80).nullable().optional(),
+  batteryLevel: z.coerce.number().min(0).max(100).nullable().optional(),
+  signalStrength: z.coerce.number().finite().nullable().optional(),
   isActive: z.boolean().optional(),
   siteId: z.string().nullable().optional()
+});
+
+export const nodeQuerySchema = z.object({
+  siteId: z.string().optional(),
+  status: z.enum(["online", "offline", "maintenance"]).optional(),
+  serialNumber: z.string().optional(),
+  search: z.string().optional()
+});
+
+export const nodeBodySchema = z.object({
+  name: z.string().min(2).max(120),
+  serialNumber: z.string().min(2).max(120),
+  siteId: z.string().nullable().optional(),
+  location: z.string().min(2).max(160),
+  latitude: z.coerce.number().min(-90).max(90).nullable().optional(),
+  longitude: z.coerce.number().min(-180).max(180).nullable().optional(),
+  status: z.enum(["online", "offline", "maintenance"]).default("offline"),
+  firmwareVersion: z.string().min(1).max(80).nullable().optional(),
+  batteryLevel: z.coerce.number().min(0).max(100).nullable().optional(),
+  signalStrength: z.coerce.number().finite().nullable().optional(),
+  installedAt: z.string().datetime().optional(),
+  deviceKey: z.string().min(2).max(160).nullable().optional(),
+  isActive: z.boolean().optional()
+});
+
+export const nodeUpdateBodySchema = nodeBodySchema.partial();
+
+export const nodeBulkActionBodySchema = z.object({
+  nodeIds: z.array(z.string().min(1)).min(1).max(250),
+  action: z.enum(["assignSite", "updateStatus", "remoteRestart"]),
+  siteId: z.string().nullable().optional(),
+  status: z.enum(["online", "offline", "maintenance"]).optional()
+}).superRefine((value, ctx) => {
+  if (value.action === "assignSite" && value.siteId === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["siteId"],
+      message: "siteId is required for assignSite."
+    });
+  }
+  if (value.action === "updateStatus" && !value.status) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["status"],
+      message: "status is required for updateStatus."
+    });
+  }
+});
+
+export const maintenanceRequestBodySchema = z.object({
+  issueType: z.string().min(2).max(80),
+  description: z.string().min(5).max(1000)
 });
 
 export const apiCredentialBodySchema = z.object({
@@ -191,6 +255,11 @@ export type ClientUpdateBody = z.infer<typeof clientUpdateBodySchema>;
 export type SiteBody = z.infer<typeof siteBodySchema>;
 export type SiteUpdateBody = z.infer<typeof siteUpdateBodySchema>;
 export type AdminNodeUpdateBody = z.infer<typeof adminNodeUpdateBodySchema>;
+export type NodeQuery = z.infer<typeof nodeQuerySchema>;
+export type NodeBody = z.infer<typeof nodeBodySchema>;
+export type NodeUpdateBody = z.infer<typeof nodeUpdateBodySchema>;
+export type NodeBulkActionBody = z.infer<typeof nodeBulkActionBodySchema>;
+export type MaintenanceRequestBody = z.infer<typeof maintenanceRequestBodySchema>;
 export type ApiCredentialBody = z.infer<typeof apiCredentialBodySchema>;
 export type ApiCredentialUpdateBody = z.infer<typeof apiCredentialUpdateBodySchema>;
 export type AdminUserRoleUpdateBody = z.infer<typeof adminUserRoleUpdateBodySchema>;

@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   Droplet,
   Factory,
-  Users } from
+  Users,
+  Server } from
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
@@ -24,6 +25,7 @@ import { canAccessOpsCenter, isPlantManager } from '../lib/roles';
 import { useAuth } from '../context/AuthContext';
 export type Page =
 'dashboard' |
+'nodes' |
 'admin-dashboard' |
 'manager-team' |
 'congestion' |
@@ -67,6 +69,11 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     id: 'dashboard',
     label: 'Dashboard',
     icon: LayoutDashboard
+  },
+  {
+    id: 'nodes',
+    label: 'Nodes',
+    icon: Server
   },
   ...(canAccessOpsCenter(user?.role) ?
   ([{

@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { cn } from '../lib/utils';
 interface StatusBadgeProps {
-  status: 'optimal' | 'warning' | 'critical' | 'offline' | 'active';
+  status: 'optimal' | 'warning' | 'critical' | 'offline' | 'active' | 'online' | 'maintenance';
   label?: string;
   className?: string;
 }
@@ -12,15 +12,19 @@ export const StatusBadge = memo(function StatusBadge({
 }: StatusBadgeProps) {
   const styles = {
     optimal: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    online: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     active: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
     warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    maintenance: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
     critical: 'bg-red-500/10 text-red-400 border-red-500/20',
     offline: 'bg-slate-700/50 text-slate-400 border-slate-600/50'
   };
   const dots = {
     optimal: 'bg-emerald-400',
+    online: 'bg-emerald-400',
     active: 'bg-cyan-400',
     warning: 'bg-amber-400',
+    maintenance: 'bg-amber-400',
     critical: 'bg-red-400',
     offline: 'bg-slate-400'
   };

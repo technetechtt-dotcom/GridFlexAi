@@ -1,4 +1,5 @@
 import { io, type Socket } from "socket.io-client";
+import type { NodeStatus } from "./api";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000/api";
 const SOCKET_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -19,15 +20,19 @@ export type LiveReadingPayload = {
     id: string;
     name: string;
     location: string;
-    status: "online" | "offline";
+    status: NodeStatus;
   };
 };
 
 export type NodeStatusUpdatePayload = {
   id: string;
+  serialNumber: string | null;
   name: string;
   location: string;
-  status: "online" | "offline";
+  status: NodeStatus;
+  firmwareVersion: string | null;
+  batteryLevel: number | null;
+  signalStrength: number | null;
   lastSeen: string | null;
   createdAt: string;
 };
