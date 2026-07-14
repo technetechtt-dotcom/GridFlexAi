@@ -29,7 +29,8 @@ import {
   getAuditLogsHandler,
   postAdminClearForecastCacheHandler,
   postAdminTestNotificationHandler,
-  patchAdminUserRoleHandler
+  patchAdminUserRoleHandler,
+  patchManagerOperatorProvisioningHandler
 } from "../controllers/admin-monitoring.controller.js";
 import { authenticate, authorizeRoles } from "../middleware/auth.js";
 import { validateRequest } from "../middleware/validateRequest.js";
@@ -37,6 +38,7 @@ import {
   adminNodeUpdateBodySchema,
   adminUserRoleUpdateBodySchema,
   adminUserPasswordResetBodySchema,
+  managerOperatorProvisioningBodySchema,
   apiCredentialBodySchema,
   apiCredentialUpdateBodySchema,
   billingAccountBodySchema,
@@ -55,6 +57,11 @@ router.get("/overview", getAdminPlatformOverviewHandler);
 router.get("/users", getAdminUsersHandler);
 router.patch("/users/:id/role", validateRequest({ body: adminUserRoleUpdateBodySchema }), patchAdminUserRoleHandler);
 router.patch("/users/:id/password", validateRequest({ body: adminUserPasswordResetBodySchema }), patchUserPassword);
+router.patch(
+  "/users/:id/operator-provisioning",
+  validateRequest({ body: managerOperatorProvisioningBodySchema }),
+  patchManagerOperatorProvisioningHandler
+);
 router.get("/nodes", getAdminNodesOverviewHandler);
 router.get("/metrics", getAdminMetricsHandler);
 router.get("/logs", getAuditLogsHandler);

@@ -35,8 +35,25 @@ model User {
   status        String         @default("active")
   lastLoginAt   DateTime?
   createdAt     DateTime       @default(now())
+  managedById   String?
+  managedBy     User?          @relation("ManagerOperators", fields: [managedById], references: [id], onDelete: SetNull)
+  operators     User[]         @relation("ManagerOperators")
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
+  operatorProvisioning ManagerOperatorProvisioning?
+
+  @@index([managedById])
+  @@index([role])
+}
+
+/// Ops Center can activate operator-account creation for a manager (default quota: 2).
+model ManagerOperatorProvisioning {
+  managerId    String   @id
+  manager      User     @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  enabled      Boolean  @default(false)
+  maxOperators Int      @default(2)
+  updatedAt    DateTime @updatedAt
+  updatedById  String?
 }
 
 model EdgeNode {

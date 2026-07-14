@@ -134,6 +134,25 @@ export const adminUserPasswordResetBodySchema = z.object({
   newPassword: z.string().min(8)
 });
 
+export const managerOperatorProvisioningBodySchema = z.object({
+  enabled: z.boolean(),
+  maxOperators: z.coerce.number().int().min(2).max(50).optional()
+});
+
+export const createManagedOperatorBodySchema = z.object({
+  name: z.string().min(2).max(120),
+  email: z.string().email(),
+  password: z.string().min(8).max(128)
+});
+
+export const recordActivityBodySchema = z.object({
+  action: z.string().min(1).max(120),
+  message: z.string().max(500).optional(),
+  entityType: z.string().max(80).optional(),
+  entityId: z.string().max(120).optional(),
+  metadata: z.unknown().optional()
+});
+
 export const billingAccountBodySchema = z.object({
   clientId: z.string().min(1),
   plan: z.enum(["starter", "pro", "enterprise"]).default("starter"),
@@ -176,6 +195,9 @@ export type ApiCredentialBody = z.infer<typeof apiCredentialBodySchema>;
 export type ApiCredentialUpdateBody = z.infer<typeof apiCredentialUpdateBodySchema>;
 export type AdminUserRoleUpdateBody = z.infer<typeof adminUserRoleUpdateBodySchema>;
 export type AdminUserPasswordResetBody = z.infer<typeof adminUserPasswordResetBodySchema>;
+export type ManagerOperatorProvisioningBody = z.infer<typeof managerOperatorProvisioningBodySchema>;
+export type CreateManagedOperatorBody = z.infer<typeof createManagedOperatorBodySchema>;
+export type RecordActivityBody = z.infer<typeof recordActivityBodySchema>;
 export type BillingAccountBody = z.infer<typeof billingAccountBodySchema>;
 export type BillingAccountUpdateBody = z.infer<typeof billingAccountUpdateBodySchema>;
 export type InvoiceBody = z.infer<typeof invoiceBodySchema>;

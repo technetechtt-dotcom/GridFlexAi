@@ -8,6 +8,7 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { Page, Sidebar } from './components/Sidebar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { RealTimeProvider } from './context/RealTimeContext';
+import { canAccessOpsCenter, isPlantManager } from './lib/roles';
 import { PilotReportModal } from './components/PilotReportModal';
 import { LoginPage } from './pages/LoginPage';
 import { usePilotStore } from './store/pilotStore';
@@ -41,10 +42,12 @@ const AdminMetricsPage = lazy(() => import('./pages/admin/AdminMetricsPage').the
 const AdminLogsPage = lazy(() => import('./pages/admin/AdminLogsPage').then((module) => ({ default: module.AdminLogsPage })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
 const SuperAdminShell = lazy(() => import('./pages/admin/SuperAdminShell').then((module) => ({ default: module.SuperAdminShell })));
+const ManagerTeamPage = lazy(() => import('./pages/ManagerTeamPage').then((module) => ({ default: module.ManagerTeamPage })));
 
 const pageToPath: Record<Page, string> = {
   dashboard: '/',
   'admin-dashboard': '/ops',
+  'manager-team': '/team',
   congestion: '/congestion',
   dispatch: '/dispatch',
   scenario: '/scenario',
@@ -67,6 +70,7 @@ const pageToPath: Record<Page, string> = {
 function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/ops')) return 'admin-dashboard';
   if (pathname.startsWith('/admin')) return 'admin-dashboard';
+  if (pathname.startsWith('/team')) return 'manager-team';
   if (pathname.startsWith('/congestion')) return 'congestion';
   if (pathname.startsWith('/dispatch-status')) return 'dispatch-status';
   if (pathname.startsWith('/dispatch')) return 'dispatch';
@@ -100,7 +104,15 @@ function RequireAuth() {
 
 function RequireAdmin() {
   const { user } = useAuth();
-  if (!user || (user.role !== 'admin' && user.role !== 'developer' && user.role !== 'manager')) {
+  if (!user || !canAccessOpsCenter(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+  return <Outlet />;
+}
+
+function RequireManager() {
+  const { user } = useAuth();
+  if (!user || !isPlantManager(user.role)) {
     return <Navigate to="/" replace />;
   }
   return <Outlet />;
@@ -172,6 +184,9 @@ function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route element={<AuthShell />}>
           <Route path="/" element={<Dashboard onNavigate={routeNavigate} />} />
+          <Route element={<RequireManager />}>
+            <Route path="/team" element={<ManagerTeamPage />} />
+          </Route>
           <Route path="/congestion" element={<CongestionForecast onNavigate={routeNavigate} />} />
           <Route path="/dispatch" element={<DispatchOptimization onNavigate={routeNavigate} />} />
           <Route path="/scenario" element={<ScenarioSimulation onNavigate={routeNavigate} />} />

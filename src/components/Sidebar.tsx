@@ -15,14 +15,17 @@ import {
   X,
   AlertTriangle,
   Droplet,
-  Factory } from
+  Factory,
+  Users } from
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { canAccessOpsCenter, isPlantManager } from '../lib/roles';
 import { useAuth } from '../context/AuthContext';
 export type Page =
 'dashboard' |
 'admin-dashboard' |
+'manager-team' |
 'congestion' |
 'dispatch' |
 'scenario' |
@@ -65,11 +68,18 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     label: 'Dashboard',
     icon: LayoutDashboard
   },
-  ...(user?.role === 'admin' || user?.role === 'developer' || user?.role === 'manager' ?
+  ...(canAccessOpsCenter(user?.role) ?
   ([{
     id: 'admin-dashboard',
     label: 'Ops Center',
     icon: Settings
+  }] as Array<{id: Page;label: string;icon: React.ComponentType<{className?: string}>;}>) :
+  []),
+  ...(isPlantManager(user?.role) ?
+  ([{
+    id: 'manager-team',
+    label: 'Operator Team',
+    icon: Users
   }] as Array<{id: Page;label: string;icon: React.ComponentType<{className?: string}>;}>) :
   []),
   {

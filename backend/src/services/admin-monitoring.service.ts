@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { recordAuditLog } from "./audit-log.service.js";
 import { clearForecastCache, getForecastProvidersStatus } from "./forecast.service.js";
 import { platformMetrics } from "./platform-metrics.service.js";
+import { AppError } from "../utils/AppError.js";
 
 export const getAdminPlatformOverview = async () => {
   const now = new Date();
@@ -65,7 +66,18 @@ export const getAdminPlatformOverview = async () => {
 
 export const getAdminUsers = async () => {
   const users = await prisma.user.findMany({
-    orderBy: [{ createdAt: "desc" }]
+    orderBy: [{ createdAt: "desc" }],
+    include: {
+      operatorProvisioning: true,
+      managedBy: {
+        select: { id: true, name: true, email: true }
+      },
+      _count: {
+        select: {
+          operators: true
+        }
+      }
+    }
   });
 
   return users.map((user) => ({
@@ -75,15 +87,47 @@ export const getAdminUsers = async () => {
     role: user.role,
     status: user.status,
     createdAt: user.createdAt.toISOString(),
-    lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null
+    lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+    managedById: user.managedById,
+    managedBy: user.managedBy
+      ? {
+          id: user.managedBy.id,
+          name: user.managedBy.name,
+          email: user.managedBy.email
+        }
+      : null,
+    operatorCount: user._count.operators,
+    operatorProvisioning: user.operatorProvisioning
+      ? {
+          enabled: user.operatorProvisioning.enabled,
+          maxOperators: user.operatorProvisioning.maxOperators,
+          updatedAt: user.operatorProvisioning.updatedAt.toISOString()
+        }
+      : null
   }));
 };
 
 export const updateAdminUserRole = async (id: string, role: "operator" | "manager" | "admin" | "developer") => {
+  const existing = await prisma.user.findUnique({ where: { id } });
+  if (!existing) {
+    throw new AppError("User not found.", 404);
+  }
+
   const updated = await prisma.user.update({
     where: { id },
-    data: { role }
+    data: {
+      role,
+      managedById: role === "operator" ? existing.managedById : null
+    }
   });
+
+  if (existing.role === "manager" && role !== "manager") {
+    await prisma.managerOperatorProvisioning.deleteMany({ where: { managerId: id } });
+    await prisma.user.updateMany({
+      where: { managedById: id },
+      data: { managedById: null }
+    });
+  }
 
   await recordAuditLog({
     action: "admin.user.role.update",
@@ -135,12 +179,15 @@ export const getAdminMetrics = async () => {
   return platformMetrics.snapshot();
 };
 
-export const getAuditLogs = async (options: { page?: number; pageSize?: number } = {}) => {
+export const getAuditLogs = async (options: { page?: number; pageSize?: number; userId?: string } = {}) => {
   const page = options.page && options.page > 0 ? options.page : 1;
   const pageSize = options.pageSize && options.pageSize > 0 && options.pageSize <= 200 ? options.pageSize : 50;
 
+  const where = options.userId ? { userId: options.userId } : {};
+
   const [rows, total] = await Promise.all([
     prisma.auditLog.findMany({
+      where,
       orderBy: [{ createdAt: "desc" }],
       take: pageSize,
       skip: (page - 1) * pageSize,
@@ -148,12 +195,13 @@ export const getAuditLogs = async (options: { page?: number; pageSize?: number }
         user: {
           select: {
             id: true,
-            email: true
+            email: true,
+            name: true
           }
         }
       }
     }),
-    prisma.auditLog.count()
+    prisma.auditLog.count({ where })
   ]);
 
   return {
@@ -169,6 +217,7 @@ export const getAuditLogs = async (options: { page?: number; pageSize?: number }
       metadata: row.metadata,
       userId: row.userId,
       userEmail: row.user?.email ?? null,
+      userName: row.user?.name ?? null,
       createdAt: row.createdAt.toISOString()
     }))
   };

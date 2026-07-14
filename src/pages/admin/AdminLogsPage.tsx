@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { fetchAdminAuditLogs, type AdminAuditLog } from '../../services/api';
+import { fetchAdminAuditLogs, fetchAdminUsers, type AdminAuditLog, type AdminUser } from '../../services/api';
 import { useAdminRefresh } from './AdminLayout';
 
 const POLL_MS = 15000;
@@ -8,14 +8,20 @@ const POLL_MS = 15000;
 export function AdminLogsPage() {
   const { autoRefresh, refreshTick } = useAdminRefresh();
   const [rows, setRows] = useState<AdminAuditLog[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [userId, setUserId] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(25);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (currentPage: number) => {
+  const load = useCallback(async (currentPage: number, selectedUserId: string) => {
     try {
-      const result = await fetchAdminAuditLogs({ page: currentPage, pageSize });
+      const result = await fetchAdminAuditLogs({
+        page: currentPage,
+        pageSize,
+        userId: selectedUserId || undefined
+      });
       setRows(result.data);
       setTotal(result.total);
       setError(null);
@@ -25,21 +31,44 @@ export function AdminLogsPage() {
   }, [pageSize]);
 
   useEffect(() => {
-    void load(page);
-  }, [load, page, refreshTick]);
+    void fetchAdminUsers()
+      .then(setUsers)
+      .catch(() => setUsers([]));
+  }, [refreshTick]);
+
+  useEffect(() => {
+    void load(page, userId);
+  }, [load, page, refreshTick, userId]);
 
   useEffect(() => {
     if (!autoRefresh) return undefined;
     const timer = window.setInterval(() => {
-      void load(page);
+      void load(page, userId);
     }, POLL_MS);
     return () => window.clearInterval(timer);
-  }, [autoRefresh, load, page]);
+  }, [autoRefresh, load, page, userId]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <select
+          value={userId}
+          onChange={(event) => {
+            setPage(1);
+            setUserId(event.target.value);
+          }}
+          className="min-w-[240px] rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100">
+          <option value="">All users activity</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.name} ({user.email}) — {user.role}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-slate-500">Ops Center can inspect every user&apos;s login, logout, and actions.</p>
+      </div>
       {error && <div className="mb-3 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>}
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -87,4 +116,3 @@ export function AdminLogsPage() {
     </div>
   );
 }
-

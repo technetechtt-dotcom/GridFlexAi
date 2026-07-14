@@ -179,6 +179,11 @@ export const rotateRefreshToken = async (refreshToken: string) => {
 
 export const revokeRefreshToken = async (refreshToken: string) => {
   const tokenHash = hashToken(refreshToken);
+  const stored = await prisma.refreshToken.findUnique({
+    where: { tokenHash },
+    include: { user: true }
+  });
+
   const result = await prisma.refreshToken.updateMany({
     where: {
       tokenHash,
@@ -190,10 +195,21 @@ export const revokeRefreshToken = async (refreshToken: string) => {
   });
 
   if (result.count > 0) {
-    await recordAuditLog({
+    const auditPayload: {
+      action: string;
+      entityType: string;
+      entityId?: string;
+      message: string;
+      userId?: string;
+    } = {
       action: "auth.logout",
-      entityType: "RefreshToken",
-      message: "Refresh token revoked."
-    });
+      entityType: "User",
+      message: stored?.user ? `User logout: ${stored.user.email}` : "Refresh token revoked."
+    };
+    if (stored?.userId) {
+      auditPayload.entityId = stored.userId;
+      auditPayload.userId = stored.userId;
+    }
+    await recordAuditLog(auditPayload);
   }
 };

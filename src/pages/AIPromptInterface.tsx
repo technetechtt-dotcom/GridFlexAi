@@ -9,7 +9,7 @@ import {
   ArrowRight } from
 'lucide-react';
 import { useChat } from '@ai-sdk/react';
-import { TextStreamChatTransport, type UIMessage } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import { cn } from '../lib/utils';
 import { Page } from '../components/Sidebar';
 import { useRealTime } from '../context/RealTimeContext';
@@ -23,6 +23,11 @@ const API_BASE_URL =
 'http://localhost:4000/api';
 
 const extractMessageText = (message: UIMessage): string => {
+  const legacyContent = (message as { content?: unknown }).content;
+  if (typeof legacyContent === 'string' && legacyContent.trim()) {
+    return legacyContent.trim();
+  }
+
   const parts = Array.isArray(message.parts) ? message.parts : [];
   const textParts = parts
     .map((part) => {
@@ -36,6 +41,9 @@ const extractMessageText = (message: UIMessage): string => {
 
   return textParts;
 };
+
+const EMPTY_ASSISTANT_FALLBACK =
+  'Zolt AI returned an empty response. Check that OPENAI_API_KEY has available quota and billing is active.';
 
 const inferAction = (
 content: string)
@@ -100,7 +108,7 @@ export function AIPromptInterface({ onNavigate }: AIPromptInterfaceProps) {
   const { availableNodeNames, selectedNodeNames, toggleSelectedNode, backendNodes } = useRealTime();
   const transport = useMemo(
     () =>
-    new TextStreamChatTransport({
+    new DefaultChatTransport({
       api: `${API_BASE_URL}/ai/chat`,
       credentials: 'include',
       headers: () => {
@@ -129,6 +137,8 @@ export function AIPromptInterface({ onNavigate }: AIPromptInterfaceProps) {
     (
       errorMessage.includes('OPENAI_API_KEY') ||
       errorMessage.toLowerCase().includes('service unavailable') ||
+      errorMessage.toLowerCase().includes('insufficient_quota') ||
+      errorMessage.toLowerCase().includes('quota') ||
       errorMessage.includes('503'))
   );
 
@@ -267,7 +277,11 @@ export function AIPromptInterface({ onNavigate }: AIPromptInterfaceProps) {
             </motion.div>
           }
           {messages.map((msg) => {
-            const content = extractMessageText(msg);
+            const rawContent = extractMessageText(msg);
+            const content =
+              msg.role === 'assistant' && !rawContent && status === 'ready' && !errorMessage
+                ? EMPTY_ASSISTANT_FALLBACK
+                : rawContent;
             const action = msg.role === 'assistant' ? inferAction(content) : undefined;
             return (
           <motion.div
@@ -330,10 +344,12 @@ export function AIPromptInterface({ onNavigate }: AIPromptInterfaceProps) {
           );})}
           {isAiOfflineError &&
           <div className="text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 space-y-1">
-              <p className="font-medium text-amber-100">Zolt AI offline: backend key missing</p>
+              <p className="font-medium text-amber-100">Zolt AI unavailable</p>
               <p>
-                Add <code className="text-amber-100">OPENAI_API_KEY</code> in
-                <code className="ml-1 text-amber-100">backend/.env</code>, then restart backend.
+                {errorMessage?.toLowerCase().includes('quota') ?
+                  <>Your OpenAI account has no remaining quota. Add billing or credits at <a className="underline text-amber-100" href="https://platform.openai.com/account/billing" target="_blank" rel="noreferrer">platform.openai.com</a>, then restart the backend.</> :
+                  <>Add <code className="text-amber-100">OPENAI_API_KEY</code> in
+                <code className="ml-1 text-amber-100">backend/.env</code>, then restart backend.</>}
               </p>
             </div>
           }

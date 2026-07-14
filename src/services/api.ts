@@ -379,6 +379,44 @@ export type AdminUser = {
   status: string;
   createdAt: string;
   lastLoginAt: string | null;
+  managedById?: string | null;
+  managedBy?: { id: string; name: string; email: string } | null;
+  operatorCount?: number;
+  operatorProvisioning?: {
+    enabled: boolean;
+    maxOperators: number;
+    updatedAt: string;
+  } | null;
+};
+
+export type ManagerTeamOverview = {
+  provisioning: {
+    enabled: boolean;
+    maxOperators: number;
+    operatorCount: number;
+    remainingSlots: number;
+  };
+  operators: Array<{
+    id: string;
+    name: string;
+    email: string;
+    status: string;
+    createdAt: string;
+    lastLoginAt: string | null;
+  }>;
+};
+
+export type TeamActivityLog = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  message: string | null;
+  metadata: unknown;
+  userId: string | null;
+  userEmail: string | null;
+  userName: string | null;
+  createdAt: string;
 };
 
 export type AdminMonitoringNode = {
@@ -417,6 +455,7 @@ export type AdminAuditLog = {
   metadata: unknown;
   userId: string | null;
   userEmail: string | null;
+  userName?: string | null;
   createdAt: string;
 };
 
@@ -754,6 +793,69 @@ export async function adminResetUserPassword(
   });
 }
 
+export async function updateManagerOperatorProvisioning(
+  managerId: string,
+  body: { enabled: boolean; maxOperators?: number }
+): Promise<void> {
+  await apiRequest<{ data: unknown }>(`/admin/users/${managerId}/operator-provisioning`, {
+    method: 'PATCH',
+    auth: true,
+    body
+  });
+}
+
+export async function fetchManagerTeamOverview(): Promise<ManagerTeamOverview> {
+  const response = await apiRequest<ApiEnvelope<ManagerTeamOverview>>('/team/overview', {
+    auth: true
+  });
+  return response.data;
+}
+
+export async function createManagedOperator(body: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<ManagerTeamOverview['operators'][number]> {
+  const response = await apiRequest<ApiEnvelope<ManagerTeamOverview['operators'][number]>>('/team/operators', {
+    method: 'POST',
+    auth: true,
+    body
+  });
+  return response.data;
+}
+
+export async function fetchManagerTeamActivity(params: { page?: number; pageSize?: number } = {}): Promise<{
+  page: number;
+  pageSize: number;
+  total: number;
+  data: TeamActivityLog[];
+}> {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return apiRequest<{
+    page: number;
+    pageSize: number;
+    total: number;
+    data: TeamActivityLog[];
+  }>(`/team/activity${suffix}`, { auth: true });
+}
+
+export async function recordUserActivity(body: {
+  action: string;
+  message?: string;
+  metadata?: unknown;
+  entityType?: string;
+  entityId?: string;
+}): Promise<void> {
+  await apiRequest<{ message: string }>('/activity', {
+    method: 'POST',
+    auth: true,
+    body
+  });
+}
+
 export async function fetchAdminNodesOverview(): Promise<AdminMonitoringNode[]> {
   const response = await apiRequest<ApiEnvelope<AdminMonitoringNode[]>>('/admin/nodes', {
     auth: true
@@ -768,7 +870,7 @@ export async function fetchAdminMetrics(): Promise<AdminMetricsSnapshot> {
   return response.data;
 }
 
-export async function fetchAdminAuditLogs(params: { page?: number; pageSize?: number } = {}): Promise<{
+export async function fetchAdminAuditLogs(params: { page?: number; pageSize?: number; userId?: string } = {}): Promise<{
   page: number;
   pageSize: number;
   total: number;
@@ -777,6 +879,7 @@ export async function fetchAdminAuditLogs(params: { page?: number; pageSize?: nu
   const search = new URLSearchParams();
   if (typeof params.page === 'number') search.set('page', String(params.page));
   if (typeof params.pageSize === 'number') search.set('pageSize', String(params.pageSize));
+  if (params.userId) search.set('userId', params.userId);
   const query = search.toString();
 
   return apiRequest<{

@@ -275,6 +275,29 @@ const analyzeCurtailment = async (nodeId: string | undefined, windowHours: numbe
   };
 };
 
+export const getAiStreamErrorMessage = (error: unknown): string => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const nested = error as {
+      message?: unknown;
+      error?: { message?: unknown; code?: unknown };
+    };
+
+    if (typeof nested.error?.message === "string" && nested.error.message.trim()) {
+      return nested.error.message.trim();
+    }
+
+    if (typeof nested.message === "string" && nested.message.trim()) {
+      return nested.message.trim();
+    }
+  }
+
+  return "Zolt AI could not complete the request.";
+};
+
 export const generateAiChatResponse = async (input: AiChatBody) => {
   if (!env.OPENAI_API_KEY) {
     throw new AppError("OPENAI_API_KEY is not configured on the backend.", 503);

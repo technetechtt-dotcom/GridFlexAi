@@ -114,6 +114,19 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction): 
   }
 };
 
+/** Role gate without Ops Center network/email hardening (plant managers, operators). */
+export const requireRoles =
+  (...roles: Role[]) =>
+  (req: Request, _res: Response, next: NextFunction): void => {
+    const userRole = req.user?.role as Role | undefined;
+    if (!userRole || (roles.length > 0 && !roles.includes(userRole))) {
+      next(new AppError("Insufficient permissions.", 403));
+      return;
+    }
+    next();
+  };
+
+/** Role gate for Ops Center (admin/developer) with HTTPS/IP/email controls. */
 export const authorizeRoles =
   (...roles: Role[]) =>
   (req: Request, _res: Response, next: NextFunction): void => {
