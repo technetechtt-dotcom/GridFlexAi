@@ -36,6 +36,8 @@ model User {
   status        String         @default("active")
   lastLoginAt   DateTime?
   createdAt     DateTime       @default(now())
+  siteId        String?
+  site          Site?          @relation(fields: [siteId], references: [id], onDelete: SetNull)
   managedById   String?
   managedBy     User?          @relation("ManagerOperators", fields: [managedById], references: [id], onDelete: SetNull)
   operators     User[]         @relation("ManagerOperators")
@@ -45,6 +47,7 @@ model User {
 
   @@index([managedById])
   @@index([role])
+  @@index([siteId])
 }
 
 /// Ops Center can activate operator-account creation for a manager (default quota: 2).
@@ -215,6 +218,7 @@ model Site {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   nodes        EdgeNode[]
+  users        User[]
   credentials  ApiCredential[]
 
   @@index([clientId])

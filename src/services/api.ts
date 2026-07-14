@@ -361,6 +361,13 @@ export type AdminSite = {
   createdAt: string;
   nodeCount: number;
   credentialCount: number;
+  userCount: number;
+  operatorCount: number;
+  managers: Array<{
+    id: string;
+    name: string;
+    email: string;
+  }>;
 };
 
 export type AdminNode = {
@@ -459,8 +466,29 @@ export type AdminUser = {
   status: string;
   createdAt: string;
   lastLoginAt: string | null;
+  siteId?: string | null;
+  site?: {
+    id: string;
+    name: string;
+    code: string;
+    location: string;
+    client: {
+      id: string;
+      name: string;
+    };
+  } | null;
   managedById?: string | null;
-  managedBy?: { id: string; name: string; email: string } | null;
+  managedBy?: {
+    id: string;
+    name: string;
+    email: string;
+    siteId?: string | null;
+    site?: {
+      id: string;
+      name: string;
+      code: string;
+    } | null;
+  } | null;
   operatorCount?: number;
   operatorProvisioning?: {
     enabled: boolean;
@@ -470,6 +498,16 @@ export type AdminUser = {
 };
 
 export type ManagerTeamOverview = {
+  site: {
+    id: string;
+    name: string;
+    code: string;
+    location: string;
+    client: {
+      id: string;
+      name: string;
+    };
+  } | null;
   provisioning: {
     enabled: boolean;
     maxOperators: number;
@@ -480,6 +518,12 @@ export type ManagerTeamOverview = {
     id: string;
     name: string;
     email: string;
+    siteId: string | null;
+    site: {
+      id: string;
+      name: string;
+      code: string;
+    } | null;
     status: string;
     createdAt: string;
     lastLoginAt: string | null;
@@ -859,6 +903,17 @@ export async function updateAdminUserRole(
     method: 'PATCH',
     auth: true,
     body: { role }
+  });
+}
+
+export async function updateAdminUserSite(
+  id: string,
+  siteId: string | null
+): Promise<void> {
+  await apiRequest<{ data: AdminUser }>(`/admin/users/${id}/site`, {
+    method: 'PATCH',
+    auth: true,
+    body: { siteId }
   });
 }
 

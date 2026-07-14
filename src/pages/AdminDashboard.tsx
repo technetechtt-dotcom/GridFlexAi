@@ -501,6 +501,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
             <div key={site.id} className="bg-slate-900/50 border border-slate-700/60 rounded-lg p-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-200 font-medium">{site.name}</p>
+                  <p className="text-[11px] text-slate-500">
+                    Managers: {site.managers.length ? site.managers.map((manager) => manager.name).join(', ') : 'Unassigned'} | Operators: {site.operatorCount}
+                  </p>
                   <p className="text-xs text-slate-400">{site.code} • {site.client.name} • {site.nodeCount} nodes</p>
                 </div>
                 <button

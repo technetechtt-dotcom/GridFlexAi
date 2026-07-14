@@ -194,6 +194,10 @@ export const adminUserRoleUpdateBodySchema = z.object({
   role: z.enum(["operator", "manager", "admin", "developer"])
 });
 
+export const adminUserSiteUpdateBodySchema = z.object({
+  siteId: z.string().nullable()
+});
+
 export const adminUserPasswordResetBodySchema = z.object({
   newPassword: z.string().min(8)
 });
@@ -263,6 +267,7 @@ export type MaintenanceRequestBody = z.infer<typeof maintenanceRequestBodySchema
 export type ApiCredentialBody = z.infer<typeof apiCredentialBodySchema>;
 export type ApiCredentialUpdateBody = z.infer<typeof apiCredentialUpdateBodySchema>;
 export type AdminUserRoleUpdateBody = z.infer<typeof adminUserRoleUpdateBodySchema>;
+export type AdminUserSiteUpdateBody = z.infer<typeof adminUserSiteUpdateBodySchema>;
 export type AdminUserPasswordResetBody = z.infer<typeof adminUserPasswordResetBodySchema>;
 export type ManagerOperatorProvisioningBody = z.infer<typeof managerOperatorProvisioningBodySchema>;
 export type CreateManagedOperatorBody = z.infer<typeof createManagedOperatorBodySchema>;

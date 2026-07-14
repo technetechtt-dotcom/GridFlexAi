@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { KeyRound } from 'lucide-react';
+import { KeyRound, MapPin } from 'lucide-react';
 import {
   adminResetUserPassword,
+  fetchAdminSites,
   fetchAdminUsers,
+  type AdminSite,
   type AdminUser,
   updateAdminUserRole,
+  updateAdminUserSite,
   updateManagerOperatorProvisioning
 } from '../../services/api';
 import { useAdminRefresh } from './AdminLayout';
@@ -15,6 +18,7 @@ const POLL_MS = 20000;
 export function AdminUsersPage() {
   const { autoRefresh, refreshTick } = useAdminRefresh();
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [sites, setSites] = useState<AdminSite[]>([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | AdminUser['role']>('all');
   const [error, setError] = useState<string | null>(null);
@@ -22,8 +26,12 @@ export function AdminUsersPage() {
 
   const load = useCallback(async () => {
     try {
-      const rows = await fetchAdminUsers();
+      const [rows, siteRows] = await Promise.all([
+        fetchAdminUsers(),
+        fetchAdminSites()
+      ]);
       setUsers(rows);
+      setSites(siteRows);
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load users.');
@@ -46,7 +54,9 @@ export function AdminUsersPage() {
     return users.filter((user) => {
       const matchesSearch =
         user.name.toLowerCase().includes(search.toLowerCase()) ||
-        user.email.toLowerCase().includes(search.toLowerCase());
+        user.email.toLowerCase().includes(search.toLowerCase()) ||
+        (user.site?.name.toLowerCase().includes(search.toLowerCase()) ?? false) ||
+        (user.site?.code.toLowerCase().includes(search.toLowerCase()) ?? false);
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
       return matchesSearch && matchesRole;
     });
@@ -84,6 +94,10 @@ export function AdminUsersPage() {
   };
 
   const onToggleProvisioning = async (user: AdminUser, enabled: boolean) => {
+    if (enabled && !user.siteId) {
+      setError('Assign this manager to a site before enabling operator accounts.');
+      return;
+    }
     setBusyId(user.id);
     try {
       const maxOperators = user.operatorProvisioning?.maxOperators ?? 2;
@@ -91,6 +105,18 @@ export function AdminUsersPage() {
       await load();
     } catch (provisionError) {
       setError(provisionError instanceof Error ? provisionError.message : 'Failed to update operator provisioning.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onSiteChange = async (user: AdminUser, siteId: string | null) => {
+    setBusyId(user.id);
+    try {
+      await updateAdminUserSite(user.id, siteId);
+      await load();
+    } catch (siteError) {
+      setError(siteError instanceof Error ? siteError.message : 'Failed to update site assignment.');
     } finally {
       setBusyId(null);
     }
@@ -115,8 +141,8 @@ export function AdminUsersPage() {
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
       <div className="mb-4 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-xs text-slate-400">
-        Ops Center tracks all users. For managers, enable <span className="text-slate-200">Operator accounts</span> to
-        allow them to create at least 2 operators and monitor those operators&apos; activity in the plant app.
+        Ops Center tracks all users. Assign managers to a plant/site first, then enable <span className="text-slate-200">Operator accounts</span> so
+        each manager can register operators only for that assigned site.
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
@@ -175,35 +201,79 @@ export function AdminUsersPage() {
                 <td className="px-3 py-2">
                   {user.role === 'manager' ? (
                     <div className="flex flex-wrap items-center gap-2">
-                      <label className="inline-flex items-center gap-1 text-xs text-slate-300">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(user.operatorProvisioning?.enabled)}
+                      <div className="flex min-w-[220px] flex-col gap-1">
+                        <label className="flex items-center gap-1 text-xs text-slate-500">
+                          <MapPin className="h-3 w-3" />
+                          Manager site
+                        </label>
+                        <select
+                          value={user.siteId ?? ''}
                           disabled={busyId === user.id}
                           onChange={(event) => {
-                            void onToggleProvisioning(user, event.target.checked);
+                            void onSiteChange(user, event.target.value || null);
                           }}
+                          className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100 disabled:opacity-60">
+                          <option value="">Unassigned</option>
+                          {sites.map((site) => (
+                            <option key={site.id} value={site.id}>{site.name} ({site.code})</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="inline-flex items-center gap-1 text-xs text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(user.operatorProvisioning?.enabled)}
+                            disabled={busyId === user.id || !user.siteId}
+                            onChange={(event) => {
+                              void onToggleProvisioning(user, event.target.checked);
+                            }}
+                          />
+                          Operator accounts
+                        </label>
+                        <input
+                          type="number"
+                          min={2}
+                          max={50}
+                          disabled={busyId === user.id}
+                          value={user.operatorProvisioning?.maxOperators ?? 2}
+                          onChange={(event) => {
+                            void onMaxOperatorsChange(user, Number(event.target.value));
+                          }}
+                          className="w-16 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100"
+                          title="Max operators (min 2)"
                         />
-                        Operator accounts
-                      </label>
-                      <input
-                        type="number"
-                        min={2}
-                        max={50}
-                        disabled={busyId === user.id}
-                        value={user.operatorProvisioning?.maxOperators ?? 2}
-                        onChange={(event) => {
-                          void onMaxOperatorsChange(user, Number(event.target.value));
-                        }}
-                        className="w-16 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100"
-                        title="Max operators (min 2)"
-                      />
-                      <span className="text-xs text-slate-500">{user.operatorCount ?? 0} assigned</span>
+                        <span className="text-xs text-slate-500">{user.operatorCount ?? 0} assigned</span>
+                      </div>
                     </div>
                   ) : user.role === 'operator' && user.managedBy ? (
-                    <span className="text-xs text-slate-400">
-                      Manager: {user.managedBy.name} ({user.managedBy.email})
-                    </span>
+                    <div className="space-y-1 text-xs">
+                      <p className="text-slate-400">
+                        Manager: {user.managedBy.name} ({user.managedBy.email})
+                      </p>
+                      <p className="text-slate-500">
+                        Site: {user.site ? `${user.site.name} (${user.site.code})` : 'Unassigned'}
+                      </p>
+                    </div>
+                  ) : user.role === 'operator' ? (
+                    <div className="flex min-w-[220px] flex-col gap-1">
+                      <label className="flex items-center gap-1 text-xs text-slate-500">
+                        <MapPin className="h-3 w-3" />
+                        Operator site
+                      </label>
+                      <select
+                        value={user.siteId ?? ''}
+                        disabled={busyId === user.id}
+                        onChange={(event) => {
+                          void onSiteChange(user, event.target.value || null);
+                        }}
+                        className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-100 disabled:opacity-60">
+                        <option value="">Unassigned</option>
+                        {sites.map((site) => (
+                          <option key={site.id} value={site.id}>{site.name} ({site.code})</option>
+                        ))}
+                      </select>
+                    </div>
                   ) : (
                     <span className="text-xs text-slate-600">—</span>
                   )}

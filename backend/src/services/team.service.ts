@@ -8,7 +8,27 @@ import { hashPassword } from "../utils/password.js";
 const DEFAULT_MAX_OPERATORS = 2;
 
 export const getManagerTeamOverview = async (managerId: string) => {
-  const [provisioning, operators] = await Promise.all([
+  const [manager, provisioning, operators] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: managerId },
+      select: {
+        siteId: true,
+        site: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            location: true,
+            client: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
+    }),
     prisma.managerOperatorProvisioning.findUnique({ where: { managerId } }),
     prisma.user.findMany({
       where: { managedById: managerId, role: Role.operator },
@@ -17,6 +37,14 @@ export const getManagerTeamOverview = async (managerId: string) => {
         id: true,
         name: true,
         email: true,
+        siteId: true,
+        site: {
+          select: {
+            id: true,
+            name: true,
+            code: true
+          }
+        },
         status: true,
         createdAt: true,
         lastLoginAt: true
@@ -28,6 +56,15 @@ export const getManagerTeamOverview = async (managerId: string) => {
   const maxOperators = provisioning?.maxOperators ?? DEFAULT_MAX_OPERATORS;
 
   return {
+    site: manager?.site
+      ? {
+          id: manager.site.id,
+          name: manager.site.name,
+          code: manager.site.code,
+          location: manager.site.location,
+          client: manager.site.client
+        }
+      : null,
     provisioning: {
       enabled,
       maxOperators,
@@ -38,6 +75,8 @@ export const getManagerTeamOverview = async (managerId: string) => {
       id: operator.id,
       name: operator.name,
       email: operator.email,
+      siteId: operator.siteId,
+      site: operator.site,
       status: operator.status,
       createdAt: operator.createdAt.toISOString(),
       lastLoginAt: operator.lastLoginAt ? operator.lastLoginAt.toISOString() : null
@@ -49,9 +88,23 @@ export const createManagedOperator = async (
   managerId: string,
   input: { name: string; email: string; password: string }
 ) => {
-  const manager = await prisma.user.findUnique({ where: { id: managerId } });
+  const manager = await prisma.user.findUnique({
+    where: { id: managerId },
+    include: {
+      site: {
+        select: {
+          id: true,
+          name: true,
+          code: true
+        }
+      }
+    }
+  });
   if (!manager || manager.role !== Role.manager) {
     throw new AppError("Only managers can create operator accounts.", 403);
+  }
+  if (!manager.siteId) {
+    throw new AppError("Ops Center must assign your manager account to a site before you can register operators.", 403);
   }
 
   const provisioning = await prisma.managerOperatorProvisioning.findUnique({ where: { managerId } });
@@ -78,7 +131,8 @@ export const createManagedOperator = async (
       name: input.name,
       password: hashedPassword,
       role: Role.operator,
-      managedById: managerId
+      managedById: managerId,
+      siteId: manager.siteId
     }
   });
 
@@ -88,13 +142,20 @@ export const createManagedOperator = async (
     entityId: operator.id,
     message: `Manager ${manager.email} created operator ${operator.email}`,
     userId: managerId,
-    metadata: { managedById: managerId, operatorEmail: operator.email }
+    metadata: {
+      managedById: managerId,
+      operatorEmail: operator.email,
+      siteId: manager.siteId,
+      siteCode: manager.site?.code ?? null
+    }
   });
 
   return {
     id: operator.id,
     name: operator.name,
     email: operator.email,
+    siteId: operator.siteId,
+    site: manager.site,
     status: operator.status,
     createdAt: operator.createdAt.toISOString(),
     lastLoginAt: operator.lastLoginAt ? operator.lastLoginAt.toISOString() : null
@@ -174,6 +235,9 @@ export const setManagerOperatorProvisioning = async (
   }
   if (manager.role !== Role.manager) {
     throw new AppError("Operator provisioning can only be configured for manager accounts.", 400);
+  }
+  if (input.enabled && !manager.siteId) {
+    throw new AppError("Assign this manager to a site before enabling operator registration.", 400);
   }
 
   const maxOperators = Math.max(2, input.maxOperators ?? DEFAULT_MAX_OPERATORS);

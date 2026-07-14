@@ -30,6 +30,7 @@ import {
   postAdminClearForecastCacheHandler,
   postAdminTestNotificationHandler,
   patchAdminUserRoleHandler,
+  patchAdminUserSiteHandler,
   patchManagerOperatorProvisioningHandler
 } from "../controllers/admin-monitoring.controller.js";
 import { authenticate, authorizeRoles } from "../middleware/auth.js";
@@ -37,6 +38,7 @@ import { validateRequest } from "../middleware/validateRequest.js";
 import {
   adminNodeUpdateBodySchema,
   adminUserRoleUpdateBodySchema,
+  adminUserSiteUpdateBodySchema,
   adminUserPasswordResetBodySchema,
   managerOperatorProvisioningBodySchema,
   apiCredentialBodySchema,
@@ -56,6 +58,7 @@ router.use(authenticate, authorizeRoles("admin", "developer"));
 router.get("/overview", getAdminPlatformOverviewHandler);
 router.get("/users", getAdminUsersHandler);
 router.patch("/users/:id/role", validateRequest({ body: adminUserRoleUpdateBodySchema }), patchAdminUserRoleHandler);
+router.patch("/users/:id/site", validateRequest({ body: adminUserSiteUpdateBodySchema }), patchAdminUserSiteHandler);
 router.patch("/users/:id/password", validateRequest({ body: adminUserPasswordResetBodySchema }), patchUserPassword);
 router.patch(
   "/users/:id/operator-provisioning",

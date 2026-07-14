@@ -8,11 +8,13 @@ import {
   getAuditLogs,
   runClearForecastCacheAction,
   runTestNotificationAction,
-  updateAdminUserRole
+  updateAdminUserRole,
+  updateAdminUserSite
 } from "../services/admin-monitoring.service.js";
 import { setManagerOperatorProvisioning } from "../services/team.service.js";
 import type {
   AdminUserRoleUpdateBody,
+  AdminUserSiteUpdateBody,
   ManagerOperatorProvisioningBody
 } from "../schemas/request.schemas.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -61,6 +63,14 @@ export const patchAdminUserRoleHandler = asyncHandler(async (
   res: Response
 ) => {
   const data = await updateAdminUserRole(req.params.id, req.body.role);
+  res.status(200).json({ data });
+});
+
+export const patchAdminUserSiteHandler = asyncHandler(async (
+  req: Request<{ id: string }, unknown, AdminUserSiteUpdateBody>,
+  res: Response
+) => {
+  const data = await updateAdminUserSite(req.params.id, req.body.siteId, req.user?.id);
   res.status(200).json({ data });
 });
 

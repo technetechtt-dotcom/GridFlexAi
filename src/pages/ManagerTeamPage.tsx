@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Users } from 'lucide-react';
+import { MapPin, Users } from 'lucide-react';
 
 import {
   createManagedOperator,
@@ -49,6 +49,7 @@ export function ManagerTeamPage() {
   };
 
   const provisioning = overview?.provisioning;
+  const assignedSite = overview?.site;
 
   return (
     <div className="space-y-6 p-6 pb-20">
@@ -70,7 +71,19 @@ export function ManagerTeamPage() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+          <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-slate-500">
+            <MapPin className="h-3.5 w-3.5" />
+            Assigned site
+          </p>
+          <p className="mt-2 text-lg font-semibold text-slate-100">
+            {assignedSite ? assignedSite.name : 'Unassigned'}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            {assignedSite ? `${assignedSite.code} | ${assignedSite.client.name}` : 'Ops Center must assign your manager account to a plant/site.'}
+          </p>
+        </div>
         <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
           <p className="text-xs uppercase tracking-wide text-slate-500">Operator creation</p>
           <p className="mt-2 text-lg font-semibold text-slate-100">
@@ -103,7 +116,7 @@ export function ManagerTeamPage() {
           <h2 className="mb-3 text-sm font-semibold text-slate-100">Create operator</h2>
           {!provisioning?.enabled ? (
             <p className="text-sm text-amber-200">
-              Operator account creation is locked until Ops Center activates it for you (minimum 2 seats).
+              Operator account creation is locked until Ops Center assigns your manager account to a site and activates operator accounts.
             </p>
           ) : (
             <form onSubmit={onCreate} className="space-y-3">
@@ -146,6 +159,7 @@ export function ManagerTeamPage() {
                 <tr className="border-b border-slate-700 text-left text-slate-400">
                   <th className="px-2 py-2">Name</th>
                   <th className="px-2 py-2">Email</th>
+                  <th className="px-2 py-2">Site</th>
                   <th className="px-2 py-2">Last login</th>
                 </tr>
               </thead>
@@ -154,6 +168,7 @@ export function ManagerTeamPage() {
                   <tr key={operator.id} className="border-b border-slate-800 text-slate-200">
                     <td className="px-2 py-2">{operator.name}</td>
                     <td className="px-2 py-2">{operator.email}</td>
+                    <td className="px-2 py-2">{operator.site ? `${operator.site.name} (${operator.site.code})` : 'Unassigned'}</td>
                     <td className="px-2 py-2">
                       {operator.lastLoginAt ? new Date(operator.lastLoginAt).toLocaleString() : 'Never'}
                     </td>
@@ -161,7 +176,7 @@ export function ManagerTeamPage() {
                 ))}
                 {(overview?.operators.length ?? 0) === 0 && (
                   <tr>
-                    <td colSpan={3} className="px-2 py-4 text-slate-500">
+                    <td colSpan={4} className="px-2 py-4 text-slate-500">
                       No operators assigned yet.
                     </td>
                   </tr>

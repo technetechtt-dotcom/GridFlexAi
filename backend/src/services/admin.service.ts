@@ -1,4 +1,4 @@
-import { ApiProvider, NodeStatus, Prisma } from "@prisma/client";
+import { ApiProvider, NodeStatus, Prisma, Role } from "@prisma/client";
 
 import { prisma } from "../lib/prisma.js";
 import { recordAuditLog } from "./audit-log.service.js";
@@ -116,8 +116,23 @@ export const listSites = async () => {
       _count: {
         select: {
           nodes: true,
-          credentials: true
+          credentials: true,
+          users: true
         }
+      },
+      users: {
+        where: {
+          role: {
+            in: [Role.manager, Role.operator]
+          }
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true
+        },
+        orderBy: [{ role: "asc" }, { name: "asc" }]
       }
     }
   });
@@ -132,7 +147,16 @@ export const listSites = async () => {
     timezone: site.timezone,
     createdAt: site.createdAt.toISOString(),
     nodeCount: site._count.nodes,
-    credentialCount: site._count.credentials
+    credentialCount: site._count.credentials,
+    userCount: site._count.users,
+    managers: site.users
+      .filter((user) => user.role === Role.manager)
+      .map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email
+      })),
+    operatorCount: site.users.filter((user) => user.role === Role.operator).length
   }));
 };
 

@@ -69,8 +69,34 @@ export const getAdminUsers = async () => {
     orderBy: [{ createdAt: "desc" }],
     include: {
       operatorProvisioning: true,
+      site: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          location: true,
+          client: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      },
       managedBy: {
-        select: { id: true, name: true, email: true }
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          siteId: true,
+          site: {
+            select: {
+              id: true,
+              name: true,
+              code: true
+            }
+          }
+        }
       },
       _count: {
         select: {
@@ -88,12 +114,16 @@ export const getAdminUsers = async () => {
     status: user.status,
     createdAt: user.createdAt.toISOString(),
     lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+    siteId: user.siteId,
+    site: user.site,
     managedById: user.managedById,
     managedBy: user.managedBy
       ? {
           id: user.managedBy.id,
           name: user.managedBy.name,
-          email: user.managedBy.email
+          email: user.managedBy.email,
+          siteId: user.managedBy.siteId,
+          site: user.managedBy.site
         }
       : null,
     operatorCount: user._count.operators,
@@ -142,6 +172,104 @@ export const updateAdminUserRole = async (id: string, role: "operator" | "manage
     email: updated.email,
     role: updated.role,
     status: updated.status,
+    createdAt: updated.createdAt.toISOString(),
+    lastLoginAt: updated.lastLoginAt ? updated.lastLoginAt.toISOString() : null
+  };
+};
+
+export const updateAdminUserSite = async (id: string, siteId: string | null, updatedById?: string) => {
+  const existing = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      operators: {
+        select: {
+          id: true
+        }
+      },
+      managedBy: {
+        select: {
+          id: true,
+          siteId: true
+        }
+      }
+    }
+  });
+  if (!existing) {
+    throw new AppError("User not found.", 404);
+  }
+  if (existing.role === "operator" && existing.managedById && existing.managedBy?.siteId !== siteId) {
+    throw new AppError("Operator site must match the assigned manager's site.", 400);
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.update({
+      where: { id },
+      data: {
+        siteId
+      },
+      include: {
+        site: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            location: true,
+            client: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (existing.role === "manager") {
+      await tx.user.updateMany({
+        where: {
+          managedById: id,
+          role: "operator"
+        },
+        data: {
+          siteId
+        }
+      });
+    }
+
+    return user;
+  });
+
+  const auditPayload: {
+    action: string;
+    entityType: string;
+    entityId: string;
+    message: string;
+    metadata: { siteId: string | null; propagatedOperatorCount: number };
+    userId?: string;
+  } = {
+    action: "admin.user.site.update",
+    entityType: "User",
+    entityId: updated.id,
+    message: siteId ? `Assigned ${updated.email} to site ${updated.site?.name ?? siteId}` : `Cleared site assignment for ${updated.email}`,
+    metadata: {
+      siteId,
+      propagatedOperatorCount: existing.role === "manager" ? existing.operators.length : 0
+    }
+  };
+  if (updatedById) {
+    auditPayload.userId = updatedById;
+  }
+  await recordAuditLog(auditPayload);
+
+  return {
+    id: updated.id,
+    name: updated.name,
+    email: updated.email,
+    role: updated.role,
+    status: updated.status,
+    siteId: updated.siteId,
+    site: updated.site,
     createdAt: updated.createdAt.toISOString(),
     lastLoginAt: updated.lastLoginAt ? updated.lastLoginAt.toISOString() : null
   };
