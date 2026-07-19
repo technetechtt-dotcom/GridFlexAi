@@ -14,10 +14,42 @@ enum Role {
   developer
 }
 
+enum MembershipRole {
+  portfolio_admin
+  plant_manager
+  operator
+  engineer
+  analyst
+  viewer
+  developer
+  super_admin
+}
+
+enum MembershipStatus {
+  active
+  invited
+  suspended
+}
+
+enum OrganisationStatus {
+  active
+  suspended
+  archived
+}
+
 enum NodeStatus {
   online
   offline
   maintenance
+}
+
+enum NodeHealthState {
+  online
+  stale
+  degraded
+  offline
+  maintenance
+  disabled
 }
 
 enum ApiProvider {
@@ -27,30 +59,125 @@ enum ApiProvider {
   custom
 }
 
+enum DataSourceType {
+  measured
+  calculated
+  forecast
+  estimated
+  simulated
+  operator_entered
+  imported
+}
+
+enum DataQuality {
+  valid
+  uncertain
+  stale
+  missing
+  invalid
+  substituted
+  unverified
+}
+
+enum MeasurementUnit {
+  V
+  A
+  Hz
+  kW
+  MW
+  kWh
+  MWh
+  kVAr
+  MVAr
+  kVA
+  MVA
+  percent
+  celsius
+  wm2
+  kg
+  kg_per_hour
+  litre
+  litre_per_hour
+  zar
+  zar_per_kwh
+  zar_per_mwh
+  zar_per_kg
+}
+
+enum AssetType {
+  grid_connection
+  revenue_meter
+  plant_power_controller
+  inverter
+  solar_array
+  weather_station
+  transformer
+  feeder
+  switchgear
+  protection_relay
+  bess
+  battery_management_system
+  battery_rack
+  power_conversion_system
+  electrolyser
+  hydrogen_storage
+  compressor
+  flexible_load
+  edge_gateway
+  sensor
+  virtual_asset
+}
+
+enum AssetStatus {
+  planned
+  commissioning
+  operational
+  maintenance
+  decommissioned
+  simulated
+}
+
+enum DeviceCredentialStatus {
+  pending
+  active
+  rotating
+  revoked
+  expired
+}
+
+enum PlantStatus {
+  planned
+  operational
+  maintenance
+  decommissioned
+  simulated
+}
+
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  password      String
-  name          String
-  role          Role           @default(operator)
-  status        String         @default("active")
-  lastLoginAt   DateTime?
-  createdAt     DateTime       @default(now())
-  siteId        String?
-  site          Site?          @relation(fields: [siteId], references: [id], onDelete: SetNull)
-  managedById   String?
-  managedBy     User?          @relation("ManagerOperators", fields: [managedById], references: [id], onDelete: SetNull)
-  operators     User[]         @relation("ManagerOperators")
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]
-  operatorProvisioning ManagerOperatorProvisioning?
+  id                       String                        @id @default(cuid())
+  email                    String                        @unique
+  password                 String
+  name                     String
+  role                     Role                          @default(operator)
+  status                   String                        @default("active")
+  lastLoginAt              DateTime?
+  createdAt                DateTime                      @default(now())
+  siteId                   String?
+  site                     Site?                         @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  managedById              String?
+  managedBy                User?                         @relation("ManagerOperators", fields: [managedById], references: [id], onDelete: SetNull)
+  operators                User[]                        @relation("ManagerOperators")
+  refreshTokens            RefreshToken[]
+  auditLogs                AuditLog[]
+  operatorProvisioning     ManagerOperatorProvisioning?
+  organisationMemberships  OrganisationMembership[]
+  siteMemberships          SiteMembership[]
 
   @@index([managedById])
   @@index([role])
   @@index([siteId])
 }
 
-/// Ops Center can activate operator-account creation for a manager (default quota: 2).
 model ManagerOperatorProvisioning {
   managerId    String   @id
   manager      User     @relation(fields: [managerId], references: [id], onDelete: Cascade)
@@ -60,32 +187,99 @@ model ManagerOperatorProvisioning {
   updatedById  String?
 }
 
-model EdgeNode {
-  id                  String                   @id @default(cuid())
-  deviceKey           String?                  @unique
-  serialNumber        String?                  @unique
-  siteId              String?
-  site                Site?                    @relation(fields: [siteId], references: [id])
-  name                String
-  location            String
-  latitude            Float?
-  longitude           Float?
-  status              NodeStatus               @default(offline)
-  firmwareVersion     String?
-  batteryLevel        Float?
-  signalStrength      Float?
-  installedAt         DateTime                 @default(now())
-  lastRestartedAt     DateTime?
-  isActive            Boolean                  @default(true)
-  lastSeen            DateTime?
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
-  readings            SensorReading[]
-  forecasts           DailyForecastPrediction[]
-  statusLogs          EdgeNodeStatusLog[]
-  maintenanceRequests NodeMaintenanceRequest[]
+/// Multi-tenant organisation. Existing Client rows remain and may link here.
+model Organisation {
+  id           String                    @id @default(cuid())
+  name         String
+  slug         String                    @unique
+  status       OrganisationStatus        @default(active)
+  timezone     String                    @default("Africa/Johannesburg")
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  clients      Client[]
+  sites        Site[]
+  plants       Plant[]
+  memberships  OrganisationMembership[]
+  telemetry    TelemetryReading[]
+  auditLogs    AuditLog[]
 
   @@index([status])
+}
+
+model OrganisationMembership {
+  id             String           @id @default(cuid())
+  organisationId String
+  organisation   Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           MembershipRole
+  status         MembershipStatus @default(active)
+  createdAt      DateTime         @default(now())
+
+  @@unique([organisationId, userId])
+  @@index([userId])
+  @@index([organisationId, role])
+}
+
+model SiteMembership {
+  id        String           @id @default(cuid())
+  siteId    String
+  site      Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      MembershipRole
+  status    MembershipStatus @default(active)
+  createdAt DateTime         @default(now())
+
+  @@unique([siteId, userId])
+  @@index([userId])
+  @@index([siteId, role])
+}
+
+model EdgeNode {
+  id                      String                   @id @default(cuid())
+  deviceKey               String?                  @unique
+  serialNumber            String?                  @unique
+  siteId                  String?
+  site                    Site?                    @relation(fields: [siteId], references: [id])
+  assetId                 String?                  @unique
+  asset                   Asset?                   @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  name                    String
+  location                String
+  latitude                Float?
+  longitude               Float?
+  status                  NodeStatus               @default(offline)
+  healthState             NodeHealthState          @default(offline)
+  firmwareVersion         String?
+  batteryLevel            Float?
+  signalStrength          Float?
+  enclosureTemperatureC   Float?
+  storageUtilisationPct   Float?
+  queueDepth              Int?
+  restartCount            Int                      @default(0)
+  watchdogResetCount      Int                      @default(0)
+  heartbeatIntervalSec    Int                      @default(60)
+  staleAfterSec           Int                      @default(120)
+  offlineAfterSec         Int                      @default(600)
+  lastSuccessfulIngestAt  DateTime?
+  lastInvalidPayloadAt    DateTime?
+  lastAuthFailureAt       DateTime?
+  installedAt             DateTime                 @default(now())
+  lastRestartedAt         DateTime?
+  isActive                Boolean                  @default(true)
+  lastSeen                DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  readings                SensorReading[]
+  forecasts               DailyForecastPrediction[]
+  statusLogs              EdgeNodeStatusLog[]
+  maintenanceRequests     NodeMaintenanceRequest[]
+  credentials             DeviceCredential[]
+  provisioningEvents      DeviceProvisioningEvent[]
+  healthHistory           NodeHealthHistory[]
+
+  @@index([status])
+  @@index([healthState])
   @@index([lastSeen])
   @@index([siteId])
   @@index([serialNumber])
@@ -107,6 +301,19 @@ model EdgeNodeStatusLog {
   @@index([toStatus])
 }
 
+model NodeHealthHistory {
+  id          String          @id @default(cuid())
+  nodeId      String
+  node        EdgeNode        @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  fromState   NodeHealthState?
+  toState     NodeHealthState
+  reason      String?
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+
+  @@index([nodeId, createdAt])
+}
+
 model NodeMaintenanceRequest {
   id            String    @id @default(cuid())
   nodeId        String
@@ -123,69 +330,92 @@ model NodeMaintenanceRequest {
 }
 
 model SensorReading {
-  id            String   @id @default(cuid())
-  nodeId        String
-  node          EdgeNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
-  voltage       Float
-  current       Float
-  power         Float
-  energyToday   Float?
-  inverterPower Float?
-  curtailment   Float?
-  timestamp     DateTime @default(now())
+  id                 String          @id @default(cuid())
+  nodeId             String
+  node               EdgeNode        @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  voltage            Float
+  current            Float
+  power              Float
+  energyToday        Float?
+  inverterPower      Float?
+  curtailment        Float?
+  /// Device-reported timestamp (preserve original clock).
+  deviceTimestamp    DateTime?
+  /// Server ingestion timestamp.
+  ingestedAt         DateTime        @default(now())
+  /// Legacy field kept for compatibility; prefer deviceTimestamp/ingestedAt.
+  timestamp          DateTime        @default(now())
+  sequenceNumber     Int?
+  schemaVersion      String?         @default("1")
+  firmwareVersion    String?
+  calibrationVersion String?
+  qualityFlags       Json?
+  sourceAssetId      String?
+  sourceType         DataSourceType  @default(measured)
+  quality            DataQuality     @default(valid)
+  powerUnit          MeasurementUnit @default(kW)
+  voltageUnit        MeasurementUnit @default(V)
+  currentUnit        MeasurementUnit @default(A)
 
   @@index([nodeId, timestamp(sort: Desc)])
   @@index([timestamp(sort: Desc)])
+  @@index([nodeId, ingestedAt(sort: Desc)])
+  @@index([sourceType])
+  @@index([quality])
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String   @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId, expiresAt])
   @@index([expiresAt])
 }
 
 model DailyForecastPrediction {
-  id                String   @id @default(cuid())
-  nodeId            String
-  node              EdgeNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
-  forecastDate      DateTime
+  id                 String   @id @default(cuid())
+  nodeId             String
+  node               EdgeNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  forecastDate       DateTime
   estimatedEnergyKwh Float
-  peakPowerKw       Float
-  sourceConfidence  String
-  generatedAt       DateTime @default(now())
+  peakPowerKw        Float
+  sourceConfidence   String
+  generatedAt        DateTime @default(now())
 
   @@unique([nodeId, forecastDate])
   @@index([forecastDate])
 }
 
+/// Legacy commercial client record. Prefer Organisation for new tenancy work.
 model Client {
-  id           String          @id @default(cuid())
-  name         String
-  slug         String          @unique
-  contactEmail String?
-  status       String          @default("active")
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  sites        Site[]
-  credentials  ApiCredential[]
+  id             String          @id @default(cuid())
+  name           String
+  slug           String          @unique
+  contactEmail   String?
+  status         String          @default("active")
+  organisationId String?
+  organisation   Organisation?   @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  sites          Site[]
+  credentials    ApiCredential[]
   billingAccount BillingAccount?
 
   @@index([status])
+  @@index([organisationId])
 }
 
 model BillingAccount {
   id           String      @id @default(cuid())
   clientId     String      @unique
   client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  plan         String      @default("starter") // starter, pro, enterprise
-  status       String      @default("active")  // active, suspended, past_due
+  plan         String      @default("starter")
+  status       String      @default("active")
   billingEmail String?
   taxId        String?
   createdAt    DateTime    @default(now())
@@ -199,7 +429,7 @@ model Invoice {
   billingAccount   BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
   amountDue        Float
   currency         String         @default("USD")
-  status           String         @default("draft") // draft, open, paid, void, uncollectible
+  status           String         @default("draft")
   dueDate          DateTime?
   paidAt           DateTime?
   invoicePdfUrl    String?
@@ -208,20 +438,201 @@ model Invoice {
 }
 
 model Site {
-  id           String          @id @default(cuid())
-  clientId     String
-  client       Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  name         String
-  code         String          @unique
-  location     String
-  timezone     String          @default("UTC")
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  nodes        EdgeNode[]
-  users        User[]
-  credentials  ApiCredential[]
+  id             String            @id @default(cuid())
+  clientId       String
+  client         Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  organisationId String?
+  organisation   Organisation?     @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  name           String
+  code           String            @unique
+  location       String
+  timezone       String            @default("UTC")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  nodes          EdgeNode[]
+  users          User[]
+  credentials    ApiCredential[]
+  plants         Plant[]
+  memberships    SiteMembership[]
+  telemetry      TelemetryReading[]
 
   @@index([clientId])
+  @@index([organisationId])
+}
+
+model Plant {
+  id                  String             @id @default(cuid())
+  organisationId      String
+  organisation        Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId              String
+  site                Site               @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name                String
+  code                String
+  technology          String             @default("solar_pv")
+  installedCapacityKw Float              @default(0)
+  exportCapacityKw    Float              @default(0)
+  timezone            String             @default("Africa/Johannesburg")
+  latitude            Float?
+  longitude           Float?
+  status              PlantStatus        @default(simulated)
+  dataSourceType      DataSourceType     @default(simulated)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  assets              Asset[]
+  telemetry           TelemetryReading[]
+
+  @@unique([organisationId, code])
+  @@index([siteId])
+  @@index([organisationId, status])
+}
+
+model Asset {
+  id                String            @id @default(cuid())
+  plantId           String
+  plant             Plant             @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  parentAssetId     String?
+  parentAsset       Asset?            @relation("AssetHierarchy", fields: [parentAssetId], references: [id], onDelete: SetNull)
+  childAssets       Asset[]           @relation("AssetHierarchy")
+  type              AssetType
+  name              String
+  manufacturer      String?
+  model             String?
+  serialNumber      String?
+  protocol          String?
+  externalReference String?
+  ratedPowerKw      Float?
+  ratedEnergyKwh    Float?
+  status            AssetStatus       @default(simulated)
+  dataSourceType    DataSourceType    @default(simulated)
+  commissionedAt    DateTime?
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  edgeNode          EdgeNode?
+  constraints       AssetConstraint[]
+  state             AssetState?
+  pointDefinitions  TelemetryPointDefinition[]
+  telemetry         TelemetryReading[]
+
+  @@index([plantId, type])
+  @@index([parentAssetId])
+  @@index([serialNumber])
+}
+
+model AssetConstraint {
+  id            String          @id @default(cuid())
+  assetId       String
+  asset         Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  constraintType String
+  minimumValue  Float?
+  maximumValue  Float?
+  unit          MeasurementUnit
+  validFrom     DateTime?
+  validTo       DateTime?
+  source        DataSourceType  @default(operator_entered)
+  approvedBy    String?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+
+  @@index([assetId, constraintType])
+}
+
+model AssetState {
+  assetId             String    @id
+  asset               Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  operatingState      String    @default("unknown")
+  available           Boolean   @default(true)
+  lastCommunicationAt DateTime?
+  alarmState          String?
+  metadata            Json?
+  updatedAt           DateTime  @updatedAt
+}
+
+model TelemetryPointDefinition {
+  id                String          @id @default(cuid())
+  assetId           String
+  asset             Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  key               String
+  displayName       String
+  unit              MeasurementUnit
+  dataType          String          @default("number")
+  sourceType        DataSourceType  @default(measured)
+  minimumValidValue Float?
+  maximumValidValue Float?
+  writable          Boolean         @default(false)
+  critical          Boolean         @default(false)
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+  readings          TelemetryReading[]
+
+  @@unique([assetId, key])
+  @@index([key])
+}
+
+model TelemetryReading {
+  id                 String                   @id @default(cuid())
+  organisationId     String
+  organisation       Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId             String
+  site               Site                     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  plantId            String
+  plant              Plant                    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  assetId            String
+  asset              Asset                    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  pointDefinitionId  String?
+  pointDefinition    TelemetryPointDefinition? @relation(fields: [pointDefinitionId], references: [id], onDelete: SetNull)
+  key                String
+  numericValue       Float?
+  stringValue        String?
+  booleanValue       Boolean?
+  unit               MeasurementUnit
+  quality            DataQuality              @default(valid)
+  sourceType         DataSourceType           @default(measured)
+  deviceTimestamp    DateTime
+  ingestedAt         DateTime                 @default(now())
+  sequenceNumber     Int?
+  schemaVersion      String                   @default("2")
+  firmwareVersion    String?
+  calibrationVersion String?
+  qualityFlags       Json?
+  rawPayloadReference String?
+
+  @@unique([assetId, key, deviceTimestamp, sequenceNumber])
+  @@index([organisationId, deviceTimestamp])
+  @@index([siteId, deviceTimestamp])
+  @@index([plantId, deviceTimestamp])
+  @@index([assetId, key, deviceTimestamp])
+  @@index([ingestedAt])
+}
+
+model DeviceCredential {
+  id           String                 @id @default(cuid())
+  edgeNodeId   String
+  edgeNode     EdgeNode               @relation(fields: [edgeNodeId], references: [id], onDelete: Cascade)
+  credentialId String                 @unique
+  secretHash   String
+  keyVersion   Int                    @default(1)
+  status       DeviceCredentialStatus @default(active)
+  createdAt    DateTime               @default(now())
+  expiresAt    DateTime?
+  lastUsedAt   DateTime?
+  revokedAt    DateTime?
+  rotatedAt    DateTime?
+
+  @@index([edgeNodeId, status])
+  @@index([keyVersion])
+}
+
+model DeviceProvisioningEvent {
+  id         String   @id @default(cuid())
+  edgeNodeId String
+  edgeNode   EdgeNode @relation(fields: [edgeNodeId], references: [id], onDelete: Cascade)
+  action     String
+  actorId    String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([edgeNodeId, createdAt])
 }
 
 model ApiCredential {
@@ -244,17 +655,22 @@ model ApiCredential {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  action     String
-  entityType String
-  entityId   String?
-  message    String?
-  metadata   Json?
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt  DateTime @default(now())
+  id             String        @id @default(cuid())
+  action         String
+  entityType     String
+  entityId       String?
+  message        String?
+  metadata       Json?
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organisationId String?
+  organisation   Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  siteId         String?
+  createdAt      DateTime      @default(now())
 
   @@index([entityType, entityId])
   @@index([userId, createdAt])
+  @@index([organisationId, createdAt])
+  @@index([siteId, createdAt])
   @@index([createdAt])
 }
