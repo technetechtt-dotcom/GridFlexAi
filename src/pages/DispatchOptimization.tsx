@@ -13,8 +13,10 @@ import {
 import { PromptInput } from '../components/PromptInput';
 import { StatusBadge } from '../components/StatusBadge';
 import {
+  createAdvisoryOptimisationRun,
   fetchDispatchRecommendations,
   fetchReadings,
+  type AdvisoryDispatchInterval,
   type BackendReading,
   type DispatchRecommendation } from
 '../services/api';
@@ -34,6 +36,7 @@ import {
 import { Page } from '../components/Sidebar';
 import { usePilotStore } from '../store/pilotStore';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
+import { SimulationBanner } from '../components/SimulationBanner';
 interface DispatchOptimizationProps {
   onNavigate: (page: Page) => void;
 }
@@ -124,9 +127,17 @@ export function DispatchOptimization({
   const { submitPrompt } = usePilotStore();
   const [readings, setReadings] = useState<BackendReading[]>([]);
   const [recommendations, setRecommendations] = useState<DispatchRecommendation[]>([]);
+  const [advisorySchedule, setAdvisorySchedule] = useState<AdvisoryDispatchInterval[]>([]);
+  const [advisoryMeta, setAdvisoryMeta] = useState<{
+    improvementVsBaseline: number;
+    objectiveValue: number;
+    baselineObjectiveValue: number;
+    provenanceLabel: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const plantId = import.meta.env.VITE_DEMO_PLANT_ID as string | undefined;
   const handleRetry = () => {
     setError(null);
     setLoading(true);
@@ -144,6 +155,26 @@ export function DispatchOptimization({
         if (!mounted) return;
         setReadings(readingRows);
         setRecommendations(recommendationRows);
+
+        if (plantId) {
+          try {
+            const advisory = await createAdvisoryOptimisationRun(plantId, {
+              objective: 'balanced_advisory',
+              horizonHours: 6,
+              intervalMinutes: 60
+            });
+            if (!mounted) return;
+            setAdvisorySchedule(advisory.schedules);
+            setAdvisoryMeta({
+              improvementVsBaseline: advisory.result.improvementVsBaseline,
+              objectiveValue: advisory.result.objectiveValue,
+              baselineObjectiveValue: advisory.result.baselineObjectiveValue,
+              provenanceLabel: advisory.result.provenanceLabel
+            });
+          } catch {
+            // Demo plant may be absent — fall back to reading-derived chart.
+          }
+        }
         setError(null);
       } catch (err) {
         if (!mounted) return;
@@ -162,25 +193,54 @@ export function DispatchOptimization({
       mounted = false;
       clearInterval(intervalId);
     };
-  }, [refreshKey]);
+  }, [refreshKey, plantId]);
 
-  const dispatchData = useMemo(() => buildDispatchChartData(readings), [readings]);
+  const dispatchData = useMemo(() => {
+    if (advisorySchedule.length > 0) {
+      return advisorySchedule.map((row) => ({
+        time: new Date(row.intervalStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        solar: row.solarAvailableKw,
+        wind: 0,
+        battery: row.bessChargeKw - row.bessDischargeKw,
+        electrolyzer: row.electrolyserKw,
+        demand: row.gridExportKw
+      }));
+    }
+    return buildDispatchChartData(readings);
+  }, [advisorySchedule, readings]);
   const avgDemand = useMemo(() => {
     if (!dispatchData.length) return 0;
     return dispatchData.reduce((sum, point) => sum + point.demand, 0) / dispatchData.length;
   }, [dispatchData]);
-  const baselineRevenue = useMemo(() => avgDemand * 1450, [avgDemand]);
-  const optimizedRevenue = useMemo(() => baselineRevenue * 1.12, [baselineRevenue]);
+  const baselineRevenue = useMemo(
+    () => advisoryMeta?.baselineObjectiveValue ?? avgDemand * 1450,
+    [advisoryMeta, avgDemand]
+  );
+  const optimizedRevenue = useMemo(
+    () => advisoryMeta?.objectiveValue ?? baselineRevenue * 1.12,
+    [advisoryMeta, baselineRevenue]
+  );
 
   return (
     <div className="space-y-6 p-6 pb-20">
+      <SimulationBanner
+        featureName="Dispatch optimisation / flexible-asset advisory"
+        detail="Schedules are advisory_simulated. BESS/electrolyser limits are configured assumptions, not measured plant state. Approve proposes only — physical execution remains disabled."
+      />
+      {advisoryMeta &&
+      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-100">
+          Advisory improvement vs no-action baseline:{' '}
+          <span className="font-semibold">{advisoryMeta.improvementVsBaseline.toFixed(2)}</span>
+          {' '}· {advisoryMeta.provenanceLabel}
+        </div>
+      }
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-slate-100">
             Dispatch Optimization
           </h2>
           <p className="text-slate-400">
-            Real-time control for generation and storage assets
+            Advisory schedules for generation and storage assets (simulated / estimated)
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -192,8 +252,8 @@ export function DispatchOptimization({
             View Asset Status
           </button>
           <div className="bg-slate-800 px-4 py-2 rounded-lg border border-slate-700 flex items-center space-x-3">
-            <span className="text-sm text-slate-400">Auto-Dispatch Mode:</span>
-            <StatusBadge status="active" label="Enabled" />
+            <span className="text-sm text-slate-400">Dispatch Mode:</span>
+            <StatusBadge status="warning" label="Advisory Only" />
           </div>
         </div>
       </div>

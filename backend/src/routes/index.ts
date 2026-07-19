@@ -13,6 +13,7 @@ import readingRoutes from "./reading.routes.js";
 import simulationRoutes from "./simulation.routes.js";
 import teamRoutes from "./team.routes.js";
 import telemetryRoutes from "./telemetry.routes.js";
+import optimisationRoutes from "./optimisation.routes.js";
 
 const router = Router();
 
@@ -29,5 +30,6 @@ router.use("/simulation", simulationRoutes);
 router.use("/v2/telemetry", telemetryRoutes);
 router.use("/", readingRoutes);
 router.use("/", plantAssetRoutes);
+router.use("/", optimisationRoutes);
 
 export default router;
