@@ -12,6 +12,19 @@ jest.mock("../src/services/reading.service.js", () => ({
   getReadingsSummary: jest.fn()
 }));
 
+jest.mock("../src/lib/prisma.js", () => ({
+  prisma: {
+    deviceCredential: {
+      findUnique: jest.fn().mockResolvedValue(null),
+      update: jest.fn().mockResolvedValue({})
+    },
+    edgeNode: {
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      update: jest.fn().mockResolvedValue({})
+    }
+  }
+}));
+
 const mockedIngestEdgeData = ingestEdgeData as jest.MockedFunction<typeof ingestEdgeData>;
 
 const signHeaders = (payload: Record<string, unknown>, nonce = `nonce-${Date.now()}`) => {
@@ -37,9 +50,9 @@ const signHeaders = (payload: Record<string, unknown>, nonce = `nonce-${Date.now
 describe("POST /api/edge-data", () => {
   const app = createApp();
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
-    clearEdgeReplayCache();
+    await clearEdgeReplayCache();
   });
 
   it("ingests edge reading and broadcasts socket event", async () => {

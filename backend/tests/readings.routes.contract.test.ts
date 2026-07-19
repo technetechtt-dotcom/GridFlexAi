@@ -2,7 +2,8 @@ import request from "supertest";
 
 jest.mock("../src/middleware/auth.js", () => ({
   authenticate: (_req: unknown, _res: unknown, next: () => void) => next(),
-  authorizeRoles: () => (_req: unknown, _res: unknown, next: () => void) => next()
+  authorizeRoles: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+  requireRoles: () => (_req: unknown, _res: unknown, next: () => void) => next()
 }));
 
 import { createApp } from "../src/app.js";
