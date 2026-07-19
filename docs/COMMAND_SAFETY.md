@@ -79,4 +79,4 @@ Physical command adapters must stay disabled until all of the following exist:
 
 ## Migration
 
-Apply Prisma migration `20260719180000_command_safety_architecture`.
+Apply Prisma migration `20260719200000_command_safety_architecture`.

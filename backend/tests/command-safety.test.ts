@@ -89,6 +89,17 @@ describe("command validation", () => {
     ).toThrow(/Separation of duties/);
   });
 
+  it("always enforces SoD for critical risk even when flag is false", () => {
+    expect(() =>
+      assertSeparationOfDuties({
+        requesterId: "user-a",
+        approverId: "user-a",
+        requireSeparationOfDuties: false,
+        riskLevel: "critical"
+      })
+    ).toThrow(/Separation of duties/);
+  });
+
   it("passes a valid payload", () => {
     expect(() =>
       validateCommandPayload({

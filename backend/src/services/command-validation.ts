@@ -1,4 +1,4 @@
-import type { CommandRiskLevel } from "../domain/commands.js";
+import { HIGH_RISK_LEVELS, type CommandRiskLevel } from "../domain/commands.js";
 import { AppError } from "../utils/AppError.js";
 
 export type CommandLimitsInput = {
@@ -63,7 +63,9 @@ export const assertRampRate = (input: CommandLimitsInput): void => {
 };
 
 export const assertSeparationOfDuties = (input: SeparationOfDutiesInput): void => {
-  if (!input.requireSeparationOfDuties) {
+  const enforce =
+    input.requireSeparationOfDuties || HIGH_RISK_LEVELS.has(input.riskLevel);
+  if (!enforce) {
     return;
   }
   if (input.requesterId && input.requesterId === input.approverId) {
