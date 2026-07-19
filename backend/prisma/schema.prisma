@@ -153,6 +153,39 @@ enum PlantStatus {
   simulated
 }
 
+enum CurtailmentCause {
+  grid_instruction
+  network_congestion
+  export_limit
+  ppc_limit
+  negative_price
+  economic_dispatch
+  inverter_clipping
+  inverter_derating
+  equipment_fault
+  maintenance
+  weather
+  unknown
+}
+
+enum CurtailmentEventStatus {
+  open
+  closed
+  under_review
+  confirmed
+  dismissed
+}
+
+enum GridConstraintType {
+  feeder
+  transformer
+  line
+  export
+  outage
+  operator
+  contingency
+}
+
 model User {
   id                       String                        @id @default(cuid())
   email                    String                        @unique
@@ -172,6 +205,7 @@ model User {
   operatorProvisioning     ManagerOperatorProvisioning?
   organisationMemberships  OrganisationMembership[]
   siteMemberships          SiteMembership[]
+  curtailmentCorrections   CurtailmentCorrection[]
 
   @@index([managedById])
   @@index([role])
@@ -199,9 +233,12 @@ model Organisation {
   clients      Client[]
   sites        Site[]
   plants       Plant[]
-  memberships  OrganisationMembership[]
-  telemetry    TelemetryReading[]
-  auditLogs    AuditLog[]
+  memberships         OrganisationMembership[]
+  telemetry           TelemetryReading[]
+  auditLogs           AuditLog[]
+  curtailmentEvents   CurtailmentEvent[]
+  forecastRuns        ForecastRun[]
+  gridConstraints     GridConstraint[]
 
   @@index([status])
 }
@@ -452,9 +489,12 @@ model Site {
   nodes          EdgeNode[]
   users          User[]
   credentials    ApiCredential[]
-  plants         Plant[]
-  memberships    SiteMembership[]
-  telemetry      TelemetryReading[]
+  plants              Plant[]
+  memberships         SiteMembership[]
+  telemetry           TelemetryReading[]
+  curtailmentEvents   CurtailmentEvent[]
+  forecastRuns        ForecastRun[]
+  gridConstraints     GridConstraint[]
 
   @@index([clientId])
   @@index([organisationId])
@@ -480,6 +520,11 @@ model Plant {
   updatedAt           DateTime           @updatedAt
   assets              Asset[]
   telemetry           TelemetryReading[]
+  forecastConfig      PlantForecastConfig?
+  curtailmentEvents   CurtailmentEvent[]
+  forecastRuns        ForecastRun[]
+  accuracyScores      ForecastAccuracyScore[]
+  gridConstraints     GridConstraint[]
 
   @@unique([organisationId, code])
   @@index([siteId])
@@ -712,7 +757,7 @@ model CurtailmentEvent {
   @@index([calculationVersion])
 }
 
-/// Operator correction notes — never overwrites original event calculations.
+/// Operator correction notes ΓÇö never overwrites original event calculations.
 model CurtailmentCorrection {
   id                             String            @id @default(cuid())
   eventId                        String
@@ -806,7 +851,7 @@ model ForecastAccuracyScore {
   @@index([provider, scoredAt])
 }
 
-/// Explicit grid constraint inputs — not inferred from high PV output.
+/// Explicit grid constraint inputs ΓÇö not inferred from high PV output.
 model GridConstraint {
   id             String             @id @default(cuid())
   organisationId String
