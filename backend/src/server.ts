@@ -50,6 +50,7 @@ process.on("unhandledRejection", (reason) => {
       { prisma },
       { closeRedisClient },
       { startForecastCron },
+      { startNodeHealthMonitor, stopNodeHealthMonitor },
       { platformMetrics },
       { logger }
     ] = await Promise.all([
@@ -64,6 +65,7 @@ process.on("unhandledRejection", (reason) => {
       import("./lib/prisma.js"),
       import("./lib/redis.js"),
       import("./services/forecast-cron.service.js"),
+      import("./services/node-health.service.js"),
       import("./services/platform-metrics.service.js"),
       import("./utils/logger.js")
     ]);
@@ -140,6 +142,7 @@ process.on("unhandledRejection", (reason) => {
 
     const shutdown = async () => {
       forecastCronTask?.stop();
+      stopNodeHealthMonitor();
       await closeRedisClient();
       await prisma.$disconnect();
       webServer.server.close(() => process.exit(0));
@@ -154,6 +157,9 @@ process.on("unhandledRejection", (reason) => {
 
     await prisma.$connect();
     forecastCronTask = startForecastCron();
+    if (env.NODE_HEALTH_CRON_ENABLED) {
+      startNodeHealthMonitor();
+    }
 
     webServer.server.listen(webServer.port, "0.0.0.0", () => {
       logger.info(`GridFlex backend listening on ${webServer.protocol}://0.0.0.0:${webServer.port}`);

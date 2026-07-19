@@ -33,6 +33,11 @@ import {
   patchAdminUserSiteHandler,
   patchManagerOperatorProvisioningHandler
 } from "../controllers/admin-monitoring.controller.js";
+import {
+  getDeviceCredentialsHandler,
+  postDeviceCredentialHandler,
+  postRevokeDeviceCredentialHandler
+} from "../controllers/telemetry.controller.js";
 import { authenticate, authorizeRoles } from "../middleware/auth.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
@@ -83,6 +88,9 @@ router.delete("/sites/:id", removeSite);
 
 router.get("/nodes-managed", getNodes);
 router.patch("/nodes/:id", validateRequest({ body: adminNodeUpdateBodySchema }), patchNode);
+router.post("/nodes/:edgeNodeId/credentials", postDeviceCredentialHandler);
+router.get("/nodes/:edgeNodeId/credentials", getDeviceCredentialsHandler);
+router.post("/credentials/:credentialId/revoke", postRevokeDeviceCredentialHandler);
 
 router.get("/api-credentials", getApiCredentials);
 router.post("/api-credentials", validateRequest({ body: apiCredentialBodySchema }), postApiCredential);

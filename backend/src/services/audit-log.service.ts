@@ -9,6 +9,8 @@ type RecordAuditLogInput = {
   message?: string | undefined;
   metadata?: unknown;
   userId?: string | undefined;
+  organisationId?: string | undefined;
+  siteId?: string | undefined;
 };
 
 export const recordAuditLog = async (input: RecordAuditLogInput): Promise<void> => {
@@ -20,8 +22,9 @@ export const recordAuditLog = async (input: RecordAuditLogInput): Promise<void> 
   if (typeof input.entityId === "string") data.entityId = input.entityId;
   if (typeof input.message === "string") data.message = input.message;
   if (typeof input.userId === "string") data.userId = input.userId;
+  if (typeof input.organisationId === "string") data.organisationId = input.organisationId;
+  if (typeof input.siteId === "string") data.siteId = input.siteId;
   if (input.metadata !== undefined) data.metadata = input.metadata as Prisma.InputJsonValue;
 
   await prisma.auditLog.create({ data });
 };
-

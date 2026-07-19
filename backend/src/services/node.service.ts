@@ -804,6 +804,7 @@ export type NodeResolution = {
     isActive: boolean;
     lastSeen: Date | null;
     createdAt: Date;
+    assetId: string | null;
   };
   isNewNode: boolean;
 };

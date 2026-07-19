@@ -24,22 +24,30 @@ export const getSiteAccessScope = async (actor: AccessActor | undefined): Promis
     return { kind: "global" };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: actor.id },
-    select: { siteId: true }
-  });
+  const [user, siteMembership] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: actor.id },
+      select: { siteId: true }
+    }),
+    prisma.siteMembership.findFirst({
+      where: { userId: actor.id, status: "active" },
+      select: { siteId: true },
+      orderBy: { createdAt: "asc" }
+    })
+  ]);
 
   if (!user) {
     throw new AppError("User not found.", 401);
   }
 
-  if (!user.siteId) {
+  const siteId = user.siteId ?? siteMembership?.siteId;
+  if (!siteId) {
     throw new AppError("No site/plant is assigned to this account. Contact Ops Center.", 403);
   }
 
   return {
     kind: "site",
-    siteId: user.siteId
+    siteId
   };
 };
 

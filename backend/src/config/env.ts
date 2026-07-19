@@ -44,6 +44,13 @@ const envSchema = z.object({
   EDGE_INGEST_SHARED_SECRET: z.string().min(16).default("dev-edge-secret-change-me"),
   EDGE_INGEST_MAX_SKEW_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
   EDGE_RATE_LIMIT_MAX_PER_MINUTE: z.coerce.number().int().min(5).max(1000).default(30),
+  /** Temporary compatibility mode. Disabled by default in production safety checks. */
+  EDGE_ALLOW_LEGACY_SHARED_SECRET: envBoolean.default(true),
+  EDGE_REPLAY_REQUIRE_REDIS: envBoolean.default(false),
+  EDGE_ALLOW_MEMORY_REPLAY: envBoolean.default(true),
+  NODE_HEALTH_CRON_ENABLED: envBoolean.default(true),
+  NODE_HEALTH_CRON_SCHEDULE: z.string().default("*/1 * * * *"),
+  PHYSICAL_COMMAND_EXECUTION_ENABLED: envBoolean.default(false),
   FORECAST_RATE_LIMIT_MAX_PER_MINUTE: z.coerce.number().int().min(5).max(1000).default(20),
   FORECAST_CRON_ENABLED: envBoolean.default(true),
   FORECAST_CRON_SCHEDULE: z.string().default("*/30 * * * *"),
@@ -112,6 +119,18 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
 
   if (!config.ADMIN_REQUIRE_HTTPS) {
     problems.push("ADMIN_REQUIRE_HTTPS must be true in production.");
+  }
+
+  if (config.EDGE_ALLOW_LEGACY_SHARED_SECRET) {
+    problems.push("EDGE_ALLOW_LEGACY_SHARED_SECRET must be false in production. Use per-device credentials.");
+  }
+
+  if (config.PHYSICAL_COMMAND_EXECUTION_ENABLED) {
+    problems.push("PHYSICAL_COMMAND_EXECUTION_ENABLED must remain false until plant approval and HIL validation.");
+  }
+
+  if (!config.REDIS_URL && !config.EDGE_ALLOW_MEMORY_REPLAY) {
+    problems.push("REDIS_URL is required when EDGE_ALLOW_MEMORY_REPLAY is false.");
   }
 
   if (problems.length > 0) {

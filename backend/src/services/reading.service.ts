@@ -282,14 +282,27 @@ type IngestionEnvelope = {
 
 export const createReading = async (payload: CreateReadingInput) => {
   const { node, isNewNode } = await resolveNodeForIngestion(payload.nodeId, payload.deviceKey);
+  const ingestedAt = new Date();
+  const deviceTimestamp = payload.timestamp ?? ingestedAt;
 
   const readingData: Prisma.SensorReadingUncheckedCreateInput = {
     nodeId: node.id,
     voltage: payload.voltage,
     current: payload.current,
     power: payload.power,
-    timestamp: payload.timestamp ?? new Date()
+    timestamp: deviceTimestamp,
+    deviceTimestamp,
+    ingestedAt,
+    schemaVersion: "1",
+    sourceType: "measured",
+    quality: "valid",
+    powerUnit: "kW",
+    voltageUnit: "V",
+    currentUnit: "A"
   };
+  if (node.assetId) {
+    readingData.sourceAssetId = node.assetId;
+  }
 
   if (typeof payload.energyToday === "number") {
     readingData.energyToday = payload.energyToday;
@@ -299,6 +312,9 @@ export const createReading = async (payload: CreateReadingInput) => {
   }
   if (typeof payload.curtailment === "number") {
     readingData.curtailment = payload.curtailment;
+  }
+  if (typeof payload.firmwareVersion === "string") {
+    readingData.firmwareVersion = payload.firmwareVersion;
   }
 
   const reading = await prisma.sensorReading.create({
@@ -317,7 +333,9 @@ export const createReading = async (payload: CreateReadingInput) => {
 
   const nodeUpdateData: Prisma.EdgeNodeUpdateInput = {
     status: NodeStatus.online,
-    lastSeen: reading.timestamp
+    healthState: "online",
+    lastSeen: deviceTimestamp,
+    lastSuccessfulIngestAt: ingestedAt
   };
   if (typeof payload.batteryLevel === "number") {
     nodeUpdateData.batteryLevel = payload.batteryLevel;
