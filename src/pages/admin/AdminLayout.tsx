@@ -89,6 +89,9 @@ export function AdminLayout() {
             <NavLink to="/ops/metrics" className={navItemClass}>
               Metrics
             </NavLink>
+            <NavLink to="/ops/alarms" className={navItemClass}>
+              Alarms
+            </NavLink>
             <NavLink to="/ops/logs" className={navItemClass}>
               Audit Logs
             </NavLink>

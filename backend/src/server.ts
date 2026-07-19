@@ -116,6 +116,7 @@ process.on("unhandledRejection", (reason) => {
 
     const webServer = resolveWebServer();
     let forecastCronTask: ReturnType<typeof startForecastCron> = null;
+    let telemetryRetentionTask: { stop: () => void } | null = null;
 
     const io = new SocketIOServer(webServer.server, {
       cors: {
@@ -123,6 +124,9 @@ process.on("unhandledRejection", (reason) => {
         credentials: true
       }
     });
+
+    const { attachRedisSocketAdapter, closeRedisSocketAdapter } = await import("./lib/socket-redis-adapter.js");
+    await attachRedisSocketAdapter(io);
 
     setSocketServer(io);
 

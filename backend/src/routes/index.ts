@@ -3,6 +3,7 @@ import { Router } from "express";
 import adminRoutes from "./admin.routes.js";
 import activityRoutes from "./activity.routes.js";
 import aiRoutes from "./ai.routes.js";
+import alarmRoutes from "./alarm.routes.js";
 import authRoutes from "./auth.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
 import forecastRoutes from "./forecast.routes.js";
@@ -27,6 +28,7 @@ router.use("/forecast", forecastRoutes);
 router.use("/nodes", nodeRoutes);
 router.use("/simulation", simulationRoutes);
 router.use("/v2/telemetry", telemetryRoutes);
+router.use("/", alarmRoutes);
 router.use("/", readingRoutes);
 router.use("/", plantAssetRoutes);
 

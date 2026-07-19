@@ -3,17 +3,46 @@ import { openai } from "@ai-sdk/openai";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
+import type { Role } from "@prisma/client";
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
+import { resolveAccessScope } from "../middleware/permissions.js";
 import type { AiChatBody } from "../schemas/request.schemas.js";
+import { listAlarmEvents } from "./alarm.service.js";
 import { getDashboardOverview } from "./dashboard.service.js";
 import { getHybridForecast } from "./forecast.service.js";
+import {
+  ZOLT_SYSTEM_SAFETY,
+  proposeCommandInputSchema,
+  proposeCommandOnly,
+  redactSecrets,
+  wrapToolExecute,
+  zoltPrepareStep
+} from "./zolt-hardening.js";
 import { AppError } from "../utils/AppError.js";
 import {
   assertNodeSiteAccess,
   getOptionalSiteAccessScope,
   type AccessActor
 } from "./access-scope.service.js";
+
+const withProvenance = <T extends Record<string, unknown>>(
+  payload: T,
+  source: string,
+  asOf?: Date | string | null
+) => {
+  const asOfDate = asOf ? new Date(asOf) : new Date();
+  const freshnessSeconds = Math.max(0, Math.round((Date.now() - asOfDate.getTime()) / 1000));
+  return {
+    ...payload,
+    provenance: {
+      source,
+      asOf: asOfDate.toISOString(),
+      freshnessSeconds,
+      qualityNote: freshnessSeconds > 600 ? "stale_or_uncertain" : "fresh"
+    }
+  };
+};
 
 type CurtailmentStats = {
   nodeId: string;
@@ -43,7 +72,12 @@ const toolSchemas = {
   analyzeCurtailment: z.object({
     nodeId: z.string().optional(),
     windowHours: z.number().int().min(1).max(24 * 30).default(24)
-  })
+  }),
+  getAlarms: z.object({
+    status: z.enum(["active", "acknowledged", "cleared", "suppressed"]).optional(),
+    siteId: z.string().optional()
+  }),
+  proposeCommand: proposeCommandInputSchema
 };
 
 const scopedProfilePattern =
@@ -421,15 +455,22 @@ export const generateAiChatResponse = async (input: AiChatBody, actor?: AccessAc
       .find((value) => value.length > 0) ??
     "";
 
-  const prompt = input.context ?
-    `Context:\n${input.context}\n\nUser request:\n${latestMessageText}` :
-    latestMessageText;
+  const safeContext = input.context ? redactSecrets(input.context) : undefined;
+  const safeLatest = redactSecrets(latestMessageText);
+  const prompt = safeContext ?
+    `Context:\n${safeContext}\n\nUser request:\n${safeLatest}` :
+    safeLatest;
 
   if (!prompt.trim()) {
     throw new AppError("A non-empty chat prompt is required.", 400);
   }
 
-  const scopedTargets = parseScopedNodeTargets(input.context);
+  if (!actor) {
+    throw new AppError("Authentication required for Zolt AI.", 401);
+  }
+
+  const tenantScope = await resolveAccessScope(actor.id, actor.role as Role);
+  const scopedTargets = parseScopedNodeTargets(safeContext);
   const [scope, scopedNodes] = await Promise.all([
     getOptionalSiteAccessScope(actor),
     resolveScopedNodes(scopedTargets, actor)
@@ -441,30 +482,32 @@ export const generateAiChatResponse = async (input: AiChatBody, actor?: AccessAc
     }.` :
     "No scoped nodes were provided; choose the best tool target from the request.";
 
+  const userId = actor.id;
+
   return streamText({
     model: openai(env.OPENAI_MODEL),
     stopWhen: stepCountIs(5),
-    system:
-      "You are Zolt AI, the GridFlex assistant for energy operations. Use available tools before giving operational conclusions. " +
-      "Use concise, practical language and call out uncertainty when data is partial. " +
-      scopedSystemHint,
+    prepareStep: zoltPrepareStep,
+    system: `${ZOLT_SYSTEM_SAFETY} ${scopedSystemHint} Include provenance and freshness when summarizing tool results.`,
     prompt,
     tools: {
       getLiveReadings: tool({
         description: "Get latest voltage/current/power readings for a node.",
         inputSchema: toolSchemas.getLiveReadings,
-        execute: async ({ nodeId }) => {
+        execute: wrapToolExecute("getLiveReadings", userId, async ({ nodeId }) => {
           const resolvedNodeId = scopedResolvers.resolveNodeId(nodeId);
           if (!resolvedNodeId) {
             throw new AppError("No nodeId provided and no scoped node was available in chat context.", 400);
           }
-          return getLiveReadings(resolvedNodeId, actor);
-        }
+          const result = await getLiveReadings(resolvedNodeId, actor);
+          const asOf = result.readings[0]?.timestamp ?? result.node?.lastSeen ?? null;
+          return withProvenance(result as Record<string, unknown>, "sensor_reading", asOf);
+        })
       }),
       getForecast: tool({
         description: "Get hybrid forecast for coordinates and capacity.",
         inputSchema: toolSchemas.getForecast,
-        execute: async ({ lat, lon, capacity }) => {
+        execute: wrapToolExecute("getForecast", userId, async ({ lat, lon, capacity }) => {
           const resolved = scopedResolvers.resolveForecastInput({ lat, lon, capacity });
           if (resolved.lat === null || resolved.lon === null || resolved.capacity === null) {
             throw new AppError("Forecast target is incomplete. Provide coordinates/capacity or include scoped node context.", 400);
@@ -474,30 +517,79 @@ export const generateAiChatResponse = async (input: AiChatBody, actor?: AccessAc
             lon: resolved.lon,
             capacity: resolved.capacity
           });
-          return {
+          return withProvenance({
             meta: forecast.meta,
             hourly: forecast.hourly.slice(0, 24),
             daily: forecast.daily,
             scopedNode: scopedResolvers.primaryScopedNode ?? null
-          };
-        }
+          }, "hybrid_forecast", new Date());
+        })
       }),
       getNodeStatus: tool({
         description: "Get node online/offline status with last seen timestamps.",
         inputSchema: toolSchemas.getNodeStatus,
-        execute: async () => getNodeStatus(actor)
+        execute: wrapToolExecute("getNodeStatus", userId, async () => {
+          const result = await getNodeStatus(actor);
+          return withProvenance(result as Record<string, unknown>, "edge_node_status", result.nodes[0]?.lastSeen ?? null);
+        })
       }),
       getDailySummary: tool({
         description: "Get dashboard daily summary of current fleet metrics.",
         inputSchema: toolSchemas.getDailySummary,
-        execute: async () => getDashboardOverview(actor)
+        execute: wrapToolExecute("getDailySummary", userId, async () =>
+          withProvenance(await getDashboardOverview(actor) as Record<string, unknown>, "dashboard_overview", new Date())
+        )
       }),
       analyzeCurtailment: tool({
         description: "Analyze curtailment trend and estimated energy impact over a time window.",
         inputSchema: toolSchemas.analyzeCurtailment,
-        execute: async ({ nodeId, windowHours }) =>
-          analyzeCurtailment(scopedResolvers.resolveNodeId(nodeId), windowHours, actor)
+        execute: wrapToolExecute("analyzeCurtailment", userId, async ({ nodeId, windowHours }) =>
+          withProvenance(
+            await analyzeCurtailment(scopedResolvers.resolveNodeId(nodeId), windowHours, actor) as Record<string, unknown>,
+            "curtailment_analysis",
+            new Date()
+          )
+        )
+      }),
+      getAlarms: tool({
+        description: "List recent tenant-scoped alarm events (read-only advisory).",
+        inputSchema: toolSchemas.getAlarms,
+        execute: wrapToolExecute("getAlarms", userId, async ({ status, siteId }) => {
+          void tenantScope;
+          const filters: { status?: string; siteId?: string } = {};
+          if (status) filters.status = status;
+          if (siteId) filters.siteId = siteId;
+          const events = await listAlarmEvents(actor, filters);
+          return withProvenance({
+            count: events.length,
+            events: events.slice(0, 25).map((event) => ({
+              id: event.id,
+              siteId: event.siteId,
+              status: event.status,
+              severity: event.severity,
+              title: event.title,
+              metricKey: event.metricKey,
+              startedAt: event.startedAt
+            })),
+            note: "Alarms are advisory and do not replace protection relays, PPC, or BMS."
+          }, "alarm_centre", events[0]?.startedAt ?? new Date());
+        })
+      }),
+      proposeCommand: tool({
+        description: "Propose an advisory plant command only. Never executes. There is no execute tool.",
+        inputSchema: toolSchemas.proposeCommand,
+        execute: wrapToolExecute("proposeCommand", userId, async (args) => {
+          if (env.PHYSICAL_COMMAND_EXECUTION_ENABLED) {
+            throw new AppError("Physical command execution must remain disabled. Zolt can only propose commands.", 503);
+          }
+          return withProvenance(
+            await proposeCommandOnly(args, actor, tenantScope) as Record<string, unknown>,
+            "zolt_command_proposal",
+            new Date()
+          );
+        })
       })
     }
   });
 };
+

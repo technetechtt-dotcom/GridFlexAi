@@ -1005,6 +1005,58 @@ export async function fetchAdminMetrics(): Promise<AdminMetricsSnapshot> {
   return response.data;
 }
 
+
+export type AlarmCentreEvent = {
+  id: string;
+  organisationId: string;
+  siteId: string;
+  severity: string;
+  status: string;
+  title: string;
+  message: string;
+  metricKey?: string | null;
+  metricValue?: number | null;
+  startedAt: string;
+};
+
+export type AlarmCentreIncident = {
+  id: string;
+  organisationId: string;
+  siteId: string;
+  severity: string;
+  status: string;
+  title: string;
+  openedAt: string;
+  _count?: { alarmEvents: number };
+};
+
+export async function fetchAlarmEvents(params: { status?: string; siteId?: string } = {}): Promise<AlarmCentreEvent[]> {
+  const search = new URLSearchParams();
+  if (params.status) search.set('status', params.status);
+  if (params.siteId) search.set('siteId', params.siteId);
+  const query = search.toString();
+  const response = await apiRequest<ApiEnvelope<AlarmCentreEvent[]>>(`/alarm-events${query ? `?${query}` : ''}`, {
+    auth: true
+  });
+  return response.data;
+}
+
+export async function acknowledgeAlarmEvent(alarmEventId: string, note?: string): Promise<unknown> {
+  const response = await apiRequest<ApiEnvelope<unknown>>(`/alarm-events/${alarmEventId}/acknowledge`, {
+    method: 'POST',
+    auth: true,
+    body: note ? { note } : {}
+  });
+  return response.data;
+}
+
+export async function fetchIncidents(): Promise<AlarmCentreIncident[]> {
+  const response = await apiRequest<ApiEnvelope<AlarmCentreIncident[]>>('/incidents', {
+    auth: true
+  });
+  return response.data;
+}
+
 export async function fetchAdminAuditLogs(params: { page?: number; pageSize?: number; userId?: string } = {}): Promise<{
   page: number;
   pageSize: number;
