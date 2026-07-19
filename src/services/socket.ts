@@ -1,5 +1,5 @@
 import { io, type Socket } from "socket.io-client";
-import type { NodeStatus } from "./api";
+import { getAuthToken, type NodeStatus } from "./api";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000/api";
 const SOCKET_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -39,9 +39,12 @@ export type NodeStatusUpdatePayload = {
 
 export const getSocketClient = (): Socket => {
   if (!socketInstance) {
+    const token = getAuthToken();
     socketInstance = io(SOCKET_BASE_URL, {
       transports: ["websocket", "polling"],
-      autoConnect: true
+      autoConnect: true,
+      withCredentials: true,
+      auth: token ? { token } : undefined
     });
   }
 

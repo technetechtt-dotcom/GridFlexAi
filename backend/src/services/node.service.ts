@@ -8,6 +8,7 @@ import {
   NEW_NODE_EVENT
 } from "../config/constants.js";
 import { getSocketServer } from "../config/socket.js";
+import { emitToSiteScope } from "../lib/socket-rooms.js";
 import { prisma } from "../lib/prisma.js";
 import type {
   MaintenanceRequestBody,
@@ -92,9 +93,13 @@ type NodeAlert = {
   message: string;
 };
 
-const safeEmit = (eventName: string, payload: unknown): void => {
+const safeEmit = (
+  eventName: string,
+  payload: unknown,
+  options?: { siteId?: string | null; organisationId?: string | null }
+): void => {
   try {
-    getSocketServer().emit(eventName, payload);
+    emitToSiteScope(getSocketServer(), eventName, payload, options);
   } catch {
     // Unit tests and one-off scripts may use services without a Socket.io server.
   }

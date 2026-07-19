@@ -2,6 +2,7 @@ import { NodeHealthState, NodeStatus, Prisma } from "@prisma/client";
 
 import { NODE_STATUS_UPDATE_EVENT } from "../config/constants.js";
 import { getSocketServer } from "../config/socket.js";
+import { emitToSiteScope } from "../lib/socket-rooms.js";
 import { prisma } from "../lib/prisma.js";
 import { calculateDataFreshness } from "../domain/units.js";
 import { logger } from "../utils/logger.js";
@@ -25,7 +26,8 @@ export const evaluateNodeHealth = async (now = new Date()) => {
       batteryLevel: true,
       signalStrength: true,
       staleAfterSec: true,
-      offlineAfterSec: true
+      offlineAfterSec: true,
+      siteId: true
     }
   });
 
@@ -89,13 +91,18 @@ export const evaluateNodeHealth = async (now = new Date()) => {
     });
 
     const io = getSocketServer();
-    io?.emit(NODE_STATUS_UPDATE_EVENT, {
-      id: updated.id,
-      name: updated.name,
-      status: updated.status,
-      healthState: updated.healthState,
-      lastSeen: updated.lastSeen
-    });
+    emitToSiteScope(
+      io,
+      NODE_STATUS_UPDATE_EVENT,
+      {
+        id: updated.id,
+        name: updated.name,
+        status: updated.status,
+        healthState: updated.healthState,
+        lastSeen: updated.lastSeen
+      },
+      { siteId: node.siteId }
+    );
 
     transitions += 1;
   }

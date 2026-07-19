@@ -7,11 +7,15 @@ import {
   createNode,
   deleteNode,
   fetchAdminSites,
+  fetchDeviceCredentials,
   fetchNodes,
+  provisionDeviceCredential,
+  revokeDeviceCredential,
   runNodeBulkAction,
   updateNode,
   type AdminSite,
   type BackendNode,
+  type DeviceCredentialSummary,
   type NodeStatus
 } from '../../services/api';
 import { useAdminRefresh } from './AdminLayout';
@@ -82,6 +86,9 @@ export function AdminNodesPage() {
   const [form, setForm] = useState<NodeFormState>(emptyForm);
   const [formOpen, setFormOpen] = useState(false);
   const [detailNode, setDetailNode] = useState<BackendNode | null>(null);
+  const [credentials, setCredentials] = useState<DeviceCredentialSummary[]>([]);
+  const [oneTimeSecret, setOneTimeSecret] = useState<string | null>(null);
+  const [credentialBusy, setCredentialBusy] = useState(false);
   const [bulkSiteId, setBulkSiteId] = useState('');
   const [bulkStatus, setBulkStatus] = useState<NodeStatus>('maintenance');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -110,6 +117,50 @@ export function AdminNodesPage() {
   useEffect(() => {
     void load();
   }, [load, refreshTick]);
+
+  useEffect(() => {
+    if (!detailNode) {
+      setCredentials([]);
+      setOneTimeSecret(null);
+      return;
+    }
+    void fetchDeviceCredentials(detailNode.id)
+      .then(setCredentials)
+      .catch(() => setCredentials([]));
+  }, [detailNode]);
+
+  const handleProvisionCredential = async () => {
+    if (!detailNode) return;
+    setCredentialBusy(true);
+    setError(null);
+    try {
+      const provisioned = await provisionDeviceCredential(detailNode.id);
+      setOneTimeSecret(provisioned.secret);
+      setMessage(`Provisioned credential ${provisioned.credentialId} (v${provisioned.keyVersion}). Secret shown once.`);
+      const rows = await fetchDeviceCredentials(detailNode.id);
+      setCredentials(rows);
+    } catch (provisionError) {
+      setError(provisionError instanceof Error ? provisionError.message : 'Failed to provision device credential.');
+    } finally {
+      setCredentialBusy(false);
+    }
+  };
+
+  const handleRevokeCredential = async (credentialId: string) => {
+    if (!detailNode) return;
+    setCredentialBusy(true);
+    setError(null);
+    try {
+      await revokeDeviceCredential(credentialId);
+      setMessage(`Revoked credential ${credentialId}.`);
+      const rows = await fetchDeviceCredentials(detailNode.id);
+      setCredentials(rows);
+    } catch (revokeError) {
+      setError(revokeError instanceof Error ? revokeError.message : 'Failed to revoke device credential.');
+    } finally {
+      setCredentialBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!autoRefresh) return undefined;
@@ -459,6 +510,46 @@ export function AdminNodesPage() {
               </div>
               <p className="text-xs text-slate-400">{detailNode.location}</p>
               <p className="text-xs text-slate-500">Last seen {detailNode.lastSeen ? new Date(detailNode.lastSeen).toLocaleString() : 'Never'}</p>
+              <div className="space-y-2 rounded-md border border-slate-800 bg-slate-950/60 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-slate-200">Device credentials</p>
+                  <button
+                    type="button"
+                    disabled={credentialBusy}
+                    onClick={() => void handleProvisionCredential()}
+                    className="rounded bg-cyan-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-cyan-500 disabled:opacity-50"
+                  >
+                    Provision / rotate
+                  </button>
+                </div>
+                {oneTimeSecret && (
+                  <p className="break-all rounded border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-100">
+                    Secret shown once: {oneTimeSecret}
+                  </p>
+                )}
+                {credentials.length === 0 ? (
+                  <p className="text-[11px] text-slate-500">No credentials yet. Legacy shared-secret mode may still apply in non-production.</p>
+                ) : (
+                  credentials.map((credential) => (
+                    <div key={credential.id} className="flex items-center justify-between gap-2 rounded border border-slate-800 px-2 py-1.5">
+                      <div>
+                        <p className="text-[11px] text-slate-200">v{credential.keyVersion} · {credential.status}</p>
+                        <p className="truncate text-[10px] text-slate-500">{credential.credentialId}</p>
+                      </div>
+                      {credential.status !== 'revoked' && (
+                        <button
+                          type="button"
+                          disabled={credentialBusy}
+                          onClick={() => void handleRevokeCredential(credential.credentialId)}
+                          className="rounded border border-red-500/40 px-2 py-1 text-[10px] text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                        >
+                          Revoke
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
 

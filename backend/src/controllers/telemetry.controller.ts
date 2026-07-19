@@ -5,7 +5,11 @@ import {
   provisionDeviceCredential,
   revokeDeviceCredential
 } from "../services/device-credential.service.js";
-import { ingestTelemetryBatch, listTelemetryReadings } from "../services/telemetry.service.js";
+import {
+  aggregateTelemetryBuckets,
+  ingestTelemetryBatch,
+  listTelemetryReadings
+} from "../services/telemetry.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { AppError } from "../utils/AppError.js";
 
@@ -22,6 +26,8 @@ export const getTelemetryReadingsHandler = asyncHandler(async (req: Request, res
     plantId?: string;
     assetId?: string;
     key?: string;
+    from?: string;
+    to?: string;
     page?: number;
     pageSize?: number;
   } = {};
@@ -30,11 +36,40 @@ export const getTelemetryReadingsHandler = asyncHandler(async (req: Request, res
   if (typeof req.query.plantId === "string") filters.plantId = req.query.plantId;
   if (typeof req.query.assetId === "string") filters.assetId = req.query.assetId;
   if (typeof req.query.key === "string") filters.key = req.query.key;
+  if (typeof req.query.from === "string") filters.from = req.query.from;
+  if (typeof req.query.to === "string") filters.to = req.query.to;
   if (req.query.page) filters.page = Number(req.query.page);
   if (req.query.pageSize) filters.pageSize = Number(req.query.pageSize);
 
   const result = await listTelemetryReadings(filters, req.user);
   res.status(200).json(result);
+});
+
+export const getTelemetryAggregateHandler = asyncHandler(async (req: Request, res: Response) => {
+  const assetId = typeof req.query.assetId === "string" ? req.query.assetId : "";
+  const key = typeof req.query.key === "string" ? req.query.key : "";
+  const from = typeof req.query.from === "string" ? req.query.from : "";
+  const to = typeof req.query.to === "string" ? req.query.to : "";
+  if (!assetId || !key || !from || !to) {
+    throw new AppError("assetId, key, from and to are required.", 400);
+  }
+  const bucket =
+    req.query.bucket === "1m" ||
+    req.query.bucket === "5m" ||
+    req.query.bucket === "15m" ||
+    req.query.bucket === "1h" ||
+    req.query.bucket === "1d"
+      ? req.query.bucket
+      : "1h";
+  const result = await aggregateTelemetryBuckets({
+    assetId,
+    key,
+    from,
+    to,
+    bucket,
+    ...(req.user ? { actor: req.user } : {})
+  });
+  res.status(200).json({ data: result });
 });
 
 export const postDeviceCredentialHandler = asyncHandler(async (req: Request, res: Response) => {

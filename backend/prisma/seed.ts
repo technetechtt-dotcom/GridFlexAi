@@ -199,6 +199,36 @@ const run = async () => {
     }
   });
 
+  const { TELEMETRY_KEYS, TELEMETRY_KEYS_BY_ASSET_TYPE } = await import("../src/domain/telemetry-keys.js");
+  for (const key of TELEMETRY_KEYS_BY_ASSET_TYPE.inverter ?? []) {
+    const def = TELEMETRY_KEYS[key];
+    await prisma.telemetryPointDefinition.upsert({
+      where: { assetId_key: { assetId: "asset-upington-inverter-sim", key: def.key } },
+      update: {
+        displayName: def.displayName,
+        unit: def.unit,
+        dataType: def.dataType,
+        sourceType: "simulated",
+        minimumValidValue: def.minimumValidValue ?? null,
+        maximumValidValue: def.maximumValidValue ?? null,
+        writable: def.writable,
+        critical: def.critical
+      },
+      create: {
+        assetId: "asset-upington-inverter-sim",
+        key: def.key,
+        displayName: def.displayName,
+        unit: def.unit,
+        dataType: def.dataType,
+        sourceType: "simulated",
+        minimumValidValue: def.minimumValidValue ?? null,
+        maximumValidValue: def.maximumValidValue ?? null,
+        writable: def.writable,
+        critical: def.critical
+      }
+    });
+  }
+
   const node = await prisma.edgeNode.upsert({
     where: {
       id: "upington-solar-farm-node"

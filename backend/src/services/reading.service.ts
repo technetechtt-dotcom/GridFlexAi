@@ -2,6 +2,7 @@ import { NodeStatus, Prisma } from "@prisma/client";
 
 import { LIVE_READING_EVENT, NEW_NODE_EVENT, NODE_STATUS_UPDATE_EVENT } from "../config/constants.js";
 import { getSocketServer } from "../config/socket.js";
+import { emitToSiteScope } from "../lib/socket-rooms.js";
 import { prisma } from "../lib/prisma.js";
 import type { EdgeDataBody } from "../schemas/request.schemas.js";
 import { AppError } from "../utils/AppError.js";
@@ -369,7 +370,8 @@ export const createReading = async (payload: CreateReadingInput) => {
       batteryLevel: true,
       signalStrength: true,
       lastSeen: true,
-      createdAt: true
+      createdAt: true,
+      siteId: true
     }
   });
 
@@ -434,10 +436,11 @@ export const ingestEdgeData = async (payload: EdgeDataBody, deviceKey?: string):
 
   const result = await createReading(readingInput);
   const io = getSocketServer();
-  io.emit(LIVE_READING_EVENT, result.reading);
-  io.emit(NODE_STATUS_UPDATE_EVENT, result.nodeStatus);
+  const siteId = result.nodeStatus && "siteId" in result.nodeStatus ? (result.nodeStatus as { siteId?: string }).siteId : undefined;
+  emitToSiteScope(io, LIVE_READING_EVENT, result.reading, { siteId: siteId ?? null });
+  emitToSiteScope(io, NODE_STATUS_UPDATE_EVENT, result.nodeStatus, { siteId: siteId ?? null });
   if (result.isNewNode) {
-    io.emit(NEW_NODE_EVENT, result.nodeStatus);
+    emitToSiteScope(io, NEW_NODE_EVENT, result.nodeStatus, { siteId: siteId ?? null });
   }
 
   return {

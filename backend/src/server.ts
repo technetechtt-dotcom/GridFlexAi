@@ -126,19 +126,13 @@ process.on("unhandledRejection", (reason) => {
 
     setSocketServer(io);
 
-    io.on("connection", (socket) => {
-      platformMetrics.incrementSocketConnections();
-
-      // Keep the socket API self-documenting for frontend consumers.
-      socket.emit("connected", {
-        message: "Connected to GridFlex real-time gateway.",
-        liveEvent: LIVE_READING_EVENT
-      });
-
-      socket.on("disconnect", () => {
-        platformMetrics.decrementSocketConnections();
-      });
-    });
+    const { registerScopedSocketConnection } = await import("./lib/socket-rooms.js");
+    registerScopedSocketConnection(
+      io,
+      () => platformMetrics.incrementSocketConnections(),
+      () => platformMetrics.decrementSocketConnections(),
+      LIVE_READING_EVENT
+    );
 
     const shutdown = async () => {
       forecastCronTask?.stop();

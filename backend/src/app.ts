@@ -120,6 +120,7 @@ export const createApp = () => {
 
   app.use(API_PREFIX, apiLimiter);
   app.use(`${API_PREFIX}/edge-data`, edgeIngestLimiter);
+  app.use(`${API_PREFIX}/v2/telemetry`, edgeIngestLimiter);
   app.use(`${API_PREFIX}/forecast`, forecastLimiter);
   app.use(API_PREFIX, apiRouter);
   app.use(notFoundHandler);

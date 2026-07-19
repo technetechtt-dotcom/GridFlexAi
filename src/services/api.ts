@@ -1199,6 +1199,88 @@ export async function deleteAdminApiCredential(id: string): Promise<void> {
   });
 }
 
+export type DeviceCredentialSummary = {
+  id: string;
+  credentialId: string;
+  keyVersion: number;
+  status: string;
+  createdAt: string;
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+  rotatedAt: string | null;
+};
+
+export type ProvisionedDeviceCredential = {
+  credentialId: string;
+  keyVersion: number;
+  secret: string;
+  secretHashAlgorithm: string;
+  signingNote: string;
+  expiresAt: string | null;
+};
+
+export async function fetchDeviceCredentials(edgeNodeId: string): Promise<DeviceCredentialSummary[]> {
+  const response = await apiRequest<ApiEnvelope<DeviceCredentialSummary[]>>(`/admin/nodes/${edgeNodeId}/credentials`, {
+    auth: true
+  });
+  return response.data;
+}
+
+export async function provisionDeviceCredential(edgeNodeId: string): Promise<ProvisionedDeviceCredential> {
+  const response = await apiRequest<{ message: string; data: ProvisionedDeviceCredential }>(
+    `/admin/nodes/${edgeNodeId}/credentials`,
+    {
+      method: 'POST',
+      auth: true,
+      body: JSON.stringify({})
+    }
+  );
+  return response.data;
+}
+
+export async function revokeDeviceCredential(credentialId: string): Promise<void> {
+  await apiRequest<{ data: unknown }>(`/admin/credentials/${credentialId}/revoke`, {
+    method: 'POST',
+    auth: true,
+    body: JSON.stringify({})
+  });
+}
+
+export type PlantSummary = {
+  id: string;
+  name: string;
+  code: string;
+  organisationId: string;
+  siteId: string;
+  status: string;
+  dataSourceType: string;
+  installedCapacityKw: number;
+  exportCapacityKw: number;
+};
+
+export type AssetSummary = {
+  id: string;
+  plantId: string;
+  parentAssetId: string | null;
+  type: string;
+  name: string;
+  status: string;
+  dataSourceType: string;
+  ratedPowerKw: number | null;
+  ratedEnergyKwh: number | null;
+};
+
+export async function fetchPlants(): Promise<PlantSummary[]> {
+  const response = await apiRequest<ApiEnvelope<PlantSummary[]>>('/plants', { auth: true });
+  return response.data;
+}
+
+export async function fetchPlantAssets(plantId: string): Promise<AssetSummary[]> {
+  const response = await apiRequest<ApiEnvelope<AssetSummary[]>>(`/plants/${plantId}/assets`, { auth: true });
+  return response.data;
+}
+
 export async function fetchNodes(params: {
   siteId?: string;
   status?: NodeStatus;
