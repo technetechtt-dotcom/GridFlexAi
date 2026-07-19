@@ -23,10 +23,16 @@ GridFlex AI is evolving from a prototype into a multi-tenant, read-only plant in
 
 ## Explicit non-goals (still deferred)
 
-- Curtailment detection engine (PR 2)
 - Advisory optimisation (PR 3)
 - Physical plant command execution (PR 4, disabled by default forever until HIL)
 - Invented Modbus register maps
+
+## PR 2 additions
+
+1. **Curtailment detection engine** — ranked available-power evidence, persistence/merge, trapezoidal energy (kWh), recoverable energy excludes equipment faults; event review + corrections without overwriting originals.
+2. **Forecast accuracy** — `PlantForecastConfig`, immutable `ForecastRun`/`ForecastValue` (p10/p50/p90), `ForecastAccuracyScore` (MAE/RMSE/MAPE/bias); clear-sky/persistence baselines labelled estimated.
+3. **Grid constraints** — explicit feeder/transformer/line/export/outage/operator/contingency inputs with provenance; congestion UI uses `SimulationBanner` when no real grid data.
+4. **Docs** — `docs/CURTAILMENT_ENGINE.md`.
 
 ## Compatibility
 
