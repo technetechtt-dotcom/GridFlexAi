@@ -153,6 +153,38 @@ enum PlantStatus {
   simulated
 }
 
+
+enum AlarmSeverity {
+  info
+  warning
+  major
+  critical
+}
+
+enum AlarmStatus {
+  active
+  acknowledged
+  cleared
+  suppressed
+}
+
+enum AlarmComparator {
+  gt
+  gte
+  lt
+  lte
+  eq
+  neq
+}
+
+enum IncidentStatus {
+  open
+  investigating
+  mitigated
+  resolved
+  closed
+}
+
 /// Advisory optimisation run lifecycle. Never implies physical dispatch.
 enum OptimizationRunStatus {
   pending
@@ -189,6 +221,9 @@ model User {
   organisationMemberships  OrganisationMembership[]
   siteMemberships          SiteMembership[]
   optimizationRuns         OptimizationRun[]
+  alarmAcknowledgements    AlarmAcknowledgement[]
+  incidentsOpened          Incident[]             @relation("IncidentOpenedBy")
+  incidentTimelineEntries  IncidentTimeline[]
 
   @@index([managedById])
   @@index([role])
@@ -219,6 +254,9 @@ model Organisation {
   memberships  OrganisationMembership[]
   telemetry    TelemetryReading[]
   auditLogs         AuditLog[]
+  alarmRules        AlarmRule[]
+  alarmEvents       AlarmEvent[]
+  incidents         Incident[]
   optimizationRuns OptimizationRun[]
 
   @@index([status])
@@ -473,6 +511,9 @@ model Site {
   plants         Plant[]
   memberships    SiteMembership[]
   telemetry           TelemetryReading[]
+  alarmRules          AlarmRule[]
+  alarmEvents         AlarmEvent[]
+  incidents           Incident[]
   optimizationRuns    OptimizationRun[]
 
   @@index([clientId])
@@ -499,6 +540,9 @@ model Plant {
   updatedAt           DateTime           @updatedAt
   assets              Asset[]
   telemetry           TelemetryReading[]
+  alarmRules          AlarmRule[]
+  alarmEvents         AlarmEvent[]
+  incidents           Incident[]
   optimizationRuns    OptimizationRun[]
 
   @@unique([organisationId, code])
@@ -533,6 +577,8 @@ model Asset {
   state             AssetState?
   pointDefinitions             TelemetryPointDefinition[]
   telemetry                    TelemetryReading[]
+  alarmRules                   AlarmRule[]
+  alarmEvents                  AlarmEvent[]
   bessModelConfig              BessModelConfig?
   bessState                    BessOperatingState?
   electrolyserModelConfig      ElectrolyserModelConfig?
@@ -845,3 +891,115 @@ model DispatchSchedule {
   @@index([assetId, intervalStart])
   @@index([status])
 }
+
+model AlarmRule {
+  id              String          @id @default(cuid())
+  organisationId  String
+  organisation    Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId          String?
+  site            Site?           @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  plantId         String?
+  plant           Plant?          @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  assetId         String?
+  asset           Asset?          @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  name            String
+  description     String?
+  metricKey       String
+  comparator      AlarmComparator @default(gt)
+  threshold       Float
+  severity        AlarmSeverity   @default(warning)
+  enabled         Boolean         @default(true)
+  cooldownSeconds Int             @default(300)
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  events          AlarmEvent[]
+
+  @@index([organisationId])
+  @@index([siteId])
+  @@index([plantId])
+  @@index([assetId])
+}
+
+model AlarmEvent {
+  id               String                 @id @default(cuid())
+  organisationId   String
+  organisation     Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId           String
+  site             Site                   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  plantId          String?
+  plant            Plant?                 @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  assetId          String?
+  asset            Asset?                 @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  ruleId           String?
+  rule             AlarmRule?             @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  incidentId       String?
+  incident         Incident?              @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  severity         AlarmSeverity          @default(warning)
+  status           AlarmStatus            @default(active)
+  title            String
+  message          String
+  metricKey        String?
+  metricValue      Float?
+  threshold        Float?
+  startedAt        DateTime               @default(now())
+  clearedAt        DateTime?
+  metadata         Json?
+  acknowledgements AlarmAcknowledgement[]
+
+  @@index([organisationId, status, startedAt])
+  @@index([siteId, status, startedAt])
+  @@index([incidentId])
+}
+
+model AlarmAcknowledgement {
+  id             String     @id @default(cuid())
+  alarmEventId   String
+  alarmEvent     AlarmEvent @relation(fields: [alarmEventId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note           String?
+  acknowledgedAt DateTime   @default(now())
+
+  @@index([alarmEventId])
+  @@index([userId])
+}
+
+model Incident {
+  id             String             @id @default(cuid())
+  organisationId String
+  organisation   Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId         String
+  site           Site               @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  plantId        String?
+  plant          Plant?             @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  title          String
+  summary        String?
+  severity       AlarmSeverity      @default(major)
+  status         IncidentStatus     @default(open)
+  openedById     String
+  openedBy       User               @relation("IncidentOpenedBy", fields: [openedById], references: [id], onDelete: Restrict)
+  openedAt       DateTime           @default(now())
+  resolvedAt     DateTime?
+  metadata       Json?
+  alarmEvents    AlarmEvent[]
+  timeline       IncidentTimeline[]
+
+  @@index([organisationId, status, openedAt])
+  @@index([siteId, status, openedAt])
+}
+
+model IncidentTimeline {
+  id          String   @id @default(cuid())
+  incidentId  String
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  actorUserId String
+  actorUser   User     @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  eventType   String
+  message     String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([incidentId, createdAt])
+}
+

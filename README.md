@@ -5,8 +5,26 @@ GridFlex AI is a real-time energy optimization platform for IPPs (Independent Po
 - React + Vite frontend dashboard
 - Node.js + Express + TypeScript backend
 - PostgreSQL + Prisma data layer
-- Socket.io real-time telemetry streaming
+- Socket.io real-time telemetry streaming with optional Redis adapter
 - Hybrid PV/weather forecast service (Forecast.Solar + OpenWeatherMap + AccuWeather backup)
+- Tenant-scoped alarms, incidents, and hardened Zolt AI operator assistance (PR5)
+
+## Purpose
+
+Provide portfolio operators with live telemetry, forecasting, alarm/incident workflows, and advisory AI tools without bypassing plant protection systems.
+
+## Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React, Vite, TypeScript |
+| Backend | Express, Prisma, Socket.IO |
+| Data | PostgreSQL, optional Redis |
+| AI | OpenAI via Vercel AI SDK (Zolt) |
+
+## SLO stubs
+
+See `docs/PILOT_DEPLOYMENT.md` for pilot availability and alarm latency targets.
 
 ---
 

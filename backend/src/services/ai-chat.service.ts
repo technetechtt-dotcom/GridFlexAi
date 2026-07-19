@@ -8,6 +8,11 @@ import { prisma } from "../lib/prisma.js";
 import type { AiChatBody } from "../schemas/request.schemas.js";
 import { getDashboardOverview } from "./dashboard.service.js";
 import { getHybridForecast } from "./forecast.service.js";
+import { listAlarmEvents } from "./alarm.service.js";
+import {
+  proposeCommandInputSchema, proposeCommandOnly, redactSecrets, resolveZoltAccessScope,
+  wrapToolExecute, zoltPrepareStep, ZOLT_SYSTEM_SAFETY
+} from "./zolt-hardening.js";
 import { AppError } from "../utils/AppError.js";
 import {
   assertNodeSiteAccess,
@@ -422,8 +427,8 @@ export const generateAiChatResponse = async (input: AiChatBody, actor?: AccessAc
     "";
 
   const prompt = input.context ?
-    `Context:\n${input.context}\n\nUser request:\n${latestMessageText}` :
-    latestMessageText;
+    `Context:\n${redactSecrets(input.context)}\n\nUser request:\n${redactSecrets(latestMessageText)}` :
+    redactSecrets(latestMessageText);
 
   if (!prompt.trim()) {
     throw new AppError("A non-empty chat prompt is required.", 400);
@@ -441,62 +446,51 @@ export const generateAiChatResponse = async (input: AiChatBody, actor?: AccessAc
     }.` :
     "No scoped nodes were provided; choose the best tool target from the request.";
 
+  const userId = actor?.id ?? "anonymous";
+
   return streamText({
     model: openai(env.OPENAI_MODEL),
     stopWhen: stepCountIs(5),
-    system:
-      "You are Zolt AI, the GridFlex assistant for energy operations. Use available tools before giving operational conclusions. " +
-      "Use concise, practical language and call out uncertainty when data is partial. " +
-      scopedSystemHint,
+    prepareStep: zoltPrepareStep,
+    system: `${ZOLT_SYSTEM_SAFETY} Use concise, practical language and call out uncertainty when data is partial. ${scopedSystemHint}`,
     prompt,
     tools: {
-      getLiveReadings: tool({
-        description: "Get latest voltage/current/power readings for a node.",
-        inputSchema: toolSchemas.getLiveReadings,
-        execute: async ({ nodeId }) => {
+      getLiveReadings: tool({ description: "Get latest voltage/current/power readings for a node.", inputSchema: toolSchemas.getLiveReadings,
+        execute: wrapToolExecute("getLiveReadings", userId, async ({ nodeId }) => {
           const resolvedNodeId = scopedResolvers.resolveNodeId(nodeId);
-          if (!resolvedNodeId) {
-            throw new AppError("No nodeId provided and no scoped node was available in chat context.", 400);
-          }
+          if (!resolvedNodeId) throw new AppError("No nodeId provided and no scoped node was available in chat context.", 400);
           return getLiveReadings(resolvedNodeId, actor);
-        }
+        })
       }),
-      getForecast: tool({
-        description: "Get hybrid forecast for coordinates and capacity.",
-        inputSchema: toolSchemas.getForecast,
-        execute: async ({ lat, lon, capacity }) => {
+      getForecast: tool({ description: "Get hybrid forecast for coordinates and capacity.", inputSchema: toolSchemas.getForecast,
+        execute: wrapToolExecute("getForecast", userId, async ({ lat, lon, capacity }) => {
           const resolved = scopedResolvers.resolveForecastInput({ lat, lon, capacity });
-          if (resolved.lat === null || resolved.lon === null || resolved.capacity === null) {
-            throw new AppError("Forecast target is incomplete. Provide coordinates/capacity or include scoped node context.", 400);
-          }
-          const forecast = await getHybridForecast({
-            lat: resolved.lat,
-            lon: resolved.lon,
-            capacity: resolved.capacity
-          });
-          return {
-            meta: forecast.meta,
-            hourly: forecast.hourly.slice(0, 24),
-            daily: forecast.daily,
-            scopedNode: scopedResolvers.primaryScopedNode ?? null
-          };
-        }
+          if (resolved.lat === null || resolved.lon === null || resolved.capacity === null) throw new AppError("Forecast target is incomplete.", 400);
+          const forecast = await getHybridForecast({ lat: resolved.lat, lon: resolved.lon, capacity: resolved.capacity });
+          return { meta: forecast.meta, hourly: forecast.hourly.slice(0, 24), daily: forecast.daily, scopedNode: scopedResolvers.primaryScopedNode ?? null };
+        })
       }),
-      getNodeStatus: tool({
-        description: "Get node online/offline status with last seen timestamps.",
-        inputSchema: toolSchemas.getNodeStatus,
-        execute: async () => getNodeStatus(actor)
+      getNodeStatus: tool({ description: "Get node online/offline status with last seen timestamps.", inputSchema: toolSchemas.getNodeStatus,
+        execute: wrapToolExecute("getNodeStatus", userId, async () => getNodeStatus(actor))
       }),
-      getDailySummary: tool({
-        description: "Get dashboard daily summary of current fleet metrics.",
-        inputSchema: toolSchemas.getDailySummary,
-        execute: async () => getDashboardOverview(actor)
+      getDailySummary: tool({ description: "Get dashboard daily summary of current fleet metrics.", inputSchema: toolSchemas.getDailySummary,
+        execute: wrapToolExecute("getDailySummary", userId, async () => getDashboardOverview(actor))
       }),
-      analyzeCurtailment: tool({
-        description: "Analyze curtailment trend and estimated energy impact over a time window.",
-        inputSchema: toolSchemas.analyzeCurtailment,
-        execute: async ({ nodeId, windowHours }) =>
-          analyzeCurtailment(scopedResolvers.resolveNodeId(nodeId), windowHours, actor)
+      analyzeCurtailment: tool({ description: "Analyze curtailment trend and estimated energy impact over a time window.", inputSchema: toolSchemas.analyzeCurtailment,
+        execute: wrapToolExecute("analyzeCurtailment", userId, async ({ nodeId, windowHours }) => analyzeCurtailment(scopedResolvers.resolveNodeId(nodeId), windowHours, actor))
+      }),
+      getAlarms: tool({ description: "List active or recent alarm events for the operator scope.", inputSchema: z.object({ status: z.enum(["active", "acknowledged", "cleared", "suppressed"]).optional(), siteId: z.string().optional() }),
+        execute: wrapToolExecute("getAlarms", userId, async ({ status, siteId }) => {
+          if (!actor?.id) throw new AppError("Authentication required for alarm lookup.", 401);
+          return listAlarmEvents({ id: actor.id, role: actor.role }, { status, siteId });
+        })
+      }),
+      proposeCommand: tool({ description: "Propose a plant command for operator review. Never executes physical actions.", inputSchema: proposeCommandInputSchema,
+        execute: wrapToolExecute("proposeCommand", userId, async (commandInput) => {
+          if (!actor?.id) throw new AppError("Authentication required for command proposals.", 401);
+          const accessScope = await resolveZoltAccessScope(actor.id, actor.role as import("@prisma/client").Role);
+          return proposeCommandOnly(commandInput, { id: actor.id }, accessScope);
+        })
       })
     }
   });

@@ -60,7 +60,11 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-4o-mini"),
   FORECAST_CIRCUIT_FAILURE_THRESHOLD: z.coerce.number().int().min(1).default(3),
-  FORECAST_CIRCUIT_OPEN_MS: z.coerce.number().int().min(1000).default(180000)
+  FORECAST_CIRCUIT_OPEN_MS: z.coerce.number().int().min(1000).default(180000),
+  TELEMETRY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).optional(),
+  TELEMETRY_RETENTION_PURGE_ENABLED: envBoolean.default(false),
+  TELEMETRY_RETENTION_CRON_ENABLED: envBoolean.default(false),
+  TELEMETRY_RETENTION_CRON_SCHEDULE: z.string().default("15 3 * * *")
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -51,6 +51,8 @@ process.on("unhandledRejection", (reason) => {
       { closeRedisClient },
       { startForecastCron },
       { startNodeHealthMonitor, stopNodeHealthMonitor },
+      { startTelemetryRetentionCron },
+      { attachRedisSocketAdapter, closeRedisSocketAdapter },
       { platformMetrics },
       { logger }
     ] = await Promise.all([
@@ -66,6 +68,8 @@ process.on("unhandledRejection", (reason) => {
       import("./lib/redis.js"),
       import("./services/forecast-cron.service.js"),
       import("./services/node-health.service.js"),
+      import("./services/telemetry-retention.service.js"),
+      import("./lib/socket-redis-adapter.js"),
       import("./services/platform-metrics.service.js"),
       import("./utils/logger.js")
     ]);
@@ -116,6 +120,7 @@ process.on("unhandledRejection", (reason) => {
 
     const webServer = resolveWebServer();
     let forecastCronTask: ReturnType<typeof startForecastCron> = null;
+    let telemetryRetentionTask: ReturnType<typeof startTelemetryRetentionCron> = null;
 
     const io = new SocketIOServer(webServer.server, {
       cors: {
@@ -125,6 +130,7 @@ process.on("unhandledRejection", (reason) => {
     });
 
     setSocketServer(io);
+    await attachRedisSocketAdapter(io);
 
     const { registerScopedSocketConnection } = await import("./lib/socket-rooms.js");
     registerScopedSocketConnection(
@@ -136,7 +142,9 @@ process.on("unhandledRejection", (reason) => {
 
     const shutdown = async () => {
       forecastCronTask?.stop();
+      telemetryRetentionTask?.stop();
       stopNodeHealthMonitor();
+      await closeRedisSocketAdapter();
       await closeRedisClient();
       await prisma.$disconnect();
       webServer.server.close(() => process.exit(0));
@@ -151,12 +159,13 @@ process.on("unhandledRejection", (reason) => {
 
     await prisma.$connect();
     forecastCronTask = startForecastCron();
+    telemetryRetentionTask = startTelemetryRetentionCron();
     if (env.NODE_HEALTH_CRON_ENABLED) {
       startNodeHealthMonitor();
     }
 
     webServer.server.listen(webServer.port, "0.0.0.0", () => {
-      logger.info(`GridFlex backend listening on ${webServer.protocol}://0.0.0.0:${webServer.port}`);
+      logger.info("GridFlex backend listening.", { protocol: webServer.protocol, port: webServer.port, logging: "structured_json", physicalCommandExecutionEnabled: env.PHYSICAL_COMMAND_EXECUTION_ENABLED });
     });
   } catch (err: unknown) {
     process.stderr.write(
