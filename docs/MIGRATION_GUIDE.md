@@ -32,6 +32,12 @@ Do not commit these values.
 | `NODE_HEALTH_CRON_ENABLED` | Background node health evaluator | `true` |
 | `PHYSICAL_COMMAND_EXECUTION_ENABLED` | Plant actuation | must remain `false` |
 
+## PR 4 migration
+
+Apply `20260719200000_command_safety_architecture` for CommandRequest / CommandApproval / CommandExecution.
+
+See [COMMAND_SAFETY.md](./COMMAND_SAFETY.md) and [INDUSTRIAL_GATEWAY.md](./INDUSTRIAL_GATEWAY.md).
+
 The production Docker Compose deployment also requires `POSTGRES_PASSWORD`,
 `DATABASE_URL`, `JWT_SECRET`, and an HTTPS `CORS_ORIGIN` to be supplied by the
 deployment environment. Compose intentionally has no production credential

@@ -25,8 +25,12 @@ GridFlex AI is evolving from a prototype into a multi-tenant, read-only plant in
 
 - Curtailment detection engine (PR 2)
 - Advisory optimisation (PR 3)
-- Physical plant command execution (PR 4, disabled by default forever until HIL)
-- Invented Modbus register maps
+- Unrestricted physical plant actuation (gated forever until HIL + plant approval)
+- Real vendor Modbus/OPC register maps (supply via configuration; fictitious examples only)
+
+## PR 4 additions
+
+See [COMMAND_SAFETY.md](./COMMAND_SAFETY.md) and [INDUSTRIAL_GATEWAY.md](./INDUSTRIAL_GATEWAY.md).
 
 ## Compatibility
 

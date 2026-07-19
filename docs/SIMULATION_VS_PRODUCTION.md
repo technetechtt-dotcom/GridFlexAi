@@ -23,4 +23,4 @@ GridFlex intentionally mixes measured, forecast, calculated and simulated surfac
 
 ## Control posture
 
-`PHYSICAL_COMMAND_EXECUTION_ENABLED` defaults to false and is rejected in production configuration. Zolt AI may propose analysis only; it cannot approve or execute plant commands.
+`PHYSICAL_COMMAND_EXECUTION_ENABLED` defaults to false and is rejected in production configuration. Zolt AI may propose analysis and advisory commands only; it cannot approve or execute plant commands. See [COMMAND_SAFETY.md](./COMMAND_SAFETY.md).
