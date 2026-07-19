@@ -1,11 +1,14 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 
 import adminRoutes from "./admin.routes.js";
 import activityRoutes from "./activity.routes.js";
 import aiRoutes from "./ai.routes.js";
 import authRoutes from "./auth.routes.js";
+import curtailmentRoutes from "./curtailment.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
+import forecastAccuracyRoutes from "./forecast-accuracy.routes.js";
 import forecastRoutes from "./forecast.routes.js";
+import gridConstraintRoutes from "./grid-constraint.routes.js";
 import healthRoutes from "./health.routes.js";
 import nodeRoutes from "./node.routes.js";
 import plantAssetRoutes from "./plant-asset.routes.js";
@@ -24,6 +27,9 @@ router.use("/team", teamRoutes);
 router.use("/activity", activityRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/forecast", forecastRoutes);
+router.use("/forecast-accuracy", forecastAccuracyRoutes);
+router.use("/curtailment", curtailmentRoutes);
+router.use("/grid-constraints", gridConstraintRoutes);
 router.use("/nodes", nodeRoutes);
 router.use("/simulation", simulationRoutes);
 router.use("/v2/telemetry", telemetryRoutes);

@@ -9,20 +9,29 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend } from
-'recharts';
+  Legend
+} from 'recharts';
 import { Page } from '../components/Sidebar';
-import { fetchForecast, fetchReadings } from '../services/api';
+import { SimulationBanner } from '../components/SimulationBanner';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
+import {
+  fetchForecastAccuracyScores,
+  fetchPlants,
+  type ForecastAccuracyScoreRow
+} from '../services/api';
+
 interface ForecastAccuracyProps {
   onNavigate: (page: Page) => void;
 }
 
 export function ForecastAccuracy({ onNavigate }: ForecastAccuracyProps) {
-  const [accuracyData, setAccuracyData] = useState<Array<{day: string;accuracy: number;target: number;}>>([]);
+  const [scores, setScores] = useState<ForecastAccuracyScoreRow[]>([]);
+  const [plantLabel, setPlantLabel] = useState('No plant');
+  const [simulated, setSimulated] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
   const handleRetry = () => {
     setError(null);
     setLoading(true);
@@ -33,184 +42,138 @@ export function ForecastAccuracy({ onNavigate }: ForecastAccuracyProps) {
     let active = true;
     const load = async () => {
       try {
-        const [forecast, readings] = await Promise.all([
-        fetchForecast({
-          lat: -28.4478,
-          lon: 21.2561,
-          capacity: 220
-        }),
-        fetchReadings({
-          limit: 48
-        })]);
-
+        const plants = await fetchPlants();
+        const plant = plants[0];
+        if (!plant) {
+          if (!active) return;
+          setScores([]);
+          setPlantLabel('No plant');
+          setSimulated(true);
+          setError(null);
+          return;
+        }
+        const rows = await fetchForecastAccuracyScores({ plantId: plant.id });
         if (!active) return;
-        const rows = forecast.daily.slice(0, 7).map((day, idx) => {
-          const source = readings[idx];
-          const actual = source?.power ?? day.peakPowerKw * 0.95;
-          const error = day.peakPowerKw === 0 ? 0 : Math.abs(actual - day.peakPowerKw) / day.peakPowerKw;
-          const accuracy = Number(Math.max(0, 100 - error * 100).toFixed(1));
-          return {
-            day: new Date(day.date).toLocaleDateString([], { weekday: 'short' }),
-            accuracy,
-            target: 95
-          };
-        });
-        setAccuracyData(rows);
+        setScores(rows);
+        setPlantLabel(plant.name);
+        setSimulated(plant.dataSourceType === 'simulated' || rows.length === 0);
         setError(null);
       } catch (err) {
         if (!active) return;
-        setAccuracyData([]);
-        setError(err instanceof Error ? err.message : 'Unable to load forecast accuracy trends.');
+        setScores([]);
+        setError(err instanceof Error ? err.message : 'Unable to load forecast accuracy scores.');
       } finally {
         if (active) setLoading(false);
       }
     };
-
     void load();
     return () => {
       active = false;
     };
   }, [refreshKey]);
 
-  const overallAccuracy = useMemo(() => {
-    if (!accuracyData.length) return 0;
-    return Number((accuracyData.reduce((acc, row) => acc + row.accuracy, 0) / accuracyData.length).toFixed(1));
-  }, [accuracyData]);
-  const solarMae = useMemo(() => Number((100 - overallAccuracy).toFixed(1)), [overallAccuracy]);
-  const windMae = useMemo(() => Number((Math.min(100, (100 - overallAccuracy) * 1.2)).toFixed(1)), [overallAccuracy]);
+  const latest = scores[0];
+  const chartRows = useMemo(
+    () =>
+      [...scores]
+        .reverse()
+        .slice(-14)
+        .map((row) => ({
+          day: new Date(row.scoredAt).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+          mae: Number(row.maeKw.toFixed(2)),
+          rmse: Number(row.rmseKw.toFixed(2)),
+          bias: Number(row.biasKw.toFixed(2))
+        })),
+    [scores]
+  );
 
   return (
     <div className="space-y-6 p-6 pb-20">
+      {simulated ? (
+        <SimulationBanner
+          featureName="Forecast accuracy"
+          detail="Scores are MAE/RMSE/MAPE/bias from stored forecast vintages versus actuals. Clear-sky and persistence baselines are estimated stubs — not measured irradiance."
+        />
+      ) : null}
+
       <div className="flex items-center space-x-4 mb-6">
         <button
           onClick={() => onNavigate('dashboard')}
-          className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors">
-
+          className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
+        >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h2 className="text-2xl font-bold text-slate-100">
-            Forecast Accuracy
-          </h2>
-          <p className="text-slate-400">Model performance tracking</p>
+          <h2 className="text-2xl font-bold text-slate-100">Forecast Accuracy</h2>
+          <p className="text-slate-400">Plant: {plantLabel} · horizon-aware scoring</p>
         </div>
       </div>
 
       <DataStateBanner
         loading={loading}
         error={error}
-        empty={!loading && !error && accuracyData.length === 0}
-        emptyMessage="No forecast/actual overlap was found to compute accuracy."
+        empty={!loading && !error && scores.length === 0}
+        emptyMessage="No forecast accuracy scores yet. Score a forecast run once actuals are available."
         tone="analyst"
         onRetry={handleRetry}
         retryLabel="Retry analysis"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-400 text-sm">Overall Accuracy</span>
-            <Target className="w-4 h-4 text-purple-500" />
+            <span className="text-slate-400 text-sm">MAE</span>
+            <Target className="w-4 h-4 text-cyan-400" />
           </div>
-          <div className="text-3xl font-bold text-slate-100">{overallAccuracy}%</div>
-          <div className="text-sm text-slate-500 mt-1">Last 7 days</div>
+          <div className="text-3xl font-bold text-slate-100">{latest ? `${latest.maeKw.toFixed(2)} kW` : '—'}</div>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-400 text-sm">Solar MAE</span>
-            <span className="text-xs text-slate-500">Mean Absolute Error</span>
-          </div>
-          <div className="text-3xl font-bold text-slate-100">{solarMae}%</div>
-          <div className="text-sm text-emerald-400 mt-1">{solarMae <= 5 ? 'Excellent' : 'Monitor'}</div>
+          <span className="text-slate-400 text-sm">RMSE</span>
+          <div className="text-3xl font-bold text-slate-100 mt-2">{latest ? `${latest.rmseKw.toFixed(2)} kW` : '—'}</div>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-400 text-sm">Wind MAE</span>
-            <span className="text-xs text-slate-500">Mean Absolute Error</span>
+          <span className="text-slate-400 text-sm">MAPE</span>
+          <div className="text-3xl font-bold text-slate-100 mt-2">
+            {latest?.mapePercent != null ? `${latest.mapePercent.toFixed(1)}%` : '—'}
           </div>
-          <div className="text-3xl font-bold text-slate-100">{windMae}%</div>
-          <div className="text-sm text-amber-400 mt-1">{windMae <= 8 ? 'Within tolerance' : 'Needs tuning'}</div>
+        </div>
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+          <span className="text-slate-400 text-sm">Bias</span>
+          <div className="text-3xl font-bold text-slate-100 mt-2">{latest ? `${latest.biasKw.toFixed(2)} kW` : '—'}</div>
         </div>
       </div>
 
       <motion.div
-        initial={{
-          opacity: 0,
-          y: 20
-        }}
-        animate={{
-          opacity: 1,
-          y: 0
-        }}
-        className="bg-slate-800 border border-slate-700 rounded-xl p-6">
-
-        <h3 className="text-lg font-semibold text-slate-100 mb-6">
-          Accuracy Trend (7 Days)
-        </h3>
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-slate-800 border border-slate-700 rounded-xl p-6"
+      >
+        <h3 className="text-lg font-semibold text-slate-100 mb-6">Error trend</h3>
         <div className="h-[400px] w-full">
-          {loading ?
-          <ChartSkeleton heightClass="h-[400px]" /> :
-          !accuracyData.length ?
-          <div className="h-[400px] rounded-lg border border-slate-700 bg-slate-900/50 flex items-center justify-center text-sm text-slate-400">
-              Accuracy trend will render when enough recent data is available.
-            </div> :
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={accuracyData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#334155"
-                vertical={false} />
-
-              <XAxis
-                dataKey="day"
-                stroke="#94a3b8"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false} />
-
-              <YAxis
-                domain={[80, 100]}
-                stroke="#94a3b8"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                unit="%" />
-
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#0f172a',
-                  borderColor: '#334155',
-                  color: '#f1f5f9'
-                }}
-                itemStyle={{
-                  color: '#f1f5f9'
-                }} />
-
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="accuracy"
-                stroke="#a855f7"
-                strokeWidth={3}
-                dot={{
-                  r: 4
-                }}
-                name="Model Accuracy" />
-
-              <Line
-                type="monotone"
-                dataKey="target"
-                stroke="#94a3b8"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                dot={false}
-                name="Target (95%)" />
-
-            </LineChart>
-          </ResponsiveContainer>
-          }
+          {loading ? (
+            <ChartSkeleton heightClass="h-[400px]" />
+          ) : !chartRows.length ? (
+            <div className="h-[400px] rounded-lg border border-slate-700 bg-slate-900/50 flex items-center justify-center text-sm text-slate-400">
+              Accuracy trend renders after scored forecast vintages exist.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartRows}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                <XAxis dataKey="day" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} unit=" kW" />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f1f5f9' }}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="mae" stroke="#22d3ee" strokeWidth={2} name="MAE (kW)" />
+                <Line type="monotone" dataKey="rmse" stroke="#a855f7" strokeWidth={2} name="RMSE (kW)" />
+                <Line type="monotone" dataKey="bias" stroke="#f59e0b" strokeWidth={2} name="Bias (kW)" />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </motion.div>
-    </div>);
-
+    </div>
+  );
 }

@@ -674,3 +674,163 @@ model AuditLog {
   @@index([siteId, createdAt])
   @@index([createdAt])
 }
+
+/// Detected curtailment interval. Powers in kW, energies in kWh.
+model CurtailmentEvent {
+  id                      String                 @id @default(cuid())
+  organisationId          String
+  organisation            Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId                  String
+  site                    Site                   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  plantId                 String
+  plant                   Plant                  @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  startTime               DateTime
+  endTime                 DateTime?
+  status                  CurtailmentEventStatus @default(open)
+  cause                   CurtailmentCause       @default(unknown)
+  causeConfidence         Float                  @default(0)
+  availablePowerKw        Float
+  actualPowerKw           Float
+  curtailedPowerKw        Float
+  estimatedLostEnergyKwh  Float                  @default(0)
+  recoverableEnergyKwh    Float                  @default(0)
+  exportLimitKw           Float?
+  ppcSetpointKw           Float?
+  evidence                Json?
+  calculationVersion      String
+  reviewedBy              String?
+  reviewedAt              DateTime?
+  operatorNotes           String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  corrections             CurtailmentCorrection[]
+
+  @@index([organisationId, startTime])
+  @@index([siteId, startTime])
+  @@index([plantId, startTime])
+  @@index([status, cause])
+  @@index([calculationVersion])
+}
+
+/// Operator correction notes — never overwrites original event calculations.
+model CurtailmentCorrection {
+  id                             String            @id @default(cuid())
+  eventId                        String
+  event                          CurtailmentEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  correctedCause                 CurtailmentCause?
+  correctedRecoverableEnergyKwh  Float?
+  notes                          String
+  createdById                    String?
+  createdBy                      User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt                      DateTime          @default(now())
+
+  @@index([eventId, createdAt])
+  @@index([createdById])
+}
+
+model PlantForecastConfig {
+  id            String   @id @default(cuid())
+  plantId       String   @unique
+  plant         Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  dcCapacityKw  Float
+  acCapacityKw  Float
+  tiltDeg       Float    @default(20)
+  azimuthDeg    Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+/// Immutable forecast vintage for a plant.
+model ForecastRun {
+  id               String         @id @default(cuid())
+  organisationId   String
+  organisation     Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId           String
+  site             Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  plantId          String
+  plant            Plant          @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  provider         String
+  version          String
+  sourceType       DataSourceType @default(forecast)
+  quality          DataQuality    @default(unverified)
+  generatedAt      DateTime       @default(now())
+  validFrom        DateTime
+  validTo          DateTime
+  freshnessSeconds Int?
+  metadata         Json?
+  createdAt        DateTime       @default(now())
+  values           ForecastValue[]
+
+  @@index([organisationId, generatedAt])
+  @@index([siteId, generatedAt])
+  @@index([plantId, generatedAt])
+  @@index([provider, version])
+  @@index([sourceType, quality])
+}
+
+model ForecastValue {
+  id             String          @id @default(cuid())
+  forecastRunId  String
+  forecastRun    ForecastRun     @relation(fields: [forecastRunId], references: [id], onDelete: Cascade)
+  targetTime     DateTime
+  horizonMinutes Int
+  p10Kw          Float?
+  p50Kw          Float
+  p90Kw          Float?
+  unit           MeasurementUnit @default(kW)
+  sourceType     DataSourceType  @default(forecast)
+  quality        DataQuality     @default(unverified)
+
+  @@index([forecastRunId, targetTime])
+  @@index([targetTime, horizonMinutes])
+}
+
+model ForecastAccuracyScore {
+  id                 String   @id @default(cuid())
+  plantId            String
+  plant              Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  horizonMinutes     Int
+  provider           String?
+  maeKw              Float
+  rmseKw             Float
+  mapePercent        Float?
+  biasKw             Float
+  sampleCount        Int
+  periodStart        DateTime
+  periodEnd          DateTime
+  scoredAt           DateTime @default(now())
+  calculationVersion String   @default("forecast-score-v1")
+  metadata           Json?
+
+  @@index([plantId, horizonMinutes, scoredAt])
+  @@index([provider, scoredAt])
+}
+
+/// Explicit grid constraint inputs — not inferred from high PV output.
+model GridConstraint {
+  id             String             @id @default(cuid())
+  organisationId String
+  organisation   Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId         String
+  site           Site               @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  plantId        String?
+  plant          Plant?             @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  constraintType GridConstraintType
+  name           String
+  limitValue     Float
+  unit           MeasurementUnit
+  validFrom      DateTime?
+  validTo        DateTime?
+  sourceType     DataSourceType     @default(operator_entered)
+  quality        DataQuality        @default(unverified)
+  provenance     Json?
+  notes          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([organisationId, constraintType])
+  @@index([siteId, constraintType])
+  @@index([plantId, constraintType])
+  @@index([validFrom, validTo])
+  @@index([sourceType])
+}

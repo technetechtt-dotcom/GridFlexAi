@@ -121,6 +121,17 @@ export interface DispatchRecommendation {
   status: 'pending' | 'approved' | 'rejected';
 }
 
+export type OptimisationRunSummary = {
+  id: string;
+  plantId: string;
+  status: string;
+  advisory: boolean;
+  expectedBenefitZar: number | null;
+  solverVersion: string;
+  createdAt: string;
+  advisoryLabel?: string;
+};
+
 type ApiEnvelope<T> = {
   data: T;
 };
@@ -1276,6 +1287,128 @@ export async function fetchPlants(): Promise<PlantSummary[]> {
   return response.data;
 }
 
+export type CurtailmentEventSummary = {
+  id: string;
+  organisationId: string;
+  siteId: string;
+  plantId: string;
+  startTime: string;
+  endTime: string | null;
+  status: string;
+  cause: string;
+  causeConfidence: number;
+  availablePowerKw: number;
+  actualPowerKw: number;
+  curtailedPowerKw: number;
+  estimatedLostEnergyKwh: number;
+  recoverableEnergyKwh: number;
+  calculationVersion: string;
+  operatorNotes: string | null;
+  reviewedAt: string | null;
+  plant?: { id: string; name: string; code: string; dataSourceType: string };
+  corrections?: Array<{ id: string; notes: string; createdAt: string }>;
+};
+
+export type ForecastAccuracyScoreRow = {
+  id: string;
+  plantId: string;
+  horizonMinutes: number;
+  provider: string | null;
+  maeKw: number;
+  rmseKw: number;
+  mapePercent: number | null;
+  biasKw: number;
+  sampleCount: number;
+  scoredAt: string;
+  periodStart: string;
+  periodEnd: string;
+};
+
+export type GridConstraintRow = {
+  id: string;
+  organisationId: string;
+  siteId: string;
+  plantId: string | null;
+  constraintType: string;
+  name: string;
+  limitValue: number;
+  unit: string;
+  sourceType: string;
+  quality: string;
+  provenance: unknown;
+  notes: string | null;
+};
+
+export async function fetchCurtailmentEvents(params: {
+  plantId?: string;
+  status?: string;
+  limit?: number;
+} = {}): Promise<CurtailmentEventSummary[]> {
+  const search = new URLSearchParams();
+  if (params.plantId) search.set('plantId', params.plantId);
+  if (params.status) search.set('status', params.status);
+  if (params.limit) search.set('limit', String(params.limit));
+  const query = search.toString();
+  const response = await apiRequest<ApiEnvelope<CurtailmentEventSummary[]>>(
+    `/curtailment/events${query ? `?${query}` : ''}`,
+    { auth: true }
+  );
+  return response.data;
+}
+
+export async function fetchCurtailmentEvent(eventId: string): Promise<CurtailmentEventSummary> {
+  const response = await apiRequest<ApiEnvelope<CurtailmentEventSummary>>(
+    `/curtailment/events/${eventId}`,
+    { auth: true }
+  );
+  return response.data;
+}
+
+export async function reviewCurtailmentEvent(
+  eventId: string,
+  payload: {
+    status?: string;
+    operatorNotes?: string;
+  }
+): Promise<CurtailmentEventSummary> {
+  const response = await apiRequest<ApiEnvelope<CurtailmentEventSummary>>(
+    `/curtailment/events/${eventId}/review`,
+    { method: 'PATCH', auth: true, body: payload }
+  );
+  return response.data;
+}
+
+export async function fetchForecastAccuracyScores(params: {
+  plantId?: string;
+  horizonMinutes?: number;
+  limit?: number;
+} = {}): Promise<ForecastAccuracyScoreRow[]> {
+  const search = new URLSearchParams();
+  if (params.plantId) search.set('plantId', params.plantId);
+  if (params.horizonMinutes) search.set('horizonMinutes', String(params.horizonMinutes));
+  if (params.limit) search.set('limit', String(params.limit));
+  const query = search.toString();
+  const response = await apiRequest<ApiEnvelope<ForecastAccuracyScoreRow[]>>(
+    `/forecast-accuracy/scores${query ? `?${query}` : ''}`,
+    { auth: true }
+  );
+  return response.data;
+}
+
+export async function fetchGridConstraints(params: {
+  plantId?: string;
+  siteId?: string;
+} = {}): Promise<GridConstraintRow[]> {
+  const search = new URLSearchParams();
+  if (params.plantId) search.set('plantId', params.plantId);
+  if (params.siteId) search.set('siteId', params.siteId);
+  const query = search.toString();
+  const response = await apiRequest<
+    ApiEnvelope<GridConstraintRow[]> & { meta?: { hasRealConstraints?: boolean; simulationFallback?: boolean } }
+  >(`/grid-constraints${query ? `?${query}` : ''}`, { auth: true });
+  return response.data;
+}
+
 export async function fetchPlantAssets(plantId: string): Promise<AssetSummary[]> {
   const response = await apiRequest<ApiEnvelope<AssetSummary[]>>(`/plants/${plantId}/assets`, { auth: true });
   return response.data;
@@ -1606,6 +1739,24 @@ export async function fetchDispatchRecommendations(): Promise<
   }
 
   return recommendations;
+}
+
+export async function fetchOptimisationRuns(plantId?: string): Promise<OptimisationRunSummary[]> {
+  const query = plantId ? `?plantId=${encodeURIComponent(plantId)}` : '';
+  const response = await apiRequest<ApiEnvelope<OptimisationRunSummary[]>>(`/optimisation/runs${query}`);
+  return response.data;
+}
+
+export async function createAdvisoryOptimisationRun(input: {
+  plantId: string;
+  bessAssetId: string;
+  electrolyserAssetId: string;
+}): Promise<OptimisationRunSummary> {
+  const response = await apiRequest<ApiEnvelope<OptimisationRunSummary>>('/optimisation/runs', {
+    method: 'POST',
+    body: JSON.stringify(input)
+  });
+  return response.data;
 }
 
 export async function submitAIPrompt(

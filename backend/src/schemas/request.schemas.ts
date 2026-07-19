@@ -245,6 +245,229 @@ export const invoiceUpdateBodySchema = invoiceBodySchema.partial().extend({
 
 export const emptyBodySchema = z.object({}).strict();
 
+const CURTAILMENT_CAUSES = [
+  "grid_instruction",
+  "network_congestion",
+  "export_limit",
+  "ppc_limit",
+  "negative_price",
+  "economic_dispatch",
+  "inverter_clipping",
+  "inverter_derating",
+  "equipment_fault",
+  "maintenance",
+  "weather",
+  "unknown"
+] as const;
+
+const CURTAILMENT_STATUSES = [
+  "open",
+  "closed",
+  "under_review",
+  "confirmed",
+  "dismissed"
+] as const;
+
+const GRID_CONSTRAINT_TYPES = [
+  "feeder",
+  "transformer",
+  "line",
+  "export",
+  "outage",
+  "operator",
+  "contingency"
+] as const;
+
+const DATA_SOURCE_TYPES = [
+  "measured",
+  "calculated",
+  "forecast",
+  "estimated",
+  "simulated",
+  "operator_entered",
+  "imported"
+] as const;
+
+const DATA_QUALITIES = [
+  "valid",
+  "uncertain",
+  "stale",
+  "missing",
+  "invalid",
+  "substituted",
+  "unverified"
+] as const;
+
+const MEASUREMENT_UNITS = [
+  "V",
+  "A",
+  "Hz",
+  "kW",
+  "MW",
+  "kWh",
+  "MWh",
+  "kVAr",
+  "MVAr",
+  "kVA",
+  "MVA",
+  "percent",
+  "celsius",
+  "wm2",
+  "kg",
+  "kg_per_hour",
+  "litre",
+  "litre_per_hour",
+  "zar",
+  "zar_per_kwh",
+  "zar_per_mwh",
+  "zar_per_kg"
+] as const;
+
+export const curtailmentEventsQuerySchema = z.object({
+  plantId: z.string().optional(),
+  siteId: z.string().optional(),
+  status: z.enum(CURTAILMENT_STATUSES).optional(),
+  cause: z.enum(CURTAILMENT_CAUSES).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional()
+});
+
+export const curtailmentDetectBodySchema = z.object({
+  plantId: z.string().min(1),
+  samples: z
+    .array(
+      z.object({
+        timestamp: z.string().datetime(),
+        actualPowerKw: z.coerce.number().finite(),
+        availableCandidates: z.array(
+          z.object({
+            source: z.enum([
+              "inverter_available_power",
+              "ppc_available_power",
+              "weather_performance_model",
+              "peer_inverter_comparison",
+              "historical_baseline"
+            ]),
+            availablePowerKw: z.coerce.number().finite().min(0),
+            confidence: z.coerce.number().min(0).max(1),
+            quality: z.enum(["valid", "uncertain", "stale", "invalid", "unverified"])
+          })
+        ),
+        exportLimitKw: z.coerce.number().finite().optional(),
+        ppcSetpointKw: z.coerce.number().finite().optional(),
+        inverterFault: z.boolean().optional(),
+        inverterUnavailable: z.boolean().optional(),
+        clippingKw: z.coerce.number().finite().optional(),
+        deratingKw: z.coerce.number().finite().optional()
+      })
+    )
+    .min(1)
+    .max(5000)
+});
+
+export const curtailmentReviewBodySchema = z.object({
+  status: z.enum(CURTAILMENT_STATUSES).optional(),
+  operatorNotes: z.string().max(2000).optional()
+});
+
+export const curtailmentCorrectionBodySchema = z.object({
+  notes: z.string().min(1).max(2000),
+  correctedCause: z.enum(CURTAILMENT_CAUSES).optional(),
+  correctedRecoverableEnergyKwh: z.coerce.number().finite().min(0).optional()
+});
+
+export const forecastAccuracyQuerySchema = z.object({
+  plantId: z.string().optional(),
+  horizonMinutes: z.coerce.number().int().min(1).max(60 * 24 * 14).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional()
+});
+
+export const forecastAccuracyScoreBodySchema = z.object({
+  plantId: z.string().min(1),
+  horizonMinutes: z.coerce.number().int().min(1).max(60 * 24 * 14),
+  provider: z.string().max(80).optional(),
+  periodStart: z.string().datetime(),
+  periodEnd: z.string().datetime(),
+  points: z
+    .array(
+      z.object({
+        timestamp: z.string().min(1),
+        actualKw: z.coerce.number().finite(),
+        forecastKw: z.coerce.number().finite()
+      })
+    )
+    .min(1)
+    .max(10000),
+  metadata: z.unknown().optional()
+});
+
+export const forecastRunBodySchema = z.object({
+  plantId: z.string().min(1),
+  provider: z.string().min(1).max(80),
+  version: z.string().min(1).max(80),
+  sourceType: z.enum(DATA_SOURCE_TYPES).optional(),
+  quality: z.enum(DATA_QUALITIES).optional(),
+  validFrom: z.string().datetime(),
+  validTo: z.string().datetime(),
+  freshnessSeconds: z.coerce.number().int().min(0).optional(),
+  metadata: z.unknown().optional(),
+  values: z
+    .array(
+      z.object({
+        targetTime: z.string().datetime(),
+        horizonMinutes: z.coerce.number().int().min(0).max(60 * 24 * 14),
+        p10Kw: z.coerce.number().finite().optional(),
+        p50Kw: z.coerce.number().finite(),
+        p90Kw: z.coerce.number().finite().optional(),
+        sourceType: z.enum(DATA_SOURCE_TYPES).optional(),
+        quality: z.enum(DATA_QUALITIES).optional()
+      })
+    )
+    .min(1)
+    .max(5000)
+});
+
+export const plantForecastConfigBodySchema = z.object({
+  dcCapacityKw: z.coerce.number().finite().min(0),
+  acCapacityKw: z.coerce.number().finite().min(0),
+  tiltDeg: z.coerce.number().min(0).max(90).optional(),
+  azimuthDeg: z.coerce.number().min(-180).max(180).optional()
+});
+
+export const gridConstraintQuerySchema = z.object({
+  siteId: z.string().optional(),
+  plantId: z.string().optional(),
+  constraintType: z.enum(GRID_CONSTRAINT_TYPES).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional()
+});
+
+export const gridConstraintBodySchema = z.object({
+  organisationId: z.string().min(1),
+  siteId: z.string().min(1),
+  plantId: z.string().optional(),
+  constraintType: z.enum(GRID_CONSTRAINT_TYPES),
+  name: z.string().min(2).max(160),
+  limitValue: z.coerce.number().finite(),
+  unit: z.enum(MEASUREMENT_UNITS),
+  validFrom: z.string().datetime().optional(),
+  validTo: z.string().datetime().optional(),
+  sourceType: z.enum(DATA_SOURCE_TYPES).optional(),
+  quality: z.enum(DATA_QUALITIES).optional(),
+  provenance: z.unknown().optional(),
+  notes: z.string().max(2000).optional()
+});
+
+export const gridConstraintUpdateBodySchema = z.object({
+  name: z.string().min(2).max(160).optional(),
+  limitValue: z.coerce.number().finite().optional(),
+  unit: z.enum(MEASUREMENT_UNITS).optional(),
+  validFrom: z.string().datetime().nullable().optional(),
+  validTo: z.string().datetime().nullable().optional(),
+  sourceType: z.enum(DATA_SOURCE_TYPES).optional(),
+  quality: z.enum(DATA_QUALITIES).optional(),
+  provenance: z.unknown().optional(),
+  notes: z.string().max(2000).nullable().optional()
+});
+
 export type RegisterBody = z.infer<typeof registerBodySchema>;
 export type LoginBody = z.infer<typeof loginBodySchema>;
 export type ReadingsQuery = z.infer<typeof readingsQuerySchema>;

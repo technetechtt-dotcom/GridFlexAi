@@ -24,7 +24,7 @@ import {
 import { Page } from '../components/Sidebar';
 import { SimulationBanner } from '../components/SimulationBanner';
 import { usePilotStore } from '../store/pilotStore';
-import { fetchCongestionNodes, fetchDynamicLineRatings, fetchForecast } from '../services/api';
+import { fetchCongestionNodes, fetchDynamicLineRatings, fetchForecast, fetchGridConstraints } from '../services/api';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
 interface CongestionForecastProps {
   onNavigate: (page: Page) => void;
@@ -47,6 +47,8 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
   const [timeLabels, setTimeLabels] = useState<string[]>([]);
   const [trendData, setTrendData] = useState<TrendPoint[]>([]);
   const [riskRows, setRiskRows] = useState<Array<{node: string;peak: number;time: string;risk: string;}>>([]);
+  const [constraintLimitPct, setConstraintLimitPct] = useState<number | null>(null);
+  const [constraintsSimulated, setConstraintsSimulated] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -59,7 +61,7 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
     let active = true;
     const load = async () => {
       try {
-        const [dlr, nodes, upington, deAar] = await Promise.all([
+        const [dlr, nodes, upington, deAar, constraints] = await Promise.all([
           fetchDynamicLineRatings(),
           fetchCongestionNodes(),
           fetchForecast({
@@ -71,7 +73,8 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
             lat: -30.6499,
             lon: 24.0123,
             capacity: 180
-          })
+          }),
+          fetchGridConstraints().catch(() => [])
         ]);
         if (!active) return;
         setDlrRows(dlr);
@@ -79,6 +82,15 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
           node: node.name,
           values: node.forecast24h
         })));
+        const exportConstraint = constraints.find((row) => row.constraintType === 'export' || row.constraintType === 'feeder');
+        const hasMeasuredConstraint = constraints.some(
+          (row) => row.sourceType === 'measured' || row.sourceType === 'operator_entered'
+        );
+        setConstraintsSimulated(!hasMeasuredConstraint);
+        const limitPct = exportConstraint
+          ? Number(Math.min(100, Math.max(50, (exportConstraint.limitValue / 220) * 100)).toFixed(1))
+          : 90;
+        setConstraintLimitPct(exportConstraint ? limitPct : null);
         setTimeLabels(
           upington.hourly.slice(0, 12).map((row) =>
           new Date(row.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -89,7 +101,7 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
             time: new Date(row.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             upington: Number(((row.estimatedPowerKw / 220) * 100).toFixed(1)),
             deAar: Number((((deAar.hourly[idx]?.estimatedPowerKw ?? 0) / 180) * 100).toFixed(1)),
-            limit: 90
+            limit: limitPct
           }))
         );
         setError(null);
@@ -143,10 +155,18 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
   }, [displayData, timeLabels]);
   return (
     <div className="space-y-6 p-6 pb-20">
-      <SimulationBanner
-        featureName="Congestion / dynamic line rating scenarios"
-        detail="Where real feeder/transformer limits are unavailable, congestion outputs are scenario simulations — not measured grid congestion."
-      />
+      {constraintsSimulated ? (
+        <SimulationBanner
+          featureName="Congestion / dynamic line rating scenarios"
+          detail="No measured grid-constraint feed is available. Congestion outputs are scenario simulations — high PV alone is not treated as congestion. Physical control remains disabled."
+        />
+      ) : (
+        <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          Using stored GridConstraint limits
+          {constraintLimitPct != null ? ` (display limit ~${constraintLimitPct}% of demo capacity)` : ''}.
+          High PV output alone is not equated with congestion.
+        </div>
+      )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
           <button
