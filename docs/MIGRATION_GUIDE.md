@@ -61,3 +61,22 @@ defaults. Keep secrets in the deployment secret store, not in a checked-in
 ## Data labelling
 
 Seeded Northern Cape plant/assets are marked `simulated`. Simulation pages show a persistent Simulation banner.
+
+## PR 3 — advisory optimisation
+
+Migration: `20260719200000_bess_electrolyser_optimisation`
+
+Adds BESS/electrolyser model + operating-state tables, `OptimizationRun`, and `DispatchSchedule`.
+
+```bash
+cd backend
+npx prisma migrate deploy
+npx prisma generate
+npm run prisma:seed
+```
+
+Demo IDs after seed: `plant-upington-pv-demo`, `asset-upington-bess-sim`, `asset-upington-electrolyser-sim`.
+
+API: `/api/optimisation/runs`, `/api/assets/:assetId/bess-model`, `/api/assets/:assetId/electrolyser-model` (see `docs/OPTIMIZATION_ENGINE.md`).
+
+Rollback: redeploy prior artifacts; leave additive tables in place (non-destructive).

@@ -24,9 +24,15 @@ GridFlex AI is evolving from a prototype into a multi-tenant, read-only plant in
 ## Explicit non-goals (still deferred)
 
 - Curtailment detection engine (PR 2)
-- Advisory optimisation (PR 3)
 - Physical plant command execution (PR 4, disabled by default forever until HIL)
 - Invented Modbus register maps
+
+## PR 3 additions
+
+- Provenance-aware `BessModelConfig` / `ElectrolyserModelConfig` plus operating-state tables (configured ≠ measured)
+- Deterministic TypeScript advisory optimiser (`gridflex-advisory-deterministic-v1`)
+- Reproducible `OptimizationRun` + advisory `DispatchSchedule` with baseline comparison and sensitivity
+- See `docs/OPTIMIZATION_ENGINE.md`
 
 ## Compatibility
 
