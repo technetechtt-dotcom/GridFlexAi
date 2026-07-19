@@ -131,6 +131,7 @@ const run = async () => {
       dataSourceType: "simulated"
     },
     create: {
+      id: "plant-upington-pv-demo",
       organisationId: organisation.id,
       siteId: site.id,
       name: "Upington PV Demonstration Plant",
@@ -196,6 +197,332 @@ const run = async () => {
           available: true
         }
       }
+    }
+  });
+
+  const bessAsset = await prisma.asset.upsert({
+    where: { id: "asset-upington-bess-sim" },
+    update: {
+      plantId: plant.id,
+      parentAssetId: gatewayAsset.id,
+      name: "Simulated BESS Block A",
+      type: "bess",
+      ratedPowerKw: 2000,
+      ratedEnergyKwh: 4000,
+      status: "simulated",
+      dataSourceType: "simulated"
+    },
+    create: {
+      id: "asset-upington-bess-sim",
+      plantId: plant.id,
+      parentAssetId: gatewayAsset.id,
+      name: "Simulated BESS Block A",
+      type: "bess",
+      ratedPowerKw: 2000,
+      ratedEnergyKwh: 4000,
+      status: "simulated",
+      dataSourceType: "simulated",
+      state: { create: { operatingState: "simulated", available: true } }
+    }
+  });
+
+  await prisma.bessModelConfig.upsert({
+    where: { assetId: bessAsset.id },
+    update: {
+      ratedPowerKw: 2000,
+      ratedEnergyKwh: 4000,
+      maxChargePowerKw: 2000,
+      maxDischargePowerKw: 2000,
+      simulationMode: true,
+      configSource: "operator_entered"
+    },
+    create: {
+      assetId: bessAsset.id,
+      ratedPowerKw: 2000,
+      ratedEnergyKwh: 4000,
+      minSocPercent: 10,
+      maxSocPercent: 90,
+      chargeEfficiency: 0.95,
+      dischargeEfficiency: 0.95,
+      maxChargePowerKw: 2000,
+      maxDischargePowerKw: 2000,
+      rampLimitKwPerMin: 500,
+      degradationCostZarPerMwh: 120,
+      reserveSocPercent: 15,
+      minOperatingTempC: 5,
+      maxOperatingTempC: 45,
+      warrantyCycleLimit: 6000,
+      simulationMode: true,
+      configSource: "operator_entered"
+    }
+  });
+
+  await prisma.bessOperatingState.upsert({
+    where: { assetId: bessAsset.id },
+    update: {
+      socPercent: 55,
+      socSource: "simulated",
+      socQuality: "unverified",
+      simulationMode: true,
+      asOf: new Date()
+    },
+    create: {
+      assetId: bessAsset.id,
+      socPercent: 55,
+      socSource: "simulated",
+      socQuality: "unverified",
+      chargePowerKw: 0,
+      dischargePowerKw: 0,
+      operatingState: "standby",
+      simulationMode: true,
+      asOf: new Date()
+    }
+  });
+
+  const electrolyserAsset = await prisma.asset.upsert({
+    where: { id: "asset-upington-electrolyser-sim" },
+    update: {
+      plantId: plant.id,
+      parentAssetId: gatewayAsset.id,
+      name: "Simulated Electrolyser Train 1",
+      type: "electrolyser",
+      ratedPowerKw: 1500,
+      status: "simulated",
+      dataSourceType: "simulated"
+    },
+    create: {
+      id: "asset-upington-electrolyser-sim",
+      plantId: plant.id,
+      parentAssetId: gatewayAsset.id,
+      name: "Simulated Electrolyser Train 1",
+      type: "electrolyser",
+      ratedPowerKw: 1500,
+      status: "simulated",
+      dataSourceType: "simulated",
+      state: { create: { operatingState: "simulated", available: true } }
+    }
+  });
+
+  await prisma.electrolyserModelConfig.upsert({
+    where: { assetId: electrolyserAsset.id },
+    update: {
+      maxLoadKw: 1500,
+      minStableLoadKw: 300,
+      simulationMode: true,
+      configSource: "operator_entered"
+    },
+    create: {
+      assetId: electrolyserAsset.id,
+      technology: "alkaline",
+      minStableLoadKw: 300,
+      maxLoadKw: 1500,
+      rampRateKwPerMin: 250,
+      startUpTimeMin: 15,
+      shutDownTimeMin: 10,
+      minRunTimeMin: 30,
+      efficiencyKwhPerKg: 52,
+      waterLitresPerKg: 10,
+      hydrogenStorageCapacityKg: 2000,
+      hydrogenSalePriceZarPerKg: 85,
+      operatingCostZarPerHour: 400,
+      minOperatingTempC: 40,
+      maxOperatingTempC: 90,
+      maintenanceWindowActive: false,
+      simulationMode: true,
+      configSource: "operator_entered"
+    }
+  });
+
+  await prisma.electrolyserOperatingState.upsert({
+    where: { assetId: electrolyserAsset.id },
+    update: {
+      loadPowerKw: 0,
+      loadSource: "simulated",
+      loadQuality: "unverified",
+      storageLevelKg: 400,
+      simulationMode: true,
+      asOf: new Date()
+    },
+    create: {
+      assetId: electrolyserAsset.id,
+      loadPowerKw: 0,
+      loadSource: "simulated",
+      loadQuality: "unverified",
+      productionKgPerHour: 0,
+      storageLevelKg: 400,
+      stackTemperatureC: 65,
+      operatingMode: "standby",
+      runTimeMinutes: 0,
+      simulationMode: true,
+      asOf: new Date()
+    }
+  });
+
+  const bessAsset = await prisma.asset.upsert({
+    where: { id: "asset-upington-bess-sim" },
+    update: {
+      plantId: plant.id,
+      parentAssetId: gatewayAsset.id,
+      name: "Simulated BESS Block A",
+      type: "bess",
+      ratedPowerKw: 2000,
+      ratedEnergyKwh: 4000,
+      status: "simulated",
+      dataSourceType: "simulated"
+    },
+    create: {
+      id: "asset-upington-bess-sim",
+      plantId: plant.id,
+      parentAssetId: gatewayAsset.id,
+      name: "Simulated BESS Block A",
+      type: "bess",
+      ratedPowerKw: 2000,
+      ratedEnergyKwh: 4000,
+      status: "simulated",
+      dataSourceType: "simulated",
+      state: {
+        create: {
+          operatingState: "simulated",
+          available: true
+        }
+      }
+    }
+  });
+
+  await prisma.bessModelConfig.upsert({
+    where: { assetId: bessAsset.id },
+    update: {
+      ratedPowerKw: 2000,
+      ratedEnergyKwh: 4000,
+      simulationMode: true,
+      configSource: "operator_entered"
+    },
+    create: {
+      assetId: bessAsset.id,
+      ratedPowerKw: 2000,
+      ratedEnergyKwh: 4000,
+      minSocPercent: 10,
+      maxSocPercent: 90,
+      chargeEfficiency: 0.95,
+      dischargeEfficiency: 0.95,
+      maxChargePowerKw: 2000,
+      maxDischargePowerKw: 2000,
+      rampLimitKwPerMin: 500,
+      degradationCostZarPerMwh: 120,
+      reserveSocPercent: 15,
+      minOperatingTempC: 5,
+      maxOperatingTempC: 45,
+      warrantyCycleLimit: 6000,
+      simulationMode: true,
+      configSource: "operator_entered"
+    }
+  });
+
+  await prisma.bessOperatingState.upsert({
+    where: { assetId: bessAsset.id },
+    update: {
+      socPercent: 55,
+      socSource: "simulated",
+      socQuality: "unverified",
+      simulationMode: true,
+      asOf: new Date()
+    },
+    create: {
+      assetId: bessAsset.id,
+      socPercent: 55,
+      socSource: "simulated",
+      socQuality: "unverified",
+      temperatureC: 28,
+      chargePowerKw: 0,
+      dischargePowerKw: 0,
+      availableChargePowerKw: 1800,
+      availableDischargePowerKw: 1800,
+      cycleCount: 120,
+      operatingState: "idle",
+      simulationMode: true,
+      asOf: new Date()
+    }
+  });
+
+  const electrolyserAsset = await prisma.asset.upsert({
+    where: { id: "asset-upington-electrolyser-sim" },
+    update: {
+      plantId: plant.id,
+      parentAssetId: gatewayAsset.id,
+      name: "Simulated Electrolyser Train A",
+      type: "electrolyser",
+      ratedPowerKw: 5000,
+      status: "simulated",
+      dataSourceType: "simulated"
+    },
+    create: {
+      id: "asset-upington-electrolyser-sim",
+      plantId: plant.id,
+      parentAssetId: gatewayAsset.id,
+      name: "Simulated Electrolyser Train A",
+      type: "electrolyser",
+      ratedPowerKw: 5000,
+      status: "simulated",
+      dataSourceType: "simulated",
+      state: {
+        create: {
+          operatingState: "simulated",
+          available: true
+        }
+      }
+    }
+  });
+
+  await prisma.electrolyserModelConfig.upsert({
+    where: { assetId: electrolyserAsset.id },
+    update: {
+      maxLoadKw: 5000,
+      simulationMode: true,
+      configSource: "operator_entered"
+    },
+    create: {
+      assetId: electrolyserAsset.id,
+      technology: "alkaline",
+      minStableLoadKw: 200,
+      maxLoadKw: 5000,
+      rampRateKwPerMin: 250,
+      startUpTimeMin: 15,
+      shutDownTimeMin: 10,
+      minRunTimeMin: 30,
+      efficiencyKwhPerKg: 52,
+      waterLitresPerKg: 10,
+      hydrogenStorageCapacityKg: 2000,
+      hydrogenSalePriceZarPerKg: 85,
+      operatingCostZarPerHour: 400,
+      minOperatingTempC: 20,
+      maxOperatingTempC: 90,
+      maintenanceWindowActive: false,
+      simulationMode: true,
+      configSource: "operator_entered"
+    }
+  });
+
+  await prisma.electrolyserOperatingState.upsert({
+    where: { assetId: electrolyserAsset.id },
+    update: {
+      loadSource: "simulated",
+      loadQuality: "unverified",
+      simulationMode: true,
+      asOf: new Date()
+    },
+    create: {
+      assetId: electrolyserAsset.id,
+      loadPowerKw: 0,
+      loadSource: "simulated",
+      loadQuality: "unverified",
+      productionKgPerHour: 0,
+      storageLevelKg: 400,
+      waterFlowLitrePerHour: 0,
+      stackTemperatureC: 65,
+      operatingMode: "standby",
+      runTimeMinutes: 0,
+      simulationMode: true,
+      asOf: new Date()
     }
   });
 
