@@ -1,4 +1,4 @@
-﻿import type { Prisma, Role } from "@prisma/client";
+﻿import type { Prisma, Role, AlarmStatus } from "@prisma/client";
 
 import {
   assertOrganisationAccess,
@@ -81,7 +81,7 @@ export const listAlarmEvents = async (actor: AlarmActor, filters?: { status?: st
   if (filters?.siteId) await assertSiteAccess(scope, filters.siteId);
   const where: Prisma.AlarmEventWhereInput = { ...tenantWhereFromScope(scope) };
   const statusFilter = filters?.status;
-  if (statusFilter) where.status = statusFilter as Prisma.AlarmStatus;
+  if (statusFilter) where.status = statusFilter as AlarmStatus;
   if (filters?.siteId) where.siteId = filters.siteId;
   return prisma.alarmEvent.findMany({
     where, orderBy: [{ startedAt: "desc" }], take: 200,
