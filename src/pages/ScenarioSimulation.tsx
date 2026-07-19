@@ -103,7 +103,10 @@ export function ScenarioSimulation({ onNavigate }: ScenarioSimulationProps) {
   }, [batteryCap, solarVar, windVar, electrolyzer, enableGet, topologyFlex, getResult]);
   return (
     <div className="space-y-6 p-6 pb-20">
-      <SimulationBanner featureName="Scenario simulation / topology optimisation" />
+      <SimulationBanner
+        featureName="Scenario simulation / topology optimisation"
+        detail="All revenue, hydrogen, curtailment, stability, congestion, and transfer-capacity outputs use fictional demonstration assumptions. They are not measured plant or network results."
+      />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-slate-100">
@@ -476,26 +479,26 @@ export function ScenarioSimulation({ onNavigate }: ScenarioSimulationProps) {
               <div className="flex items-center space-x-2 mb-6">
                 <Droplet className="w-5 h-5 text-purple-400" />
                 <h3 className="text-lg font-semibold text-slate-100">
-                  HyShift Impact Analysis
+                  Simulated HyShift Impact
                 </h3>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-purple-500/10 p-4 rounded-lg border border-purple-500/20">
-                  <p className="text-xs text-purple-300 mb-1">H₂ Production</p>
+                  <p className="text-xs text-purple-300 mb-1">Simulated H₂ Production</p>
                   <p className="text-xl font-bold text-purple-400">
                     {scenarioData.h2Production} kg
                   </p>
                 </div>
                 <div className="bg-purple-500/10 p-4 rounded-lg border border-purple-500/20">
-                  <p className="text-xs text-purple-300 mb-1">Add. Revenue</p>
+                  <p className="text-xs text-purple-300 mb-1">Simulated Revenue Uplift</p>
                   <p className="text-xl font-bold text-purple-400">
                     R{scenarioData.h2Revenue}M
                   </p>
                 </div>
                 <div className="bg-amber-500/10 p-4 rounded-lg border border-amber-500/20">
                   <p className="text-xs text-amber-300 mb-1">
-                    Curtailment Saved
+                    Simulated Curtailment Reduction
                   </p>
                   <p className="text-xl font-bold text-amber-400">
                     {scenarioData.curtailmentReduction}%
@@ -503,7 +506,7 @@ export function ScenarioSimulation({ onNavigate }: ScenarioSimulationProps) {
                 </div>
                 <div className="bg-emerald-500/10 p-4 rounded-lg border border-emerald-500/20">
                   <p className="text-xs text-emerald-300 mb-1">
-                    Grid Stability
+                    Simulated Stability Score
                   </p>
                   <p className="text-xl font-bold text-emerald-400">
                     {scenarioData.stabilityScore}/100

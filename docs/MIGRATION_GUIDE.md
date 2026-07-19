@@ -32,6 +32,12 @@ Do not commit these values.
 | `NODE_HEALTH_CRON_ENABLED` | Background node health evaluator | `true` |
 | `PHYSICAL_COMMAND_EXECUTION_ENABLED` | Plant actuation | must remain `false` |
 
+The production Docker Compose deployment also requires `POSTGRES_PASSWORD`,
+`DATABASE_URL`, `JWT_SECRET`, and an HTTPS `CORS_ORIGIN` to be supplied by the
+deployment environment. Compose intentionally has no production credential
+defaults. Keep secrets in the deployment secret store, not in a checked-in
+`.env` file.
+
 ## API additions
 
 - `GET /api/plants`

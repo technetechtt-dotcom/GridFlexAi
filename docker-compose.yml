@@ -4,15 +4,15 @@ services:
     container_name: gridflex-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: gridflex
+      POSTGRES_USER: ${POSTGRES_USER:-gridflex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the deployment environment}
+      POSTGRES_DB: ${POSTGRES_DB:-gridflex}
     ports:
       - "5432:5432"
     volumes:
       - gridflex-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d gridflex"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gridflex} -d ${POSTGRES_DB:-gridflex}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -40,12 +40,16 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gridflex?schema=public
-      JWT_SECRET: change-this-in-production
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in the deployment environment}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the deployment environment}
       JWT_ACCESS_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 30d
-      CORS_ORIGIN: http://localhost:5173
+      CORS_ORIGIN: ${CORS_ORIGIN:?Set CORS_ORIGIN to the HTTPS frontend origin}
       REDIS_URL: redis://redis:6379
+      EDGE_ALLOW_LEGACY_SHARED_SECRET: "false"
+      EDGE_REPLAY_REQUIRE_REDIS: "true"
+      EDGE_ALLOW_MEMORY_REPLAY: "false"
+      PHYSICAL_COMMAND_EXECUTION_ENABLED: "false"
       FORECAST_CIRCUIT_FAILURE_THRESHOLD: 3
       FORECAST_CIRCUIT_OPEN_MS: 180000
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}

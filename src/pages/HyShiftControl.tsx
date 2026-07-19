@@ -123,7 +123,10 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
   }, [flowRows, rampRate]);
   return (
     <div className="space-y-6 p-6 pb-20">
-      <SimulationBanner featureName="HyShift / electrolyser digital twin" />
+      <SimulationBanner
+        featureName="HyShift / electrolyser digital twin"
+        detail="All electrolyser state, hydrogen production, LCOH, efficiency, water use, and dispatch values on this page are simulated or estimated—not measured plant telemetry. Physical control is unavailable."
+      />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-slate-100 flex items-center">
@@ -137,11 +140,15 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
         <div className="flex items-center space-x-3">
           <div className="bg-slate-800 px-4 py-2 rounded-lg border border-slate-700 flex items-center space-x-3">
             <span className="text-sm text-slate-400">System Status:</span>
-            <StatusBadge status="active" label="Production Mode" />
+            <StatusBadge status="active" label="Simulation Mode" />
           </div>
-          <button className="flex items-center px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors">
+          <button
+            disabled
+            title="Physical plant control is disabled"
+            className="flex cursor-not-allowed items-center rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-500"
+          >
             <AlertTriangle className="w-4 h-4 mr-2" />
-            Emergency Stop
+            Physical Control Disabled
           </button>
         </div>
       </div>
@@ -159,7 +166,7 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
       {/* KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          title="Current LCOH"
+          title="Modeled LCOH"
           value={`R${(twinState?.lcohZarPerKg ?? 45.2).toFixed(2)}`}
           unit="/kg"
           trend="down"
@@ -169,7 +176,7 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
           delay={0.1} />
 
         <KPICard
-          title="H2 Production Rate"
+          title="Simulated H2 Production"
           value={Math.round(twinState?.productionKgPerHour ?? 420).toString()}
           unit="kg/h"
           trend="up"
@@ -189,7 +196,7 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
           delay={0.3} />
 
         <KPICard
-          title="Water Usage"
+          title="Estimated Water Use"
           value={Math.round(twinState?.productionKgPerHour ? twinState.productionKgPerHour * 8.6 : 0).toLocaleString()}
           unit="L/h"
           trend="up"
@@ -368,7 +375,7 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
 
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-semibold text-slate-100">
-                Real-time Power Flow Dispatch
+                Simulated Power Flow Dispatch
               </h3>
               <div className="flex space-x-4 text-xs">
                 <span className="flex items-center text-slate-400">

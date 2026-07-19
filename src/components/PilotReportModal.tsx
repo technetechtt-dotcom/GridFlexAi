@@ -12,6 +12,7 @@ import {
 'lucide-react';
 import { generatePilotReport, PilotReport } from '../services/api';
 import { cn } from '../lib/utils';
+import { SimulationBanner } from './SimulationBanner';
 interface PilotReportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -91,6 +92,10 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
 
               {/* Content */}
               <div className="p-6 overflow-y-auto">
+                <SimulationBanner
+                  featureName="Pilot performance report"
+                  detail="Data provenance: simulated and calculated demonstration values. This is not a report of measured plant performance."
+                />
                 {loading ?
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
                     <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -104,7 +109,7 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
                       <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl">
                         <div className="flex justify-between items-start mb-2">
                           <span className="text-sm text-emerald-400 font-medium">
-                            Revenue Uplift
+                            Simulated Revenue Uplift
                           </span>
                           <TrendingUp className="w-4 h-4 text-emerald-500" />
                         </div>
@@ -119,7 +124,7 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
                       <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl">
                         <div className="flex justify-between items-start mb-2">
                           <span className="text-sm text-purple-400 font-medium">
-                            H₂ Produced
+                            Simulated H₂ Production
                           </span>
                           <Droplet className="w-4 h-4 text-purple-500" />
                         </div>
@@ -134,7 +139,7 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
                       <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl">
                         <div className="flex justify-between items-start mb-2">
                           <span className="text-sm text-amber-400 font-medium">
-                            Curtailment Saved
+                            Simulated Curtailment Reduction
                           </span>
                           <Zap className="w-4 h-4 text-amber-500" />
                         </div>
@@ -149,7 +154,7 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
                       <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-xl">
                         <div className="flex justify-between items-start mb-2">
                           <span className="text-sm text-cyan-400 font-medium">
-                            CO₂ Avoided
+                            Estimated CO₂ Avoided
                           </span>
                           <Wind className="w-4 h-4 text-cyan-500" />
                         </div>
@@ -165,7 +170,7 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
                     <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
                       <div className="flex items-center justify-between mb-4">
                         <span className="text-sm font-medium text-slate-300">
-                          Grid Stability Score
+                          Simulated Stability Score
                         </span>
                         <span className="text-sm font-bold text-emerald-400">
                           {report.gridStabilityScore}/100
@@ -201,11 +206,12 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
                   Close
                 </button>
                 <button
-                onClick={() => alert('PDF download started...')}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center shadow-lg shadow-emerald-500/20">
+                disabled
+                title="A provenance-labelled PDF export is not implemented yet"
+                className="flex cursor-not-allowed items-center rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-400">
 
                   <FileDown className="w-4 h-4 mr-2" />
-                  Download PDF
+                  PDF Export Unavailable
                 </button>
               </div>
             </div>

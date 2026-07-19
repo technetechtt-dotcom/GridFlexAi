@@ -14,6 +14,7 @@ import {
 'lucide-react';
 import { motion } from 'framer-motion';
 import { Page } from '../components/Sidebar';
+import { SimulationBanner } from '../components/SimulationBanner';
 import { useRealTime } from '../context/RealTimeContext';
 import { buildForecastProfilesFromNodes, fetchForecast, fetchForecastProvidersStatus } from '../services/api';
 interface AIInsightsProps {
@@ -222,6 +223,10 @@ export function AIInsights({ onNavigate }: AIInsightsProps) {
   scopedInsights.filter((i) => i.type === activeFilter);
   return (
     <div className="space-y-6 p-6 pb-20">
+      <SimulationBanner
+        featureName="Zolt AI example insights"
+        detail="The insight cards and confidence values on this page are simulated demonstration content, not conclusions from measured plant telemetry. Zolt AI cannot execute plant-control commands."
+      />
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
           <button

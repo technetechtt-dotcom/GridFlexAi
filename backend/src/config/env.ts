@@ -100,10 +100,13 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
     problems.push("JWT_SECRET is using a known development placeholder.");
   }
 
-  if (edgeSecret.length < 32) {
-    problems.push("EDGE_INGEST_SHARED_SECRET must be at least 32 characters in production.");
+  if (config.EDGE_ALLOW_LEGACY_SHARED_SECRET && edgeSecret.length < 32) {
+    problems.push("EDGE_INGEST_SHARED_SECRET must be at least 32 characters when legacy edge auth is enabled.");
   }
-  if (forbiddenEdgeSecrets.has(edgeSecret) || edgeSecret.toLowerCase().includes("change-this")) {
+  if (
+    config.EDGE_ALLOW_LEGACY_SHARED_SECRET &&
+    (forbiddenEdgeSecrets.has(edgeSecret) || edgeSecret.toLowerCase().includes("change-this"))
+  ) {
     problems.push("EDGE_INGEST_SHARED_SECRET is using a known development placeholder.");
   }
 
