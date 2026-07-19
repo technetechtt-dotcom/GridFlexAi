@@ -80,3 +80,16 @@ Demo IDs after seed: `plant-upington-pv-demo`, `asset-upington-bess-sim`, `asset
 API: `/api/optimisation/runs`, `/api/assets/:assetId/bess-model`, `/api/assets/:assetId/electrolyser-model` (see `docs/OPTIMIZATION_ENGINE.md`).
 
 Rollback: redeploy prior artifacts; leave additive tables in place (non-destructive).
+
+## PR 5 — alarms, incidents, and ops foundation
+
+Migration: `20260719210000_pr5_alarms_incidents`
+
+Adds alarm rules/events/acknowledgements, incidents/timeline, distributed cron locks, and Zolt prompt hardening helpers.
+
+`ash
+cd backend
+npx prisma migrate deploy
+npx prisma generate
+`
+

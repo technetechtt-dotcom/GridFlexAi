@@ -10,7 +10,7 @@ import { getDashboardOverview } from "./dashboard.service.js";
 import { getHybridForecast } from "./forecast.service.js";
 import { listAlarmEvents } from "./alarm.service.js";
 import {
-  proposeCommandInputSchema, proposeCommandOnly, redactSecrets, resolveZoltAccessScope,
+  enforcePromptBoundaries, proposeCommandInputSchema, proposeCommandOnly, redactSecrets, resolveZoltAccessScope,
   wrapToolExecute, zoltPrepareStep, ZOLT_SYSTEM_SAFETY
 } from "./zolt-hardening.js";
 import { AppError } from "../utils/AppError.js";
@@ -426,13 +426,11 @@ export const generateAiChatResponse = async (input: AiChatBody, actor?: AccessAc
       .find((value) => value.length > 0) ??
     "";
 
-  const prompt = input.context ?
+  const rawPrompt = input.context ?
     `Context:\n${redactSecrets(input.context)}\n\nUser request:\n${redactSecrets(latestMessageText)}` :
     redactSecrets(latestMessageText);
 
-  if (!prompt.trim()) {
-    throw new AppError("A non-empty chat prompt is required.", 400);
-  }
+  const prompt = enforcePromptBoundaries(rawPrompt);
 
   const scopedTargets = parseScopedNodeTargets(input.context);
   const [scope, scopedNodes] = await Promise.all([

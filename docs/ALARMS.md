@@ -1,7 +1,15 @@
-# Alarms and Incidents
+﻿# Alarms and Incidents (PR5)
 
-PR5 introduces tenant-scoped alarm rules, alarm events, acknowledgements, and incident timelines.
+Tenant-scoped alarm rules, events, acknowledgements, and incident timelines.
 
-See API routes under `/api/alarm-rules`, `/api/alarm-events`, and `/api/incidents`.
+## Safety
+GridFlex alarm workflows are advisory and do not replace protection relays, PPC safety, or BMS protection.
+Email/webhook notifiers are stubs (structured logs only) until pilot approval.
 
-Zolt exposes `getAlarms` and advisory-only `proposeCommand` tools.
+## API
+- GET/POST `/api/alarm-rules`
+- GET/POST `/api/alarm-events`
+- POST `/api/alarm-events/:id/acknowledge`
+- POST `/api/alarm-events/:id/resolve`
+- GET/POST `/api/incidents`
+- POST `/api/incidents/:id/timeline`

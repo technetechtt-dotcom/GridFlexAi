@@ -64,7 +64,10 @@ const envSchema = z.object({
   TELEMETRY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).optional(),
   TELEMETRY_RETENTION_PURGE_ENABLED: envBoolean.default(false),
   TELEMETRY_RETENTION_CRON_ENABLED: envBoolean.default(false),
-  TELEMETRY_RETENTION_CRON_SCHEDULE: z.string().default("15 3 * * *")
+  TELEMETRY_RETENTION_CRON_SCHEDULE: z.string().default("15 3 * * *"),
+  ZOLT_MAX_PROMPT_CHARS: z.coerce.number().int().min(500).max(200000).default(8000),
+  ZOLT_MAX_TOKENS_PER_REQUEST: z.coerce.number().int().min(100).max(200000).default(12000),
+  ZOLT_MAX_EVIDENCE_FRESHNESS_SECONDS: z.coerce.number().int().min(30).max(86400).default(600)
 });
 
 const parsed = envSchema.safeParse(process.env);

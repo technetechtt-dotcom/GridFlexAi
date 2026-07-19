@@ -2,6 +2,7 @@ import cron, { type ScheduledTask } from "node-cron";
 
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
+import { withDistributedJobLock } from "../lib/distributed-job-lock.js";
 import { logger } from "../utils/logger.js";
 
 export const purgeStaleTelemetryReadings = async (): Promise<{ deleted: number; skipped: boolean }> => {
@@ -16,7 +17,7 @@ export const purgeStaleTelemetryReadings = async (): Promise<{ deleted: number; 
 export const startTelemetryRetentionCron = (): ScheduledTask | null => {
   if (!env.TELEMETRY_RETENTION_CRON_ENABLED) return null;
   return cron.schedule(env.TELEMETRY_RETENTION_CRON_SCHEDULE, () => {
-    void purgeStaleTelemetryReadings().catch((error: unknown) => {
+    void withDistributedJobLock("telemetry-retention-cron", () => purgeStaleTelemetryReadings()).catch((error: unknown) => {
       logger.error("Telemetry retention cron failed.", { message: error instanceof Error ? error.message : "Unknown" });
     });
   }, { timezone: "UTC" });

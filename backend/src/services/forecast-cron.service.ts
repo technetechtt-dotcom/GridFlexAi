@@ -2,6 +2,7 @@ import cron, { type ScheduledTask } from "node-cron";
 
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
+import { withDistributedJobLock } from "../lib/distributed-job-lock.js";
 import { logger } from "../utils/logger.js";
 import { getHybridForecast } from "./forecast.service.js";
 
@@ -94,7 +95,7 @@ export const startForecastCron = (): ScheduledTask | null => {
   const task = cron.schedule(
     env.FORECAST_CRON_SCHEDULE,
     () => {
-      void persistDailyForecastPredictions().catch((error: unknown) => {
+      void withDistributedJobLock("forecast-cron", () => persistDailyForecastPredictions()).catch((error: unknown) => {
         const err = error instanceof Error ? error : new Error("Unknown forecast cron error");
         logger.error("Forecast cron job failed.", {
           message: err.message

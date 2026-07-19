@@ -8,6 +8,7 @@ import {
 } from "../middleware/permissions.js";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../utils/AppError.js";
+import { notifyAlarmRaised } from "./alarm-notifier.js";
 import { recordAuditLog } from "./audit-log.service.js";
 
 export type AlarmActor = { id: string; role: string };
@@ -113,6 +114,14 @@ export const raiseAlarmEvent = async (
   if (input.metadata !== undefined) data.metadata = input.metadata;
   const event = await prisma.alarmEvent.create({ data });
   await recordAuditLog({ action: "alarm_event.raise", entityType: "AlarmEvent", entityId: event.id, message: event.title, userId: actor.id, organisationId: event.organisationId, siteId: event.siteId });
+  await notifyAlarmRaised({
+    alarmEventId: event.id,
+    organisationId: event.organisationId,
+    siteId: event.siteId,
+    severity: event.severity,
+    title: event.title,
+    message: event.message
+  });
   return event;
 };
 
@@ -130,6 +139,41 @@ export const acknowledgeAlarmEvent = async (alarmEventId: string, actor: AlarmAc
   ]);
   await recordAuditLog({ action: "alarm_event.acknowledge", entityType: "AlarmEvent", entityId: alarmEventId, message: note ?? "Acknowledged", userId: actor.id, organisationId: event.organisationId, siteId: event.siteId });
   return acknowledgement;
+};
+
+export const resolveAlarmEvent = async (alarmEventId: string, actor: AlarmActor, note?: string) => {
+  const scope = await loadScope(actor);
+  const event = await prisma.alarmEvent.findUnique({ where: { id: alarmEventId } });
+  if (!event) throw new AppError("Alarm event not found.", 404);
+  assertOrganisationAccess(scope, event.organisationId);
+  await assertSiteAccess(scope, event.siteId);
+
+  const metadata =
+    note && typeof event.metadata === "object" && event.metadata !== null && !Array.isArray(event.metadata)
+      ? { ...(event.metadata as Record<string, unknown>), resolveNote: note }
+      : note
+        ? { resolveNote: note }
+        : event.metadata ?? undefined;
+
+  const updated = await prisma.alarmEvent.update({
+    where: { id: alarmEventId },
+    data: {
+      status: "cleared",
+      clearedAt: new Date(),
+      ...(metadata !== undefined ? { metadata: metadata as Prisma.InputJsonValue } : {})
+    }
+  });
+
+  await recordAuditLog({
+    action: "alarm_event.resolve",
+    entityType: "AlarmEvent",
+    entityId: alarmEventId,
+    message: note ?? "Resolved",
+    userId: actor.id,
+    organisationId: event.organisationId,
+    siteId: event.siteId
+  });
+  return updated;
 };
 
 export const listIncidents = async (actor: AlarmActor) => {
