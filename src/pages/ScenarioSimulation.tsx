@@ -23,6 +23,7 @@ import {
   ResponsiveContainer } from
 'recharts';
 import { Page } from '../components/Sidebar';
+import { SimulationBanner } from '../components/SimulationBanner';
 import { usePilotStore } from '../store/pilotStore';
 import { optimizeGETTopology } from '../services/api';
 interface ScenarioSimulationProps {
@@ -102,6 +103,7 @@ export function ScenarioSimulation({ onNavigate }: ScenarioSimulationProps) {
   }, [batteryCap, solarVar, windVar, electrolyzer, enableGet, topologyFlex, getResult]);
   return (
     <div className="space-y-6 p-6 pb-20">
+      <SimulationBanner featureName="Scenario simulation / topology optimisation" />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-slate-100">

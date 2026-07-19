@@ -22,6 +22,7 @@ import {
   ResponsiveContainer } from
 'recharts';
 import { Page } from '../components/Sidebar';
+import { SimulationBanner } from '../components/SimulationBanner';
 import { usePilotStore } from '../store/pilotStore';
 import { fetchCongestionNodes, fetchDynamicLineRatings, fetchForecast } from '../services/api';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
@@ -142,6 +143,10 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
   }, [displayData, timeLabels]);
   return (
     <div className="space-y-6 p-6 pb-20">
+      <SimulationBanner
+        featureName="Congestion / dynamic line rating scenarios"
+        detail="Where real feeder/transformer limits are unavailable, congestion outputs are scenario simulations — not measured grid congestion."
+      />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
           <button

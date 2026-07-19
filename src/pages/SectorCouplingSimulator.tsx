@@ -11,6 +11,7 @@ import {
   Tooltip } from
 'recharts';
 import { Page } from '../components/Sidebar';
+import { SimulationBanner } from '../components/SimulationBanner';
 
 interface SectorCouplingSimulatorProps {
   onNavigate: (page: Page) => void;
@@ -55,6 +56,7 @@ export function SectorCouplingSimulator({ onNavigate }: SectorCouplingSimulatorP
 
   return (
     <div className="space-y-6 p-6 pb-20">
+      <SimulationBanner featureName="Sector coupling / LCOH / hydrogen allocation" />
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-3">
           <button

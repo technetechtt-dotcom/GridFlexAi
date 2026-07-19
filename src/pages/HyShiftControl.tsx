@@ -25,6 +25,7 @@ import {
 import { Page } from '../components/Sidebar';
 import { KPICard } from '../components/KPICard';
 import { StatusBadge } from '../components/StatusBadge';
+import { SimulationBanner } from '../components/SimulationBanner';
 import { PromptInput } from '../components/PromptInput';
 import { cn } from '../lib/utils';
 import { usePilotStore } from '../store/pilotStore';
@@ -122,6 +123,7 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
   }, [flowRows, rampRate]);
   return (
     <div className="space-y-6 p-6 pb-20">
+      <SimulationBanner featureName="HyShift / electrolyser digital twin" />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-slate-100 flex items-center">
