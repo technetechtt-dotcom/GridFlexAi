@@ -14,7 +14,8 @@ Do **not** mark ops items complete without dated evidence artifacts.
 
 - [ ] **CI required jobs green on `main`**
   - Target: `security`, `supply-chain`, `frontend`, `backend` all green after latest push.
-  - Evidence: GitHub Actions run URL on `main`.
+  - Fix landed locally: OperatingModeBanner + E2E `/operating-mode` mock (banner crash blanked dashboard).
+  - Prior partial: https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29741856493 (`security`, `supply-chain`, `backend` green; frontend E2E failed).
 - [x] **Public health route has automated API smoke coverage**
   - Evidence: `backend/tests/health.routes.test.ts`.
 - [x] **Production env guardrails for unsafe placeholders**

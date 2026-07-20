@@ -39,10 +39,19 @@ export function OperatingModeBanner({ isLiveStreamConnected, metricsStale }: Pro
     let mounted = true;
     void fetchOperatingMode()
       .then((data) => {
-        if (mounted) {
-          setModeInfo(data);
-          setModeUnknown(false);
+        if (!mounted) return;
+        const valid =
+          data &&
+          typeof data.mode === "string" &&
+          typeof data.label === "string" &&
+          typeof data.bannerTone === "string";
+        if (!valid) {
+          setModeInfo(null);
+          setModeUnknown(true);
+          return;
         }
+        setModeInfo(data);
+        setModeUnknown(false);
       })
       .catch(() => {
         if (mounted) {
@@ -74,8 +83,8 @@ export function OperatingModeBanner({ isLiveStreamConnected, metricsStale }: Pro
     ? "UNKNOWN"
     : disconnected
       ? "STALE"
-      : modeInfo
-        ? modeInfo.mode.replace(/_/g, " ")
+      : mode
+        ? mode.replace(/_/g, " ")
         : "…";
 
   return (

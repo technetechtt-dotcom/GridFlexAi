@@ -102,6 +102,27 @@ const mockApi = async (page: Page, options: MockOptions = {}) => {
       return;
     }
 
+    if (path.endsWith("/api/operating-mode")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            mode: "SIMULATION",
+            label: "Simulation",
+            defaultTelemetryEnvironment: "simulation",
+            liveNamespace: "/",
+            simulationNamespace: "/simulation",
+            liveTelemetryPath: "/api/v2/telemetry",
+            simulationTelemetryPath: "/api/simulation/telemetry",
+            simulationRunId: "e2e-sim-run",
+            bannerTone: "blue"
+          }
+        })
+      });
+      return;
+    }
+
     if (path.endsWith("/api/dashboard/summary")) {
       await route.fulfill({
         status: 200,
@@ -139,6 +160,8 @@ const mockApi = async (page: Page, options: MockOptions = {}) => {
               status: "online",
               lastSeen: nowIso,
               createdAt: "2026-01-01T00:00:00.000Z",
+              healthScore: 96,
+              alerts: [],
               lastReading: makeReadings()[0]
             }
           ]
@@ -305,5 +328,5 @@ test("dispatch retry banner recovers from transient API failure", async ({ page 
 
   await page.getByRole("button", { name: "Retry sync" }).click();
   await expect(page.getByText("Synthetic dispatch failure")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Generation & Dispatch Mix" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Advisory Dispatch Profile" })).toBeVisible();
 });

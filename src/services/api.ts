@@ -1979,9 +1979,9 @@ export async function fetchIoTEdgeAssets(): Promise<IoTEdgeAsset[]> {
     name: node.name,
     type: 'microgrid',
     location: node.location,
-    health: node.status === 'offline' ? 'critical' : node.status === 'maintenance' || node.alerts.length > 0 ? 'degraded' : 'good',
+    health: node.status === 'offline' ? 'critical' : node.status === 'maintenance' || (node.alerts?.length ?? 0) > 0 ? 'degraded' : 'good',
     powerMw: Number((node.lastReading?.power ?? 0).toFixed(1)),
-    edgeForecastConfidence: node.status === 'online' ? Math.max(0.72, node.healthScore / 100) : 0.74
+    edgeForecastConfidence: node.status === 'online' ? Math.max(0.72, (node.healthScore ?? 0) / 100) : 0.74
   }));
 }
 
