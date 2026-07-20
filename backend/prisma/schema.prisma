@@ -202,6 +202,57 @@ enum DispatchScheduleStatus {
   rejected
 }
 
+/// Plant command lifecycle. Physical actuation stays disabled until HIL + plant approval.
+enum CommandRequestStatus {
+  proposed
+  pending_approval
+  approved
+  rejected
+  expired
+  queued
+  sent
+  acknowledged
+  verified
+  failed
+  rolled_back
+  cancelled
+}
+
+enum CommandSource {
+  operator
+  zolt_ai
+  optimisation
+  system
+}
+
+enum CommandRiskLevel {
+  low
+  medium
+  high
+  critical
+}
+
+enum CommandApprovalDecision {
+  approved
+  rejected
+}
+
+enum CommandExecutionStatus {
+  queued
+  sent
+  acknowledged
+  verified
+  failed
+  rolled_back
+  cancelled
+}
+
+enum CommandOverrideState {
+  none
+  manual_override
+  emergency_stop
+  safe_state
+}
 model User {
   id                       String                        @id @default(cuid())
   email                    String                        @unique
@@ -223,6 +274,8 @@ model User {
   siteMemberships          SiteMembership[]
   curtailmentCorrections   CurtailmentCorrection[]
   optimizationRuns         OptimizationRun[]
+  commandRequests          CommandRequest[]          @relation("CommandRequester")
+  commandApprovals         CommandApproval[]
 
   @@index([managedById])
   @@index([role])
@@ -257,6 +310,7 @@ model Organisation {
   forecastRuns        ForecastRun[]
   gridConstraints     GridConstraint[]
   optimizationRuns    OptimizationRun[]
+  commandRequests     CommandRequest[]
 
   @@index([status])
 }
@@ -514,6 +568,7 @@ model Site {
   forecastRuns        ForecastRun[]
   gridConstraints     GridConstraint[]
   optimizationRuns    OptimizationRun[]
+  commandRequests     CommandRequest[]
 
   @@index([clientId])
   @@index([organisationId])
@@ -545,6 +600,7 @@ model Plant {
   accuracyScores      ForecastAccuracyScore[]
   gridConstraints     GridConstraint[]
   optimizationRuns    OptimizationRun[]
+  commandRequests     CommandRequest[]
 
   @@unique([organisationId, code])
   @@index([siteId])
@@ -583,6 +639,7 @@ model Asset {
   electrolyserModelConfig      ElectrolyserModelConfig?
   electrolyserState            ElectrolyserOperatingState?
   dispatchSchedules            DispatchSchedule[]
+  commandRequests              CommandRequest[]
 
   @@index([plantId, type])
   @@index([parentAssetId])
@@ -1047,5 +1104,87 @@ model DispatchSchedule {
 
   @@index([optimizationRunId, intervalStart])
   @@index([assetId, intervalStart])
+  @@index([status])
+}
+
+/// Advisory / approval-gated plant command. Physical send requires feature flag + HIL.
+model CommandRequest {
+  id                String               @id @default(cuid())
+  organisationId    String
+  organisation      Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId            String
+  site              Site                 @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  plantId           String
+  plant             Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  targetAssetId     String
+  targetAsset       Asset                @relation(fields: [targetAssetId], references: [id], onDelete: Cascade)
+  commandType       String
+  requestedValue    Float
+  unit              MeasurementUnit
+  currentValue      Float?
+  minimumAllowed    Float?
+  maximumAllowed    Float?
+  /// Maximum absolute change from currentValue per minute (same unit as requestedValue).
+  maxRampPerMinute  Float?
+  requestedById     String?
+  requestedBy       User?                @relation("CommandRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  requestedAt       DateTime             @default(now())
+  reason            String
+  source            CommandSource        @default(operator)
+  riskLevel         CommandRiskLevel     @default(medium)
+  /// When true, requester cannot approve (separation of duties).
+  requireSeparationOfDuties Boolean      @default(true)
+  optimisationRunId String?
+  expiresAt         DateTime
+  status            CommandRequestStatus @default(proposed)
+  overrideState     CommandOverrideState @default(none)
+  advisoryOnly      Boolean              @default(true)
+  metadata          Json?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  approvals         CommandApproval[]
+  executions        CommandExecution[]
+
+  @@index([organisationId, status])
+  @@index([siteId, status])
+  @@index([plantId, status])
+  @@index([targetAssetId, requestedAt])
+  @@index([status, expiresAt])
+  @@index([requestedById])
+}
+
+model CommandApproval {
+  id               String                   @id @default(cuid())
+  commandRequestId String
+  commandRequest   CommandRequest           @relation(fields: [commandRequestId], references: [id], onDelete: Cascade)
+  approverId       String?
+  approver         User?                    @relation(fields: [approverId], references: [id], onDelete: SetNull)
+  decision         CommandApprovalDecision
+  reason           String?
+  timestamp        DateTime                 @default(now())
+
+  @@index([commandRequestId, timestamp])
+  @@index([approverId])
+}
+
+model CommandExecution {
+  id                 String                  @id @default(cuid())
+  commandRequestId   String
+  commandRequest     CommandRequest          @relation(fields: [commandRequestId], references: [id], onDelete: Cascade)
+  /// Always "simulated" until PHYSICAL_COMMAND_EXECUTION_ENABLED and HIL validation.
+  executorMode       String                  @default("simulated")
+  sentAt             DateTime?
+  acknowledgedAt     DateTime?
+  readBackAt         DateTime?
+  expectedValue      Float?
+  readBackValue      Float?
+  status             CommandExecutionStatus  @default(queued)
+  failureReason      String?
+  rollbackStatus     String?
+  rawProtocolResponse Json?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@index([commandRequestId, createdAt])
   @@index([status])
 }

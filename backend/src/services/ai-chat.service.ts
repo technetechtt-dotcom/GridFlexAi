@@ -4,10 +4,12 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { env } from "../config/env.js";
+import { MEASUREMENT_UNITS } from "../domain/provenance.js";
 import { prisma } from "../lib/prisma.js";
 import type { AiChatBody } from "../schemas/request.schemas.js";
 import { getDashboardOverview } from "./dashboard.service.js";
 import { getHybridForecast } from "./forecast.service.js";
+import { createCommandRequest } from "./command.service.js";
 import { AppError } from "../utils/AppError.js";
 import {
   assertNodeSiteAccess,
@@ -43,6 +45,23 @@ const toolSchemas = {
   analyzeCurtailment: z.object({
     nodeId: z.string().optional(),
     windowHours: z.number().int().min(1).max(24 * 30).default(24)
+  }),
+  proposeCommand: z.object({
+    organisationId: z.string().min(1),
+    siteId: z.string().min(1),
+    plantId: z.string().min(1),
+    targetAssetId: z.string().min(1),
+    commandType: z.string().min(1).max(120),
+    requestedValue: z.number(),
+    unit: z.enum(MEASUREMENT_UNITS),
+    currentValue: z.number().optional(),
+    minimumAllowed: z.number().optional(),
+    maximumAllowed: z.number().optional(),
+    maxRampPerMinute: z.number().positive().optional(),
+    reason: z.string().min(3).max(2000),
+    riskLevel: z.enum(["low", "medium", "high", "critical"]).optional(),
+    expiresAt: z.string().datetime(),
+    optimisationRunId: z.string().optional()
   })
 };
 
@@ -447,6 +466,8 @@ export const generateAiChatResponse = async (input: AiChatBody, actor?: AccessAc
     system:
       "You are Zolt AI, the GridFlex assistant for energy operations. Use available tools before giving operational conclusions. " +
       "Use concise, practical language and call out uncertainty when data is partial. " +
+      "You may propose advisory plant commands via proposeCommand only. You must never approve, execute, or claim that a physical setpoint was written. " +
+      "Physical plant actuation is disabled (PHYSICAL_COMMAND_EXECUTION_ENABLED=false). " +
       scopedSystemHint,
     prompt,
     tools: {
@@ -497,6 +518,42 @@ export const generateAiChatResponse = async (input: AiChatBody, actor?: AccessAc
         inputSchema: toolSchemas.analyzeCurtailment,
         execute: async ({ nodeId, windowHours }) =>
           analyzeCurtailment(scopedResolvers.resolveNodeId(nodeId), windowHours, actor)
+      }),
+      proposeCommand: tool({
+        description:
+          "Propose an advisory plant command for human approval. Does not approve or execute. Physical actuation remains disabled.",
+        inputSchema: toolSchemas.proposeCommand,
+        execute: async (args) => {
+          const payload: Parameters<typeof createCommandRequest>[0] = {
+            organisationId: args.organisationId,
+            siteId: args.siteId,
+            plantId: args.plantId,
+            targetAssetId: args.targetAssetId,
+            commandType: args.commandType,
+            requestedValue: args.requestedValue,
+            unit: args.unit,
+            reason: args.reason,
+            source: "zolt_ai",
+            riskLevel: args.riskLevel ?? "medium",
+            requireSeparationOfDuties: true,
+            expiresAt: args.expiresAt,
+            advisoryOnly: true,
+            metadata: { proposedBy: "zolt_ai" }
+          };
+          if (typeof args.currentValue === "number") payload.currentValue = args.currentValue;
+          if (typeof args.minimumAllowed === "number") payload.minimumAllowed = args.minimumAllowed;
+          if (typeof args.maximumAllowed === "number") payload.maximumAllowed = args.maximumAllowed;
+          if (typeof args.maxRampPerMinute === "number") payload.maxRampPerMinute = args.maxRampPerMinute;
+          if (typeof args.optimisationRunId === "string") payload.optimisationRunId = args.optimisationRunId;
+
+          const created = await createCommandRequest(payload, actor);
+          return {
+            commandRequestId: created.id,
+            status: created.status,
+            advisoryOnly: created.advisoryOnly,
+            note: "Proposal recorded. A human must approve; Zolt cannot execute plant commands."
+          };
+        }
       })
     }
   });

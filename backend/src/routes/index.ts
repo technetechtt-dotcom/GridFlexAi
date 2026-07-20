@@ -4,6 +4,7 @@ import adminRoutes from "./admin.routes.js";
 import activityRoutes from "./activity.routes.js";
 import aiRoutes from "./ai.routes.js";
 import authRoutes from "./auth.routes.js";
+import commandRoutes from "./command.routes.js";
 import curtailmentRoutes from "./curtailment.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
 import forecastAccuracyRoutes from "./forecast-accuracy.routes.js";
@@ -37,5 +38,6 @@ router.use("/v2/telemetry", telemetryRoutes);
 router.use("/", readingRoutes);
 router.use("/", plantAssetRoutes);
 router.use("/", optimisationRoutes);
+router.use("/", commandRoutes);
 
 export default router;
