@@ -59,5 +59,7 @@ Use this tracker to move from pilot-ready to production-ready with explicit owne
 ## External Execution Guide
 
 - Pre-pilot gates: `docs/PILOT_DEPLOYMENT.md`
+- **Ops sprint (Days 1–6):** `docs/runbooks/ops-execution-sprint.md`
 - Operator playbook: `docs/runbooks/go-live-execution-playbook.md`
+- Command sheet: `docs/runbooks/operator-command-sheet.md`
 - Checklist: `docs/runbooks/readiness-execution-checklist.md`

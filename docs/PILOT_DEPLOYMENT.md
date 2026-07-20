@@ -12,6 +12,10 @@ Stay in observe + advise mode.
 6. Keep retention purge off until policy sign-off.
 7. Deploy migration `20260719210000_pr5_alarms_incidents`.
 
+## Ops evidence sprint
+
+Remaining operator work (rotation, restore drill, alerts, parity promote, load soak, POPIA/physical sign-off) is sequenced in [`docs/runbooks/ops-execution-sprint.md`](./runbooks/ops-execution-sprint.md).
+
 ## Pre-pilot completion gates
 
 The following gates must be complete and evidenced before a real IPP pilot.

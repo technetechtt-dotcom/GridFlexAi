@@ -2,7 +2,16 @@
 
 Use these commands to execute and collect evidence for remaining P0/P1/P2 platform tasks.
 
+**Sequenced ops sprint:** [`ops-execution-sprint.md`](./ops-execution-sprint.md)
+
 ## P0 - Go-live blocker commands
+
+## 0) Secrets hygiene (pre-rotation)
+
+```bash
+cd backend
+npm run check:secrets-hygiene
+```
 
 ## 1) Staging parity diff (env keys only)
 
@@ -65,12 +74,36 @@ npm run verify:go-live:summary
 
 Default output: `go-live-reports/summary.md`
 
-## 3) Backup/restore post-restore validation
+## 3) Backup/restore validation
 
-After restoring to staging, run:
+Against the **isolated restore** database URL only:
 
 ```bash
-GO_LIVE_BASE_URL=https://<staging-backend-domain> GO_LIVE_EMAIL=<admin-email> GO_LIVE_PASSWORD=<admin-password> npm run verify:go-live
+cd backend
+RESTORE_VERIFY_ALLOW=true DATABASE_URL="postgresql://…restore-branch…" npm run restore:verify
+```
+
+Then smoke the app pointed at that restore (never production primary):
+
+```bash
+GO_LIVE_BASE_URL=https://<staging-or-restore-backend> GO_LIVE_EMAIL=<admin-email> GO_LIVE_PASSWORD=<admin-password> npm run verify:go-live
+```
+
+Evidence: [`backup-restore-evidence.md`](./backup-restore-evidence.md)
+
+## 4) Signed parity report (after digest promotion)
+
+```bash
+npm run check:env-parity
+IMAGE_DIGEST=sha256:<digest> STAGING_SMOKE_RESULT=pass PRODUCTION_SMOKE_RESULT=pass npm run report:parity
+```
+
+Evidence: [`parity-promotion-evidence.md`](./parity-promotion-evidence.md)
+
+## 5) Metrics scrape proof
+
+```bash
+curl -sH "Authorization: Bearer $METRICS_SCRAPE_TOKEN" https://<backend-domain>/api/metrics
 ```
 
 ## P1 - Hardening commands
@@ -80,6 +113,16 @@ GO_LIVE_BASE_URL=https://<staging-backend-domain> GO_LIVE_EMAIL=<admin-email> GO
 ```bash
 LOAD_BASE_URL=https://<backend-domain> LOAD_PATH=/api/health/live LOAD_REQUESTS=400 LOAD_CONCURRENCY=25 LOAD_P95_BUDGET_MS=500 npm run baseline:load
 ```
+
+## 1b) k6 smoke / soak + Socket.IO fan-out
+
+```bash
+npm run load:k6:smoke
+# Formal soak: follow docs/LOAD_TESTING.md against staging
+npm run load:socketio
+```
+
+Evidence: [`../load/evidence-worksheet.md`](../load/evidence-worksheet.md)
 
 ## 2) Frontend critical-path E2E
 

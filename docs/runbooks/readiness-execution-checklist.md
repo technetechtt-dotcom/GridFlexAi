@@ -2,6 +2,8 @@
 
 Use this as the single checklist to drive completion evidence across engineering and operations.
 
+**Preferred execution path:** [`ops-execution-sprint.md`](./ops-execution-sprint.md) (Days 1–6).
+
 ## How to use this checklist
 
 - Assign an owner and due date to each unchecked item.

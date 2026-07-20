@@ -2,6 +2,7 @@
 
 This playbook covers the remaining production tasks that cannot be completed purely in code.
 For full P0/P1/P2 owner tracking, use `docs/runbooks/readiness-execution-checklist.md`.
+For a **day-by-day ops sprint** with exit checkboxes, use [`ops-execution-sprint.md`](./ops-execution-sprint.md).
 
 ## Scope
 
