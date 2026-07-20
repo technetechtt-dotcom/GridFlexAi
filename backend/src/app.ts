@@ -58,10 +58,14 @@ export const createApp = () => {
     ":method :url :status :response-time ms req_id=:request_id";
   app.set("trust proxy", env.TRUST_PROXY ? 1 : 0);
 
+  const corsOrigins = env.CORS_ORIGIN.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.use(helmet());
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: corsOrigins.length <= 1 ? corsOrigins[0] : corsOrigins,
       credentials: true
     })
   );

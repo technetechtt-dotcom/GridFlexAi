@@ -120,9 +120,13 @@ process.on("unhandledRejection", (reason) => {
     let forecastCronTask: ReturnType<typeof startForecastCron> = null;
     let telemetryRetentionTask: ReturnType<typeof startTelemetryRetentionCron> = null;
 
+    const corsOrigins = env.CORS_ORIGIN.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+
     const io = new SocketIOServer(webServer.server, {
       cors: {
-        origin: env.CORS_ORIGIN,
+        origin: corsOrigins.length <= 1 ? corsOrigins[0] : corsOrigins,
         credentials: true
       }
     });

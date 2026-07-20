@@ -8,10 +8,17 @@ import { AppError } from "../utils/AppError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { durationToMs } from "../utils/time.js";
 
+/**
+ * Frontend and API are on different onrender.com subdomains (cross-site via PSL).
+ * SameSite=Lax blocks the refresh cookie on credentialed fetch; use None+Secure in prod.
+ */
+const useCrossSiteAuthCookies =
+  env.NODE_ENV === "production" || env.FORCE_HTTPS || env.HTTPS_ENABLED;
+
 const buildRefreshCookieOptions = () => ({
   httpOnly: true,
-  secure: env.NODE_ENV === "production" || env.FORCE_HTTPS || env.HTTPS_ENABLED,
-  sameSite: "lax" as const,
+  secure: useCrossSiteAuthCookies,
+  sameSite: (useCrossSiteAuthCookies ? "none" : "lax") as "none" | "lax",
   maxAge: durationToMs(env.JWT_REFRESH_EXPIRES_IN),
   path: "/api/auth"
 });
@@ -21,11 +28,12 @@ const attachRefreshTokenCookie = (res: Response, token: string) => {
 };
 
 const clearRefreshTokenCookie = (res: Response) => {
+  const options = buildRefreshCookieOptions();
   res.clearCookie(REFRESH_COOKIE_NAME, {
-    httpOnly: true,
-    secure: env.NODE_ENV === "production" || env.FORCE_HTTPS || env.HTTPS_ENABLED,
-    sameSite: "lax",
-    path: "/api/auth"
+    httpOnly: options.httpOnly,
+    secure: options.secure,
+    sameSite: options.sameSite,
+    path: options.path
   });
 };
 
