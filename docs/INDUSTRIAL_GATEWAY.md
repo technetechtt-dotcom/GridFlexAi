@@ -22,6 +22,7 @@ Vendor-neutral adapter interfaces live under `backend/src/gateway`.
 - Example maps must set `fictitious: true` and carry an explicit label such as `FICTITIOUS EXAMPLE`.
 - Gateway defaults: `readOnly: true`, `physicalCommandExecutionEnabled: false`.
 - Writes throw unless both read-only is off **and** the physical flag is explicitly enabled (post-HIL only).
+- In the initial production/pilot build, fictitious “setpoint” points are also **read-only** (no `write`/`read_write`) to prevent any accidental setpoint-writing credentials usage.
 
 ## Register maps
 
