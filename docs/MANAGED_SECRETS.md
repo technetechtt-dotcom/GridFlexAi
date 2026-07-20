@@ -2,15 +2,16 @@
 
 ## Selected secret manager
 
-**Pilot default:** host secret manager AES vault (`DEVICE_SECRET_VAULT_PROVIDER=local` + `DEVICE_SECRET_VAULT_KEY`).
+**Production / Render default:** AWS KMS for device-secret vault
+(`DEVICE_SECRET_VAULT_PROVIDER=aws_kms` + `AWS_KMS_KEY_ID`).
 
-**Optional later:** AWS KMS (`DEVICE_SECRET_VAULT_PROVIDER=aws_kms` + `AWS_KMS_KEY_ID`).
+Setup: [`docs/runbooks/aws-kms-setup.md`](./runbooks/aws-kms-setup.md).
 
 | Provider | Use |
 |----------|-----|
-| Render / platform env secrets | App runtime secrets + `DEVICE_SECRET_VAULT_KEY` |
-| Local AES vault (`local`) | Pilot device-secret encryption at rest |
-| AWS KMS (optional later) | Managed CMK when ready |
+| Render / platform env secrets | App runtime secrets (`DATABASE_URL`, `JWT_*`, API keys, Redis, AWS creds) |
+| AWS KMS | Per-device HMAC secret encryption at rest |
+| Local AES (`local`) | **Dev/CI only** — forbidden in production |
 | Azure Key Vault / GCP KMS | Reserved provider targets |
 
 ## Eliminate secrets from files

@@ -67,16 +67,17 @@ const envSchema = z.object({
   EDGE_CONFIG_SIGNING_PUBLIC_KEY_PEM: z.string().optional(),
   /**
    * Device secret vault provider.
-   * `local` = AES-256-GCM with DEVICE_SECRET_VAULT_KEY stored in the host secret manager
-   * (allowed for pilot until managed KMS is wired).
-   * `aws_kms` / `azure_key_vault` / `gcp_kms` = managed KMS (optional later).
+   * Production/pilot on Render: `aws_kms` + `AWS_KMS_KEY_ID`.
+   * `local` = AES-256-GCM with DEVICE_SECRET_VAULT_KEY (dev/CI only).
    */
   DEVICE_SECRET_VAULT_PROVIDER: z.enum(["local", "aws_kms", "azure_key_vault", "gcp_kms"]).default("local"),
   /** Base64 32-byte key or passphrase (hashed) for local vault. Required when provider=local. */
   DEVICE_SECRET_VAULT_KEY: z.string().optional(),
   DEVICE_SECRET_VAULT_KEY_ID: z.string().default("local-dev"),
-  /** AWS KMS CMK id/ARN when DEVICE_SECRET_VAULT_PROVIDER=aws_kms (optional; not required for pilot). */
+  /** AWS KMS CMK id/ARN when DEVICE_SECRET_VAULT_PROVIDER=aws_kms. */
   AWS_KMS_KEY_ID: z.string().optional(),
+  /** Optional explicit region for the KMS client (also reads AWS_REGION / AWS_DEFAULT_REGION). */
+  AWS_REGION: z.string().optional(),
   NODE_HEALTH_CRON_ENABLED: envBoolean.default(true),
   NODE_HEALTH_CRON_SCHEDULE: z.string().default("*/1 * * * *"),
   /** Arms simulated/physical command send path. Requires HIL_PLANT_APPROVAL_CONFIRMED in production. */
@@ -214,14 +215,8 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
   }
 
   if (config.DEVICE_SECRET_VAULT_PROVIDER === "local") {
-    const vaultKey = config.DEVICE_SECRET_VAULT_KEY?.trim() ?? "";
-    if (vaultKey.length < 32) {
-      problems.push(
-        "DEVICE_SECRET_VAULT_KEY must be at least 32 characters when DEVICE_SECRET_VAULT_PROVIDER=local in production (store it in the host secret manager; AWS KMS is optional for later)."
-      );
-    }
-    process.stderr.write(
-      "[env] WARNING: DEVICE_SECRET_VAULT_PROVIDER=local — pilot mode without AWS KMS. Rotate to aws_kms before full production hardening.\n"
+    problems.push(
+      "DEVICE_SECRET_VAULT_PROVIDER=local is forbidden in production. Set aws_kms with AWS_KMS_KEY_ID (see docs/runbooks/aws-kms-setup.md)."
     );
   }
 

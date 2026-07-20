@@ -23,6 +23,18 @@ node scripts/generate-jwt-rotation-snippet.mjs --from-kid legacy --to-kid v2 --p
 
 Day 1 checklist: [`day1-jwt-rotation-checklist.md`](./day1-jwt-rotation-checklist.md)
 
+## 0b) AWS KMS device vault (Render)
+
+```text
+DEVICE_SECRET_VAULT_PROVIDER=aws_kms
+AWS_KMS_KEY_ID=<arn or key id>
+AWS_REGION=<region>
+AWS_ACCESS_KEY_ID=<iam>
+AWS_SECRET_ACCESS_KEY=<iam>
+```
+
+Full steps: [`aws-kms-setup.md`](./aws-kms-setup.md)
+
 ## 1) Staging parity diff (env keys only)
 
 Generate templates from backend env schema:

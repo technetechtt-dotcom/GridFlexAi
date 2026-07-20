@@ -4,12 +4,20 @@ type KmsClientLike = {
   send(command: unknown): Promise<{ CiphertextBlob?: Uint8Array; Plaintext?: Uint8Array }>;
 };
 
+const encryptionContext = (): Record<string, string> => ({
+  application: "gridflex",
+  purpose: "device-hmac-secret"
+});
+
 /**
- * AWS KMS envelope encryption for production.
- * Encrypts the device secret directly with EncryptCommand when using a CMK,
- * and supports DecryptCommand for retrieval.
+ * AWS KMS encryption for device HMAC secrets at rest.
+ * Uses EncryptCommand / DecryptCommand with a dedicated CMK.
  *
- * Requires @aws-sdk/client-kms at runtime when provider=aws_kms.
+ * Requires:
+ * - DEVICE_SECRET_VAULT_PROVIDER=aws_kms
+ * - AWS_KMS_KEY_ID (key id or ARN)
+ * - AWS credentials (env, instance role, or Render secret)
+ * - AWS_REGION (recommended)
  */
 export class AwsKmsDeviceSecretVault implements DeviceSecretVault {
   private clientPromise: Promise<KmsClientLike> | null = null;
@@ -25,7 +33,11 @@ export class AwsKmsDeviceSecretVault implements DeviceSecretVault {
       this.clientPromise = (async () => {
         try {
           const mod = await import("@aws-sdk/client-kms");
-          return new mod.KMSClient({}) as unknown as KmsClientLike;
+          const region =
+            process.env.AWS_REGION?.trim() ||
+            process.env.AWS_DEFAULT_REGION?.trim() ||
+            undefined;
+          return new mod.KMSClient(region ? { region } : {}) as unknown as KmsClientLike;
         } catch {
           throw new Error(
             "AWS KMS vault requires @aws-sdk/client-kms. Install it and set AWS credentials / AWS_KMS_KEY_ID."
@@ -42,7 +54,8 @@ export class AwsKmsDeviceSecretVault implements DeviceSecretVault {
     const response = await client.send(
       new mod.EncryptCommand({
         KeyId: this.keyId,
-        Plaintext: plaintext
+        Plaintext: plaintext,
+        EncryptionContext: encryptionContext()
       })
     );
     if (!response.CiphertextBlob) {
@@ -60,7 +73,9 @@ export class AwsKmsDeviceSecretVault implements DeviceSecretVault {
     const response = await client.send(
       new mod.DecryptCommand({
         CiphertextBlob: Buffer.from(input.ciphertext, "base64url"),
-        KeyId: input.keyId
+        // KeyId is optional on decrypt when ciphertext embeds it; pass when stored.
+        ...(input.keyId ? { KeyId: input.keyId } : {}),
+        EncryptionContext: encryptionContext()
       })
     );
     if (!response.Plaintext) {
@@ -92,3 +107,6 @@ export class GcpKmsDeviceSecretVault implements DeviceSecretVault {
     throw new Error("Google Cloud KMS device secret vault is not implemented yet.");
   }
 }
+
+/** Exported for tests — must match encrypt/decrypt context. */
+export const awsKmsEncryptionContextForTests = encryptionContext;

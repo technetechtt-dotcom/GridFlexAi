@@ -96,8 +96,8 @@ const main = async () => {
   if (prodLegacy && prodLegacy.toLowerCase() !== "false") {
     unsafe.push("EDGE_ALLOW_LEGACY_SHARED_SECRET should be false in production");
   }
-  if (prodVault && prodVault === "aws_kms") {
-    // Optional — AWS is not required for pilot; local vault key in host secrets is OK.
+  if (prodVault && prodVault === "local") {
+    unsafe.push("DEVICE_SECRET_VAULT_PROVIDER=local is forbidden in production — use aws_kms");
   }
   if (prodVault && !["local", "aws_kms", "azure_key_vault", "gcp_kms"].includes(prodVault)) {
     unsafe.push(`Unsupported DEVICE_SECRET_VAULT_PROVIDER in production template: ${prodVault}`);
