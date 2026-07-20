@@ -78,7 +78,15 @@ export const createApp = () => {
   app.use(metricsMiddleware);
 
   app.use(cookieParser());
-  app.use(express.json({ limit: "1mb" }));
+  app.use(
+    express.json({
+      limit: "1mb",
+      verify: (req, _res, buf) => {
+        // Preserve exact bytes for GRIDFLEX-V1 body hashing (do not re-serialize JSON).
+        (req as { rawBody?: Buffer }).rawBody = Buffer.from(buf);
+      }
+    })
+  );
 
   if (env.FORCE_HTTPS) {
     app.use((req, res, next) => {

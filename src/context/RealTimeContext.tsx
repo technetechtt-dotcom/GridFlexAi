@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState, createContext, useContext, type ReactNode } from 'react';
 import {
-  buildForecastProfilesFromNodes,
   fetchNodes,
   fetchDashboardSummary,
   fetchForecast,
   fetchIoTEdgeAssets,
   fetchProactiveAlerts,
+  fetchOperatingMode,
   type BackendNode,
   type BackendReading,
   type IoTEdgeAsset,
@@ -13,20 +13,25 @@ import {
   type ProactiveAlert } from
 '../services/api';
 import {
-  closeSocketClient,
-  getSocketClient,
+  closeLiveSocketClient,
+  closeSimulationSocketClient,
+  getLiveSocketClient,
+  getSimulationSocketClient,
   type NodeStatusUpdatePayload } from
 '../services/socket';
+import { buildProvenance, type Provenance } from '../lib/operatingMode';
 interface GridMetrics {
   frequency: number;
   voltage: number;
   totalGeneration: number;
   demand: number;
   lastUpdated: Date;
+  provenance: Provenance;
 }
 interface RealTimeContextType {
   metrics: GridMetrics;
   isConnected: boolean;
+  metricsStale: boolean;
   proactiveAlerts: ProactiveAlert[];
   iotAssets: IoTEdgeAsset[];
   backendNodes: BackendNode[];
@@ -51,12 +56,21 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
   const DEFAULT_NODE_SELECTION = ['All Nodes'];
   const [metrics, setMetrics] = useState<GridMetrics>({
     frequency: 50.0,
-    voltage: 132.0,
-    totalGeneration: 847,
-    demand: 820,
-    lastUpdated: new Date()
+    voltage: 0,
+    totalGeneration: 0,
+    demand: 0,
+    lastUpdated: new Date(0),
+    provenance: buildProvenance({
+      sourceType: 'estimated',
+      sourceId: 'bootstrap',
+      quality: 'stale',
+      measuredAt: new Date(0),
+      receivedAt: new Date(),
+      unit: 'kW'
+    })
   });
   const [isConnected, setIsConnected] = useState(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const [proactiveAlerts, setProactiveAlerts] = useState<ProactiveAlert[]>([]);
   const [iotAssets, setIotAssets] = useState<IoTEdgeAsset[]>([]);
   const [backendNodes, setBackendNodes] = useState<BackendNode[]>([]);
@@ -81,6 +95,16 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
     const nodeNames = Array.from(new Set(iotAssets.map((asset) => asset.name).filter(Boolean)));
     return ['All Nodes', ...nodeNames];
   }, [iotAssets]);
+
+  const metricsStale = useMemo(() => {
+    if (metrics.lastUpdated.getTime() <= 0) return true;
+    return Date.now() - metrics.lastUpdated.getTime() > 60_000;
+  }, [metrics.lastUpdated, nowTick]);
+
+  useEffect(() => {
+    const tick = setInterval(() => setNowTick(Date.now()), 5000);
+    return () => clearInterval(tick);
+  }, []);
 
   const setSelectedNodeNames = (nodes: string[]) => {
     const sanitized = Array.from(new Set(nodes.filter(Boolean)));
@@ -121,7 +145,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
 
     const bootstrap = async () => {
       try {
-        const [alerts, assets, nodes, summary, forecast] = await Promise.all([
+        const [alerts, assets, nodes, summary, forecast, modeInfo] = await Promise.all([
         fetchProactiveAlerts(),
         fetchIoTEdgeAssets(),
         fetchNodes(),
@@ -130,7 +154,8 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
           lat: -28.4478,
           lon: 21.2561,
           capacity: 220
-        })]);
+        }),
+        fetchOperatingMode()]);
         if (!mounted) return;
         setProactiveAlerts(alerts);
         setIotAssets(assets);
@@ -138,12 +163,27 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
         const nextDemand = forecast.hourly[0]?.estimatedPowerKw ?
         Math.max(forecast.hourly[0].estimatedPowerKw * 0.97, 0) :
         Math.max(summary.averages.power * 0.96, 0);
+        const measuredAt = summary.latestTimestamp ? new Date(summary.latestTimestamp) : new Date();
+        const sourceType =
+          modeInfo.defaultTelemetryEnvironment === 'simulation'
+            ? 'simulated'
+            : summary.averages.power > 0
+              ? 'measured'
+              : 'estimated';
         setMetrics((prev) => ({
           ...prev,
           voltage: summary.averages.voltage || prev.voltage,
           totalGeneration: summary.averages.power || prev.totalGeneration,
           demand: nextDemand,
-          lastUpdated: summary.latestTimestamp ? new Date(summary.latestTimestamp) : new Date()
+          lastUpdated: measuredAt,
+          provenance: buildProvenance({
+            sourceType,
+            sourceId: modeInfo.simulationRunId ?? 'dashboard-summary',
+            quality: summary.averages.power > 0 ? 'good' : 'stale',
+            measuredAt,
+            receivedAt: new Date(),
+            unit: 'kW'
+          })
         }));
       } catch {
         if (!mounted) return;
@@ -160,7 +200,8 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
 
     void bootstrap();
 
-    const socket = getSocketClient();
+    const socket = getLiveSocketClient();
+    let simulationSocket: ReturnType<typeof getSimulationSocketClient> | null = null;
 
     const onConnect = () => {
       if (!mounted) return;
@@ -170,15 +211,24 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
       if (!mounted) return;
       setIsConnected(false);
     };
-    const onLiveReading = (reading: BackendReading) => {
+    const applyReading = (reading: BackendReading, sourceType: 'measured' | 'simulated') => {
       if (!mounted) return;
+      const measuredAt = new Date(reading.timestamp);
       setMetrics((prev) => ({
         // Keep frequency tightly bounded around nominal to avoid jittery UX.
         frequency: Number((50 + Math.max(-0.03, Math.min(0.03, (reading.power - prev.totalGeneration) / 500))).toFixed(2)),
         voltage: reading.voltage,
         totalGeneration: reading.power,
         demand: Math.max(reading.power * 0.95, 0),
-        lastUpdated: new Date(reading.timestamp)
+        lastUpdated: measuredAt,
+        provenance: buildProvenance({
+          sourceType,
+          sourceId: reading.nodeId,
+          quality: 'good',
+          measuredAt,
+          receivedAt: new Date(),
+          unit: 'kW'
+        })
       }));
 
       setIotAssets((prev) => {
@@ -219,6 +269,17 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
       )
       );
     };
+    const onLiveReading = (reading: BackendReading) => applyReading(reading, 'measured');
+    const onLiveReadingFromSimulation = (reading: BackendReading) => applyReading(reading, 'simulated');
+
+    void fetchOperatingMode().then((modeInfo) => {
+      if (!mounted) return;
+      if (modeInfo.mode === 'SIMULATION' || modeInfo.mode === 'HIL') {
+        simulationSocket = getSimulationSocketClient();
+        simulationSocket.on('simulation-reading', onLiveReadingFromSimulation);
+      }
+    });
+
     const onNodeStatusUpdate = (node: NodeStatusUpdatePayload) => {
       if (!mounted) return;
       setIotAssets((prev) => {
@@ -319,50 +380,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
     socket.on('node-status-update', onNodeStatusUpdate);
     socket.on('new-node', onNewNode);
 
-    const interval = setInterval(() => {
-      if (socket.connected) return;
-
-      setMetrics((prev) => ({
-        frequency: 50.0 + (Math.random() - 0.5) * 0.1,
-        voltage: 132.0 + (Math.random() - 0.5) * 2,
-        totalGeneration: prev.totalGeneration + (Math.random() - 0.5) * 10,
-        demand: prev.demand + (Math.random() - 0.5) * 15,
-        lastUpdated: new Date()
-      }));
-      setIotAssets((prev) =>
-      prev.map((asset) => ({
-        ...asset,
-        powerMw: Number((asset.powerMw + (Math.random() - 0.5) * 0.9).toFixed(1)),
-        edgeForecastConfidence: Number(
-          Math.min(
-            0.99,
-            Math.max(0.72, asset.edgeForecastConfidence + (Math.random() - 0.5) * 0.03)
-          ).
-          toFixed(2)
-        )
-      }))
-      );
-      if (Math.random() > 0.85) {
-        setProactiveAlerts((prev) => {
-          const nextAlert: ProactiveAlert = {
-            id: `stream-${Date.now()}`,
-            issuedAt: new Date(),
-            severity: Math.random() > 0.7 ? 'high' : 'medium',
-            title: microgridMode ?
-            'Edge controller adjusted local dispatch' :
-            'AI dispatch recommendation updated',
-            recommendation: microgridMode ?
-            'Microgrid controller shifted 2.4 MW from battery to feeder support.' :
-            'Pre-charge storage before forecasted demand ramp at 18:00.',
-            trigger: microgridMode ?
-            'Remote telemetry variance exceeded threshold.' :
-            'Probabilistic forecast confidence exceeded 85%.',
-            actionPage: microgridMode ? 'scenario' : 'dispatch'
-          };
-          return [nextAlert, ...prev].slice(0, 8);
-        });
-      }
-    }, 2000); // Update every 2 seconds
+    // No client-side Math.random() telemetry. Simulation is published by the backend on /simulation.
     return () => {
       mounted = false;
       socket.off('connect', onConnect);
@@ -370,8 +388,11 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
       socket.off('live-reading', onLiveReading);
       socket.off('node-status-update', onNodeStatusUpdate);
       socket.off('new-node', onNewNode);
-      closeSocketClient();
-      clearInterval(interval);
+      if (simulationSocket) {
+        simulationSocket.off('simulation-reading', onLiveReadingFromSimulation);
+      }
+      closeLiveSocketClient();
+      closeSimulationSocketClient();
       setIsConnected(false);
     };
   }, [microgridMode]);
@@ -380,6 +401,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
       value={{
         metrics,
         isConnected,
+        metricsStale,
         proactiveAlerts,
         iotAssets,
         backendNodes,

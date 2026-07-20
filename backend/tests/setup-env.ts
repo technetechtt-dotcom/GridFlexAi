@@ -12,6 +12,11 @@ process.env.EDGE_ALLOW_MEMORY_REPLAY = "true";
 process.env.EDGE_REPLAY_REQUIRE_REDIS = "false";
 process.env.PHYSICAL_COMMAND_EXECUTION_ENABLED = "false";
 process.env.HIL_PLANT_APPROVAL_CONFIRMED = "false";
+process.env.DEVICE_SECRET_VAULT_PROVIDER = "local";
+process.env.DEVICE_SECRET_VAULT_KEY =
+  process.env.DEVICE_SECRET_VAULT_KEY ?? "dGVzdC1kZXZpY2Utc2VjcmV0LXZhdWx0LWtleS0zMiEh";
+process.env.DEVICE_SECRET_VAULT_KEY_ID = "local-test";
+process.env.GRIDFLEX_OPERATING_MODE = process.env.GRIDFLEX_OPERATING_MODE ?? "SIMULATION";
 delete process.env.REDIS_URL;
 process.env.FORCE_HTTPS = "false";
 process.env.ADMIN_REQUIRE_HTTPS = "false";

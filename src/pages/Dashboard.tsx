@@ -260,11 +260,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
             <Wifi className={`w-3 h-3 ${isConnected ? 'animate-pulse' : ''}`} />
             <span className="text-xs font-medium">
-              {isConnected ? 'Live Stream' : 'Offline'}
+              {isConnected ? 'Stream connected' : 'Stream offline'}
             </span>
           </div>
+          <span className="text-xs text-slate-400" title={`source ${metrics.provenance.sourceId}`}>
+            {metrics.provenance.sourceType} · {metrics.provenance.quality} · {metrics.provenance.unit}
+          </span>
           <span className="text-sm text-slate-500">
-            {metrics.lastUpdated.toLocaleTimeString()}
+            {metrics.lastUpdated.getTime() > 0 ? metrics.lastUpdated.toLocaleTimeString() : '—'}
           </span>
         </div>
       </div>

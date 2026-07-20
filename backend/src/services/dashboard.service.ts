@@ -1,21 +1,37 @@
-import { NodeStatus, Prisma } from "@prisma/client";
+import { NodeStatus, Prisma, TelemetryEnvironment } from "@prisma/client";
 
+import { defaultTelemetryEnvironmentFilter } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { getOptionalSiteAccessScope, type AccessActor } from "./access-scope.service.js";
 import { getForecastProvidersStatus } from "./forecast.service.js";
 
+const liveEnvironmentWhere = (): Prisma.SensorReadingWhereInput => {
+  const filter = defaultTelemetryEnvironmentFilter();
+  if (filter === "all") {
+    return {};
+  }
+  return { environment: filter as TelemetryEnvironment };
+};
+
 export const getDashboardOverview = async (actor?: AccessActor) => {
   const scope = await getOptionalSiteAccessScope(actor);
   const nodeWhere: Prisma.EdgeNodeWhereInput = scope.kind === "site" ? { siteId: scope.siteId } : {};
-  const readingWhere: Prisma.SensorReadingWhereInput = scope.kind === "site"
-    ? {
-        node: {
-          is: {
-            siteId: scope.siteId
+  const readingWhere: Prisma.SensorReadingWhereInput = {
+    ...liveEnvironmentWhere(),
+    // Live KPIs never mix simulated rows into measured aggregates unless mode is SIMULATION.
+    ...(defaultTelemetryEnvironmentFilter() === "live"
+      ? { sourceType: { not: "simulated" } }
+      : {}),
+    ...(scope.kind === "site"
+      ? {
+          node: {
+            is: {
+              siteId: scope.siteId
+            }
           }
         }
-      }
-    : {};
+      : {})
+  };
 
   const [totalNodes, onlineNodes, latestReadings] = await Promise.all([
     prisma.edgeNode.count({ where: nodeWhere }),
@@ -68,7 +84,9 @@ export const getDashboardOverview = async (actor?: AccessActor) => {
       inverterPower: Number((totals.inverterPower / count).toFixed(2)),
       curtailment: Number((totals.curtailment / count).toFixed(2))
     },
-    latestTimestamp: latestReadings[0]?.timestamp ?? null
+    latestTimestamp: latestReadings[0]?.timestamp ?? null,
+    telemetryEnvironment: defaultTelemetryEnvironmentFilter(),
+    excludesSimulated: defaultTelemetryEnvironmentFilter() === "live"
   };
 };
 

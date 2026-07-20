@@ -19,10 +19,12 @@ import simulationRoutes from "./simulation.routes.js";
 import teamRoutes from "./team.routes.js";
 import telemetryRoutes from "./telemetry.routes.js";
 import optimisationRoutes from "./optimisation.routes.js";
+import { getOperatingModeHandler } from "../controllers/operating-mode.controller.js";
 
 const router = Router();
 
 router.use("/", healthRoutes);
+router.get("/operating-mode", getOperatingModeHandler);
 router.use("/auth", authRoutes);
 router.use("/ai", aiRoutes);
 router.use("/admin", adminRoutes);

@@ -57,6 +57,12 @@ services:
         value: "false"
       - key: HIL_PLANT_APPROVAL_CONFIRMED
         value: "false"
+      - key: DEVICE_SECRET_VAULT_PROVIDER
+        value: aws_kms
+      - key: AWS_KMS_KEY_ID
+        sync: false
+      - key: GRIDFLEX_OPERATING_MODE
+        value: SIMULATION
       - key: FORECAST_RATE_LIMIT_MAX_PER_MINUTE
         value: "20"
       - key: FORECAST_CRON_ENABLED

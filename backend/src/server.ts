@@ -140,10 +140,16 @@ process.on("unhandledRejection", (reason) => {
       LIVE_READING_EVENT
     );
 
+    const { registerSimulationNamespace } = await import("./simulation/socket-namespace.js");
+    const { startSimulationPublisher, stopSimulationPublisher } = await import("./simulation/publisher.js");
+    registerSimulationNamespace(io);
+    startSimulationPublisher();
+
     const shutdown = async () => {
       forecastCronTask?.stop();
       telemetryRetentionTask?.stop();
       stopNodeHealthMonitor();
+      stopSimulationPublisher();
       await closeRedisSocketAdapter();
       await closeRedisClient();
       await prisma.$disconnect();

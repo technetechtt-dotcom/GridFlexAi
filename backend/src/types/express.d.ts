@@ -12,7 +12,10 @@ declare namespace Express {
       deviceId: string;
       credentialId?: string;
       keyVersion?: number;
+      sequenceNumber?: number;
       mode: "legacy_shared_secret" | "device_credential";
     };
+    /** Exact HTTP body bytes captured before JSON parsing (for GRIDFLEX-V1 HMAC). */
+    rawBody?: Buffer;
   }
 }

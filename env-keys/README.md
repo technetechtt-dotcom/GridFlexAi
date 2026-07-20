@@ -18,3 +18,5 @@ Do not place secret values in these files.
 ## Safety lock
 
 Set `PHYSICAL_COMMAND_EXECUTION_ENABLED=false` and `HIL_PLANT_APPROVAL_CONFIRMED=false` in staging and production. Physical actuation requires both flags true in production.
+
+Set `DEVICE_SECRET_VAULT_PROVIDER=aws_kms` (or azure/gcp) with `AWS_KMS_KEY_ID` in staging/production. Never use `local` vault in production.

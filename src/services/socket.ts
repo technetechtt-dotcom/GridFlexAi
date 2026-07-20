@@ -4,7 +4,8 @@ import { getAuthToken, type NodeStatus } from "./api";
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000/api";
 const SOCKET_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
 
-let socketInstance: Socket | null = null;
+let liveSocket: Socket | null = null;
+let simulationSocket: Socket | null = null;
 
 export type LiveReadingPayload = {
   id: string;
@@ -16,6 +17,8 @@ export type LiveReadingPayload = {
   inverterPower?: number | null;
   curtailment?: number | null;
   timestamp: string;
+  environment?: "live" | "simulation" | "hil";
+  simulationRunId?: string | null;
   node?: {
     id: string;
     name: string;
@@ -37,23 +40,53 @@ export type NodeStatusUpdatePayload = {
   createdAt: string;
 };
 
-export const getSocketClient = (): Socket => {
-  if (!socketInstance) {
+/** Default namespace — measured / live advisory stream. */
+export const getLiveSocketClient = (): Socket => {
+  if (!liveSocket) {
     const token = getAuthToken();
-    socketInstance = io(SOCKET_BASE_URL, {
+    liveSocket = io(SOCKET_BASE_URL, {
       transports: ["websocket", "polling"],
       autoConnect: true,
       withCredentials: true,
       auth: token ? { token } : undefined
     });
   }
-
-  return socketInstance;
+  return liveSocket;
 };
 
-export const closeSocketClient = (): void => {
-  if (socketInstance) {
-    socketInstance.disconnect();
-    socketInstance = null;
+/** Dedicated /simulation namespace — never mixed with live rooms. */
+export const getSimulationSocketClient = (): Socket => {
+  if (!simulationSocket) {
+    const token = getAuthToken();
+    simulationSocket = io(`${SOCKET_BASE_URL}/simulation`, {
+      transports: ["websocket", "polling"],
+      autoConnect: true,
+      withCredentials: true,
+      auth: token ? { token } : undefined
+    });
   }
+  return simulationSocket;
+};
+
+/** @deprecated Prefer getLiveSocketClient */
+export const getSocketClient = getLiveSocketClient;
+
+export const closeLiveSocketClient = (): void => {
+  if (liveSocket) {
+    liveSocket.disconnect();
+    liveSocket = null;
+  }
+};
+
+export const closeSimulationSocketClient = (): void => {
+  if (simulationSocket) {
+    simulationSocket.disconnect();
+    simulationSocket = null;
+  }
+};
+
+/** @deprecated Prefer closeLiveSocketClient */
+export const closeSocketClient = (): void => {
+  closeLiveSocketClient();
+  closeSimulationSocketClient();
 };

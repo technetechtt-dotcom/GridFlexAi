@@ -25,7 +25,9 @@ const productionBaseline = (): Record<string, string> => ({
   EDGE_INGEST_SHARED_SECRET: "production-edge-secret-with-32-characters",
   REDIS_URL: "redis://localhost:6379",
   PHYSICAL_COMMAND_EXECUTION_ENABLED: "false",
-  HIL_PLANT_APPROVAL_CONFIRMED: "false"
+  HIL_PLANT_APPROVAL_CONFIRMED: "false",
+  DEVICE_SECRET_VAULT_PROVIDER: "aws_kms",
+  AWS_KMS_KEY_ID: "arn:aws:kms:eu-west-1:123456789012:key/example"
 });
 
 const loadEnvModule = () => {
@@ -76,5 +78,13 @@ describe("production safety env", () => {
     });
     const mod = loadEnvModule();
     expect(mod.isPhysicalCommandExecutionArmed()).toBe(true);
+  });
+
+  it("rejects production startup when device secret vault is local", () => {
+    Object.assign(process.env, productionBaseline(), {
+      DEVICE_SECRET_VAULT_PROVIDER: "local",
+      DEVICE_SECRET_VAULT_KEY: "dGVzdC1kZXZpY2Utc2VjcmV0LXZhdWx0LWtleS0zMiEh"
+    });
+    expect(() => loadEnvModule()).toThrow(/DEVICE_SECRET_VAULT_PROVIDER=local/);
   });
 });

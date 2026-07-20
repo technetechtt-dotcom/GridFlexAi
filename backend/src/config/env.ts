@@ -48,12 +48,33 @@ const envSchema = z.object({
   EDGE_ALLOW_LEGACY_SHARED_SECRET: envBoolean.default(true),
   EDGE_REPLAY_REQUIRE_REDIS: envBoolean.default(false),
   EDGE_ALLOW_MEMORY_REPLAY: envBoolean.default(true),
+  /**
+   * Device secret vault provider.
+   * `local` = AES-256-GCM with DEVICE_SECRET_VAULT_KEY (dev/test only).
+   * `aws_kms` / `azure_key_vault` / `gcp_kms` = managed KMS (production).
+   */
+  DEVICE_SECRET_VAULT_PROVIDER: z.enum(["local", "aws_kms", "azure_key_vault", "gcp_kms"]).default("local"),
+  /** Base64 32-byte key or passphrase (hashed) for local vault. Required when provider=local. */
+  DEVICE_SECRET_VAULT_KEY: z.string().optional(),
+  DEVICE_SECRET_VAULT_KEY_ID: z.string().default("local-dev"),
+  /** AWS KMS CMK id/ARN when DEVICE_SECRET_VAULT_PROVIDER=aws_kms. */
+  AWS_KMS_KEY_ID: z.string().optional(),
   NODE_HEALTH_CRON_ENABLED: envBoolean.default(true),
   NODE_HEALTH_CRON_SCHEDULE: z.string().default("*/1 * * * *"),
   /** Arms simulated/physical command send path. Requires HIL_PLANT_APPROVAL_CONFIRMED in production. */
   PHYSICAL_COMMAND_EXECUTION_ENABLED: envBoolean.default(false),
   /** Independent plant/HIL sign-off. Both flags must be true to arm physical execution in production. */
   HIL_PLANT_APPROVAL_CONFIRMED: envBoolean.default(false),
+  /**
+   * Platform operating mode — owned by the backend, not the browser.
+   * SIMULATION publishes synthetic telemetry on /simulation only.
+   * PILOT_LIVE / PRODUCTION_ADVISORY use measured live streams.
+   */
+  GRIDFLEX_OPERATING_MODE: z
+    .enum(["SIMULATION", "HIL", "PILOT_LIVE", "PRODUCTION_ADVISORY"])
+    .default("SIMULATION"),
+  /** Interval for backend simulation publisher when mode=SIMULATION. */
+  SIMULATION_TELEMETRY_INTERVAL_MS: z.coerce.number().int().min(1000).max(120_000).default(5000),
   TELEMETRY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(365),
   TELEMETRY_RETENTION_CRON_ENABLED: envBoolean.default(false),
   TELEMETRY_RETENTION_CRON_SCHEDULE: z.string().default("15 3 * * *"),
@@ -151,6 +172,16 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
     problems.push("REDIS_URL is required when EDGE_ALLOW_MEMORY_REPLAY is false.");
   }
 
+  if (config.DEVICE_SECRET_VAULT_PROVIDER === "local") {
+    problems.push(
+      "DEVICE_SECRET_VAULT_PROVIDER=local is forbidden in production. Use aws_kms, azure_key_vault, or gcp_kms."
+    );
+  }
+
+  if (config.DEVICE_SECRET_VAULT_PROVIDER === "aws_kms" && !config.AWS_KMS_KEY_ID?.trim()) {
+    problems.push("AWS_KMS_KEY_ID is required when DEVICE_SECRET_VAULT_PROVIDER=aws_kms.");
+  }
+
   if (problems.length > 0) {
     const problemList = problems.map((p) => `  - ${p}`).join("\n");
     process.stderr.write(`[env] Production safety checks failed:\n${problemList}\n`);
@@ -161,6 +192,15 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
 validateProductionSafety(parsed.data);
 
 export const env = parsed.data;
+
+export const getOperatingMode = (): typeof env.GRIDFLEX_OPERATING_MODE => env.GRIDFLEX_OPERATING_MODE;
+
+/** Live KPI queries should exclude simulation rows unless mode is SIMULATION and caller opts in. */
+export const defaultTelemetryEnvironmentFilter = (): "live" | "simulation" | "hil" | "all" => {
+  if (env.GRIDFLEX_OPERATING_MODE === "SIMULATION") return "simulation";
+  if (env.GRIDFLEX_OPERATING_MODE === "HIL") return "hil";
+  return "live";
+};
 
 /** Physical plant actuation is armed only when both production safety flags are explicitly true. */
 export const isPhysicalCommandExecutionArmed = (

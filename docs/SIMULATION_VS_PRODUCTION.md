@@ -1,26 +1,46 @@
 # Simulation vs Production
 
-GridFlex intentionally mixes measured, forecast, calculated and simulated surfaces. Operators must never treat simulation as plant truth.
+GridFlex separates **simulation** from **live measured** telemetry at the data model, API, Socket.IO namespace, and UI layers.
 
-## Always simulated / advisory in current product
+## Operating mode (backend-owned)
 
-- HyShift electrolyser digital twin
-- Hydrogen production / LCOH / water consumption where no hardware adapter is connected
-- Sector coupling allocation
-- Scenario simulation and GET topology optimisation
-- Dynamic line rating and congestion reduction scenarios without real feeder limits
-- Transfer-capacity gain, revenue uplift, curtailment saved, grid stability score and green credits when derived from simulation endpoints
-- Synthetic wind/load forecast bands when weather providers are unavailable
+`GRIDFLEX_OPERATING_MODE`:
 
-## Measured when ingested from authenticated devices
+| Mode | Meaning | Default stream environment |
+|------|---------|----------------------------|
+| `SIMULATION` | Backend publisher writes synthetic readings | `simulation` |
+| `HIL` | Hardware-in-the-loop | `hil` |
+| `PILOT_LIVE` | Measured pilot advisory | `live` |
+| `PRODUCTION_ADVISORY` | Measured production advisory | `live` |
 
-- Edge voltage/current/power readings via `/api/edge-data` or `/api/v2/telemetry/batch`
-- Node last-seen / health transitions derived from ingest timestamps
+The browser cannot override this. `GET /api/operating-mode` drives the persistent banner and watermark.
 
-## Forecast
+## Streams
 
-- Forecast.Solar / OpenWeather / AccuWeather outputs are forecasts, never measured irradiance or load.
+| Concern | Path / namespace |
+|---------|----------------|
+| Live measured ingest | `/api/v2/telemetry`, `/api/edge-data` → Socket.IO default (`live-reading`) |
+| Simulation | `/api/simulation/telemetry` → Socket.IO `/simulation` (`simulation-reading`) |
+
+Client-side `Math.random()` telemetry generation in `RealTimeContext` is **removed**. When offline, the UI holds last values and marks them stale.
+
+## Database separation
+
+`SensorReading` and `TelemetryReading` include:
+
+- `sourceType` (`measured` | `simulated` | …)
+- `environment` (`live` | `simulation` | `hil`)
+- `simulationRunId` (optional)
+
+Live KPI / dashboard / readings-summary queries **exclude** `environment=simulation` and `sourceType=simulated` unless the operating mode is `SIMULATION` (or the caller explicitly opts in).
+
+## Provenance on every number
+
+Display contract (`Provenance`):
+
+- `sourceType`, `sourceId`, `quality` (`good` | `uncertain` | `bad` | `stale`)
+- `measuredAt`, `receivedAt`, `unit`, optional `calibrationVersion`
 
 ## Control posture
 
-`PHYSICAL_COMMAND_EXECUTION_ENABLED` defaults to false and is rejected in production configuration. Zolt AI may propose analysis and advisory commands only; it cannot approve or execute plant commands. See [COMMAND_SAFETY.md](./COMMAND_SAFETY.md).
+`PHYSICAL_COMMAND_EXECUTION_ENABLED` defaults to false. Zolt may propose advisory commands only. See [COMMAND_SAFETY.md](./COMMAND_SAFETY.md).

@@ -169,6 +169,10 @@ jobs:
       EDGE_INGEST_SHARED_SECRET: test-edge-secret-with-minimum-length
       PHYSICAL_COMMAND_EXECUTION_ENABLED: false
       HIL_PLANT_APPROVAL_CONFIRMED: false
+      DEVICE_SECRET_VAULT_PROVIDER: local
+      DEVICE_SECRET_VAULT_KEY: dGVzdC1kZXZpY2Utc2VjcmV0LXZhdWx0LWtleS0zMiEh
+      DEVICE_SECRET_VAULT_KEY_ID: local-test
+      GRIDFLEX_OPERATING_MODE: SIMULATION
       OPENAI_API_KEY: test-key
     steps:
       - name: Checkout repository

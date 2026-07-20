@@ -1,7 +1,7 @@
-import { createEdgeSignature, safeSignatureEquals } from "../src/utils/edgeDeviceAuth.js";
+import { createLegacyEdgeSignature, safeSignatureEquals } from "../src/utils/edgeDeviceAuth.js";
 
-describe("edgeDeviceAuth test vector", () => {
-  it("matches the known HMAC signature vector", () => {
+describe("legacy edgeDeviceAuth test vector", () => {
+  it("matches the known legacy HMAC hex signature vector", () => {
     const payload = {
       current: 11.2,
       nodeId: "esp32-node-1",
@@ -9,7 +9,7 @@ describe("edgeDeviceAuth test vector", () => {
       voltage: 640
     };
 
-    const signature = createEdgeSignature(
+    const signature = createLegacyEdgeSignature(
       {
         deviceId: "esp32-node-1",
         timestamp: "1713187200000",
@@ -37,7 +37,7 @@ describe("edgeDeviceAuth test vector", () => {
       current: 11.2
     };
 
-    const signatureA = createEdgeSignature(
+    const signatureA = createLegacyEdgeSignature(
       {
         deviceId: "esp32-node-1",
         timestamp: "1713187200000",
@@ -47,7 +47,7 @@ describe("edgeDeviceAuth test vector", () => {
       "test-edge-shared-secret-123"
     );
 
-    const signatureB = createEdgeSignature(
+    const signatureB = createLegacyEdgeSignature(
       {
         deviceId: "esp32-node-1",
         timestamp: "1713187200000",

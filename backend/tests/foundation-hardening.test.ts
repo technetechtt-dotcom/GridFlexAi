@@ -1,9 +1,6 @@
-import { createHash } from "node:crypto";
-
 import { DeviceCredentialStatus } from "@prisma/client";
 
 import { assertAndStoreEdgeNonce, clearEdgeReplayCache } from "../src/lib/edge-replay.js";
-import { createEdgeSignature, safeSignatureEquals } from "../src/utils/edgeDeviceAuth.js";
 import { calculateDataFreshness } from "../src/domain/units.js";
 import { evaluateNodeHealth } from "../src/services/node-health.service.js";
 import { TELEMETRY_KEYS, TELEMETRY_KEYS_BY_ASSET_TYPE, isKnownTelemetryKey } from "../src/domain/telemetry-keys.js";
@@ -58,39 +55,33 @@ describe("telemetry key catalog", () => {
 });
 
 describe("device credential signature material", () => {
-  it("verifies HMAC using SHA-256(secret) as key material", () => {
-    const secret = "device-secret-shown-once";
-    const secretHash = createHash("sha256").update(secret).digest("hex");
-    const signature = createEdgeSignature(
+  it("binds GRIDFLEX-V1 signatures to device identity fields", () => {
+    const { createGridFlexV1Signature, safeSignatureEquals } = require("../src/utils/edgeDeviceAuth.js") as typeof import("../src/utils/edgeDeviceAuth.js");
+    const secret = Buffer.alloc(32, 7);
+    const rawBody = '{"voltage":640}';
+    const forDeviceA = createGridFlexV1Signature(
       {
-        deviceId: "esp32-a",
-        timestamp: "1713187200000",
-        nonce: "n1",
-        payload: { voltage: 640 }
+        deviceId: "device-a",
+        credentialId: "cred_a",
+        keyVersion: 1,
+        timestamp: "1",
+        nonce: "n",
+        sequenceNumber: 1,
+        rawBody
       },
-      secretHash
+      secret
     );
-    const expected = createEdgeSignature(
+    const forDeviceB = createGridFlexV1Signature(
       {
-        deviceId: "esp32-a",
-        timestamp: "1713187200000",
-        nonce: "n1",
-        payload: { voltage: 640 }
+        deviceId: "device-b",
+        credentialId: "cred_a",
+        keyVersion: 1,
+        timestamp: "1",
+        nonce: "n",
+        sequenceNumber: 1,
+        rawBody
       },
-      secretHash
-    );
-    expect(safeSignatureEquals(signature, expected)).toBe(true);
-  });
-
-  it("rejects cross-device credential material", () => {
-    const secretHash = createHash("sha256").update("secret").digest("hex");
-    const forDeviceA = createEdgeSignature(
-      { deviceId: "device-a", timestamp: "1", nonce: "n", payload: {} },
-      secretHash
-    );
-    const forDeviceB = createEdgeSignature(
-      { deviceId: "device-b", timestamp: "1", nonce: "n", payload: {} },
-      secretHash
+      secret
     );
     expect(safeSignatureEquals(forDeviceA, forDeviceB)).toBe(false);
   });

@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import { DeviceCredentialStatus } from "@prisma/client";
 import type { RequestHandler } from "express";
@@ -6,8 +6,16 @@ import type { RequestHandler } from "express";
 import { env } from "../config/env.js";
 import { assertAndStoreEdgeNonce, clearEdgeReplayCache } from "../lib/edge-replay.js";
 import { prisma } from "../lib/prisma.js";
+import { completeCredentialRotation } from "../services/device-credential.service.js";
+import { getDeviceSecretVault } from "../services/device-secret-vault/index.js";
 import { AppError } from "../utils/AppError.js";
-import { createEdgeSignature, safeSignatureEquals } from "../utils/edgeDeviceAuth.js";
+import { logger } from "../utils/logger.js";
+import {
+  createGridFlexV1Signature,
+  createLegacyEdgeSignature,
+  safeSignatureEquals,
+  zeroBuffer
+} from "../utils/edgeDeviceAuth.js";
 
 export { clearEdgeReplayCache };
 
@@ -17,6 +25,7 @@ const HEADER_NONCE = "x-gridflex-nonce";
 const HEADER_SIGNATURE = "x-gridflex-signature";
 const HEADER_CREDENTIAL_ID = "x-gridflex-credential-id";
 const HEADER_KEY_VERSION = "x-gridflex-key-version";
+const HEADER_SEQUENCE = "x-gridflex-sequence-number";
 
 const getSingleHeader = (value: string | string[] | undefined): string | null => {
   if (!value) return null;
@@ -24,35 +33,24 @@ const getSingleHeader = (value: string | string[] | undefined): string | null =>
   return value;
 };
 
-const hashSecret = (secret: string): string =>
-  createHash("sha256").update(secret).digest("hex");
-
-export const hashDeviceSecret = hashSecret;
-
 export const generateDeviceSecret = (): string => randomBytes(32).toString("base64url");
 
-const safeHashEquals = (a: string, b: string): boolean => {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  if (left.length !== right.length) return false;
-  return timingSafeEqual(left, right);
-};
-
-const verifyWithSecret = (
-  headers: { deviceId: string; timestamp: string; nonce: string; signature: string },
-  payload: unknown,
-  secret: string
-): boolean => {
-  const expected = createEdgeSignature(
-    {
-      deviceId: headers.deviceId,
-      timestamp: headers.timestamp,
-      nonce: headers.nonce,
-      payload
-    },
-    secret
-  );
-  return safeSignatureEquals(headers.signature, expected);
+const recordAuthFailure = async (edgeNodeId: string | null, deviceId: string): Promise<void> => {
+  try {
+    if (edgeNodeId) {
+      await prisma.edgeNode.update({
+        where: { id: edgeNodeId },
+        data: { lastAuthFailureAt: new Date() }
+      });
+      return;
+    }
+    await prisma.edgeNode.updateMany({
+      where: { deviceKey: deviceId },
+      data: { lastAuthFailureAt: new Date() }
+    });
+  } catch {
+    // Best-effort health bookkeeping.
+  }
 };
 
 export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
@@ -63,6 +61,7 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
     const signature = getSingleHeader(req.headers[HEADER_SIGNATURE]);
     const credentialId = getSingleHeader(req.headers[HEADER_CREDENTIAL_ID]);
     const keyVersionHeader = getSingleHeader(req.headers[HEADER_KEY_VERSION]);
+    const sequenceHeader = getSingleHeader(req.headers[HEADER_SEQUENCE]);
 
     if (!deviceId || !timestamp || !nonce || !signature) {
       next(new AppError("Missing edge device authentication headers.", 401));
@@ -94,119 +93,207 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
       return;
     }
 
-    const headers = { deviceId, timestamp, nonce, signature };
-
-    // Preferred path: per-device credential.
+    // Preferred path: vaulted per-device credential + GRIDFLEX-V1.
     if (credentialId) {
+      if (!sequenceHeader) {
+        next(new AppError("Missing x-gridflex-sequence-number header.", 401));
+        return;
+      }
+      const sequenceNumber = Number(sequenceHeader);
+      if (!Number.isSafeInteger(sequenceNumber) || sequenceNumber < 0) {
+        next(new AppError("Invalid sequence number.", 401));
+        return;
+      }
+
       const credential = await prisma.deviceCredential.findUnique({
         where: { credentialId },
         include: { edgeNode: { select: { deviceKey: true, isActive: true, id: true } } }
       });
 
       if (!credential || !credential.edgeNode.isActive) {
-        try {
-          await prisma.edgeNode.updateMany({
-            where: { deviceKey: deviceId },
-            data: { lastAuthFailureAt: new Date() }
-          });
-        } catch {
-          // Best-effort health bookkeeping.
-        }
+        await recordAuthFailure(null, deviceId);
+        logger.info("Edge auth failed: unknown or inactive credential.", {
+          deviceId,
+          credentialId,
+          reason: "credential_missing_or_inactive"
+        });
         next(new AppError("Invalid or inactive device credential.", 401));
         return;
       }
 
       if (credential.edgeNode.deviceKey && credential.edgeNode.deviceKey !== deviceId) {
+        await recordAuthFailure(credential.edgeNodeId, deviceId);
+        logger.info("Edge auth failed: device association mismatch.", {
+          deviceId,
+          credentialId,
+          reason: "device_mismatch"
+        });
         next(new AppError("Credential does not belong to this device.", 401));
         return;
       }
 
       if (
         credential.status === DeviceCredentialStatus.revoked ||
-        credential.status === DeviceCredentialStatus.expired
+        credential.status === DeviceCredentialStatus.expired ||
+        credential.status === DeviceCredentialStatus.pending
       ) {
-        next(new AppError("Device credential is revoked or expired.", 401));
+        await recordAuthFailure(credential.edgeNodeId, deviceId);
+        next(new AppError("Device credential is revoked, expired, or pending.", 401));
         return;
       }
 
       if (credential.expiresAt && credential.expiresAt.getTime() <= Date.now()) {
+        await recordAuthFailure(credential.edgeNodeId, deviceId);
         next(new AppError("Device credential expired.", 401));
         return;
       }
 
-      if (keyVersionHeader) {
-        const keyVersion = Number(keyVersionHeader);
-        if (!Number.isFinite(keyVersion) || keyVersion !== credential.keyVersion) {
-          next(new AppError("Device credential key version mismatch.", 401));
-          return;
-        }
+      const keyVersion = keyVersionHeader ? Number(keyVersionHeader) : credential.keyVersion;
+      if (!Number.isFinite(keyVersion) || keyVersion !== credential.keyVersion) {
+        await recordAuthFailure(credential.edgeNodeId, deviceId);
+        next(new AppError("Device credential key version mismatch.", 401));
+        return;
       }
 
-      // Secret was hashed at provisioning; signature uses the plaintext shown once.
-      // Request must include the plaintext secret only via HMAC, never in body.
-      // We verify by checking HMAC against candidate secrets is impossible after hashing,
-      // so device credentials store hmac-ready secret hash of the provisioning secret and
-      // firmware must sign with that same secret. Verification reconstructs expected HMAC
-      // only when legacy mode supplies shared secret OR when rotating overlap stores hash.
-      //
-      // Practical approach for hashed secrets: store SHA-256(secret) and require the device
-      // to send HMAC(message, secret). Server cannot recompute HMAC without plaintext.
-      // Therefore we keep an encrypted-at-rest style by storing hash for identity and using
-      // a derived verification material: HMAC(message, secretHash) as transitional scheme.
-      // Documented as schemaVersion for device auth v2.
-      const expectedWithHash = createEdgeSignature(
-        {
+      if (!credential.encryptedSecret || !credential.encryptionKeyId) {
+        await recordAuthFailure(credential.edgeNodeId, deviceId);
+        logger.info("Edge auth failed: credential requires re-provisioning.", {
           deviceId,
-          timestamp,
-          nonce,
-          payload: req.body
-        },
-        credential.secretHash
-      );
+          credentialId,
+          reason: "legacy_secret_hash_only"
+        });
+        next(
+          new AppError(
+            "Device credential must be re-provisioned for vaulted secrets. Legacy secretHash credentials cannot verify GRIDFLEX-V1.",
+            401
+          )
+        );
+        return;
+      }
 
-      if (!safeSignatureEquals(signature, expectedWithHash)) {
-        try {
-          await prisma.edgeNode.update({
-            where: { id: credential.edgeNodeId },
-            data: { lastAuthFailureAt: new Date() }
+      if (
+        credential.lastSequenceNumber !== null &&
+        credential.lastSequenceNumber !== undefined &&
+        sequenceNumber <= credential.lastSequenceNumber
+      ) {
+        await recordAuthFailure(credential.edgeNodeId, deviceId);
+        logger.info("Edge auth failed: sequence regression.", {
+          deviceId,
+          credentialId,
+          reason: "sequence_regression"
+        });
+        next(new AppError("Replayed or regressed sequence number.", 409));
+        return;
+      }
+
+      const rawBody = req.rawBody;
+      if (!rawBody || rawBody.length === 0) {
+        next(new AppError("Raw request body required for signature verification.", 400));
+        return;
+      }
+
+      let plaintext: Buffer | null = null;
+      try {
+        const vault = getDeviceSecretVault();
+        plaintext = await vault.decrypt({
+          ciphertext: credential.encryptedSecret,
+          keyId: credential.encryptionKeyId,
+          ...(credential.encryptedDataKey
+            ? { encryptedDataKey: credential.encryptedDataKey }
+            : {})
+        });
+
+        const expected = createGridFlexV1Signature(
+          {
+            deviceId,
+            credentialId: credential.credentialId,
+            keyVersion: credential.keyVersion,
+            timestamp,
+            nonce,
+            sequenceNumber,
+            rawBody
+          },
+          plaintext
+        );
+
+        if (!safeSignatureEquals(signature, expected)) {
+          await recordAuthFailure(credential.edgeNodeId, deviceId);
+          logger.info("Edge auth failed: signature mismatch.", {
+            deviceId,
+            credentialId,
+            reason: "bad_signature"
           });
-        } catch {
-          // Best-effort health bookkeeping.
+          next(new AppError("Invalid edge request signature.", 401));
+          return;
         }
+      } catch (error) {
+        if (error instanceof AppError) {
+          next(error);
+          return;
+        }
+        await recordAuthFailure(credential.edgeNodeId, deviceId);
+        logger.info("Edge auth failed: vault decrypt or verify error.", {
+          deviceId,
+          credentialId,
+          reason: "vault_or_verify_error"
+        });
         next(new AppError("Invalid edge request signature.", 401));
         return;
+      } finally {
+        if (plaintext) {
+          zeroBuffer(plaintext);
+        }
       }
 
       await prisma.deviceCredential.update({
         where: { id: credential.id },
-        data: { lastUsedAt: new Date() }
+        data: {
+          lastUsedAt: new Date(),
+          lastSequenceNumber: sequenceNumber
+        }
       });
+
+      // Overlap window: first successful use of the new active key completes rotation.
+      if (credential.status === DeviceCredentialStatus.active) {
+        try {
+          await completeCredentialRotation({
+            edgeNodeId: credential.edgeNodeId,
+            activeCredentialId: credential.credentialId
+          });
+        } catch {
+          // Rotation bookkeeping must not fail the ingest.
+        }
+      }
 
       req.edgeAuth = {
         deviceId,
         credentialId: credential.credentialId,
         keyVersion: credential.keyVersion,
+        sequenceNumber,
         mode: "device_credential"
       };
       next();
       return;
     }
 
-    // Legacy shared-secret mode (temporary compatibility).
+    // Legacy shared-secret mode (temporary compatibility — hex HMAC over canonical JSON).
     if (!env.EDGE_ALLOW_LEGACY_SHARED_SECRET) {
       next(new AppError("Legacy shared-secret edge auth is disabled. Provision a device credential.", 401));
       return;
     }
 
-    if (!verifyWithSecret(headers, req.body, env.EDGE_INGEST_SHARED_SECRET)) {
-      try {
-        await prisma.edgeNode.updateMany({
-          where: { deviceKey: deviceId },
-          data: { lastAuthFailureAt: new Date() }
-        });
-      } catch {
-        // Best-effort health bookkeeping; never mask the auth failure response.
-      }
+    const expectedLegacy = createLegacyEdgeSignature(
+      {
+        deviceId,
+        timestamp,
+        nonce,
+        payload: req.body
+      },
+      env.EDGE_INGEST_SHARED_SECRET
+    );
+
+    if (!safeSignatureEquals(signature.toLowerCase(), expectedLegacy.toLowerCase())) {
+      await recordAuthFailure(null, deviceId);
       next(new AppError("Invalid edge request signature.", 401));
       return;
     }
@@ -219,8 +306,6 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
   })().catch(next);
 };
 
-// Keep helper exported for tests that previously imported from this module.
 export const __test = {
-  hashSecret,
-  safeHashEquals
+  generateDeviceSecret
 };

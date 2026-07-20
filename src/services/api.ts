@@ -266,6 +266,8 @@ export type DashboardSummary = {
     curtailment: number;
   };
   latestTimestamp: string | null;
+  telemetryEnvironment?: "live" | "simulation" | "hil" | "all";
+  excludesSimulated?: boolean;
 };
 
 export type AdminDashboardSummary = {
@@ -882,6 +884,14 @@ export async function fetchDashboardSummary(): Promise<DashboardSummary> {
   const response = await apiRequest<ApiEnvelope<DashboardSummary>>('/dashboard/summary', {
     auth: true
   });
+  return response.data;
+}
+
+export async function fetchOperatingMode(): Promise<import('../lib/operatingMode').OperatingModeResponse> {
+  const response = await apiRequest<{ data: import('../lib/operatingMode').OperatingModeResponse }>(
+    '/operating-mode',
+    { auth: false }
+  );
   return response.data;
 }
 

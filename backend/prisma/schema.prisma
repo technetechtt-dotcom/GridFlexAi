@@ -79,6 +79,13 @@ enum DataQuality {
   unverified
 }
 
+/// Storage / stream environment — keeps simulation out of live KPI aggregates.
+enum TelemetryEnvironment {
+  live
+  simulation
+  hil
+}
+
 enum MeasurementUnit {
   V
   A
@@ -500,6 +507,8 @@ model SensorReading {
   sourceAssetId      String?
   sourceType         DataSourceType  @default(measured)
   quality            DataQuality     @default(valid)
+  environment        TelemetryEnvironment @default(live)
+  simulationRunId    String?
   powerUnit          MeasurementUnit @default(kW)
   voltageUnit        MeasurementUnit @default(V)
   currentUnit        MeasurementUnit @default(A)
@@ -509,6 +518,8 @@ model SensorReading {
   @@index([nodeId, ingestedAt(sort: Desc)])
   @@index([sourceType])
   @@index([quality])
+  @@index([environment])
+  @@index([simulationRunId])
 }
 
 model RefreshToken {
@@ -761,6 +772,8 @@ model TelemetryReading {
   unit               MeasurementUnit
   quality            DataQuality              @default(valid)
   sourceType         DataSourceType           @default(measured)
+  environment        TelemetryEnvironment     @default(live)
+  simulationRunId    String?
   deviceTimestamp    DateTime
   ingestedAt         DateTime                 @default(now())
   sequenceNumber     Int?
@@ -776,24 +789,38 @@ model TelemetryReading {
   @@index([plantId, deviceTimestamp])
   @@index([assetId, key, deviceTimestamp])
   @@index([ingestedAt])
+  @@index([environment])
+  @@index([simulationRunId])
 }
 
 model DeviceCredential {
-  id           String                 @id @default(cuid())
-  edgeNodeId   String
-  edgeNode     EdgeNode               @relation(fields: [edgeNodeId], references: [id], onDelete: Cascade)
-  credentialId String                 @unique
-  secretHash   String
-  keyVersion   Int                    @default(1)
-  status       DeviceCredentialStatus @default(active)
-  createdAt    DateTime               @default(now())
-  expiresAt    DateTime?
-  lastUsedAt   DateTime?
-  revokedAt    DateTime?
-  rotatedAt    DateTime?
+  id                  String                 @id @default(cuid())
+  edgeNodeId          String
+  edgeNode            EdgeNode               @relation(fields: [edgeNodeId], references: [id], onDelete: Cascade)
+  credentialId        String                 @unique
+  /// Legacy transitional field (SHA-256 of secret used as HMAC key). Kept nullable until devices are re-provisioned; new credentials leave this null.
+  secretHash          String?
+  keyVersion          Int                    @default(1)
+  /// AES-GCM / KMS ciphertext of the 256-bit device secret (base64url). Required for vaulted credentials.
+  encryptedSecret     String?
+  /// Optional envelope-encrypted data key (KMS providers).
+  encryptedDataKey    String?
+  /// SHA-256 hex fingerprint of the plaintext secret — for lookup/audit only, never for HMAC.
+  secretFingerprint   String?
+  /// KMS / local vault key identifier used to encrypt this secret.
+  encryptionKeyId     String?
+  algorithm           String                 @default("HMAC-SHA256")
+  status              DeviceCredentialStatus @default(active)
+  lastSequenceNumber  Int?
+  createdAt           DateTime               @default(now())
+  expiresAt           DateTime?
+  lastUsedAt          DateTime?
+  revokedAt           DateTime?
+  rotatedAt           DateTime?
 
   @@index([edgeNodeId, status])
   @@index([keyVersion])
+  @@index([secretFingerprint])
 }
 
 model DeviceProvisioningEvent {

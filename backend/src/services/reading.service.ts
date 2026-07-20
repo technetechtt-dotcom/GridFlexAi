@@ -1,6 +1,7 @@
-import { NodeStatus, Prisma } from "@prisma/client";
+import { NodeStatus, Prisma, TelemetryEnvironment } from "@prisma/client";
 
 import { LIVE_READING_EVENT, NEW_NODE_EVENT, NODE_STATUS_UPDATE_EVENT } from "../config/constants.js";
+import { defaultTelemetryEnvironmentFilter } from "../config/env.js";
 import { getSocketServer } from "../config/socket.js";
 import { emitToSiteScope } from "../lib/socket-rooms.js";
 import { prisma } from "../lib/prisma.js";
@@ -17,6 +18,9 @@ type ReadingFilters = {
   startDate?: Date;
   endDate?: Date;
   windowHours?: number;
+  /** When false (default for live modes), simulated / wrong-environment rows are excluded. */
+  includeSimulated?: boolean;
+  environment?: TelemetryEnvironment | "all";
 };
 
 type ReadingSummaryFilters = {
@@ -108,13 +112,21 @@ const applyReadingAccessScope = async (
 };
 
 export const getReadings = async (
-  { nodeId, page, pageSize, sort, startDate, endDate, windowHours }: ReadingFilters,
+  { nodeId, page, pageSize, sort, startDate, endDate, windowHours, includeSimulated, environment }: ReadingFilters,
   actor?: AccessActor
 ) => {
   const where: Prisma.SensorReadingWhereInput = {};
 
   if (nodeId) {
     where.nodeId = nodeId;
+  }
+
+  const envFilter = environment ?? defaultTelemetryEnvironmentFilter();
+  if (envFilter !== "all") {
+    where.environment = envFilter as TelemetryEnvironment;
+  }
+  if (!includeSimulated && envFilter === "live") {
+    where.sourceType = { not: "simulated" };
   }
 
   const timestampRange = buildTimestampRange({
@@ -177,6 +189,14 @@ export const getReadingsSummary = async (
   const where: Prisma.SensorReadingWhereInput = {};
   if (nodeId) {
     where.nodeId = nodeId;
+  }
+
+  const envFilter = defaultTelemetryEnvironmentFilter();
+  if (envFilter !== "all") {
+    where.environment = envFilter as TelemetryEnvironment;
+  }
+  if (envFilter === "live") {
+    where.sourceType = { not: "simulated" };
   }
 
   if (startDate || endDate) {
@@ -297,6 +317,7 @@ export const createReading = async (payload: CreateReadingInput) => {
     schemaVersion: "1",
     sourceType: "measured",
     quality: "valid",
+    environment: "live",
     powerUnit: "kW",
     voltageUnit: "V",
     currentUnit: "A"

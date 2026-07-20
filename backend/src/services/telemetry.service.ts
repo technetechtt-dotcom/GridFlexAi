@@ -106,6 +106,7 @@ export const ingestTelemetryBatch = async (
         unit: (item.unit as "kW") || definition?.unit || catalog?.unit || "kW",
         quality,
         sourceType: item.sourceType ?? definition?.sourceType ?? catalog?.sourceType ?? "measured",
+        environment: "live",
         deviceTimestamp: new Date(item.deviceTimestamp),
         sequenceNumber: item.sequenceNumber ?? 0,
         schemaVersion: item.schemaVersion ?? "2"

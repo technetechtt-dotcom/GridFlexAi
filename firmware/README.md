@@ -16,7 +16,7 @@ Before flashing the device, you **MUST** edit the top of `main.ino`:
 
 1.  **`WIFI_SSID` & `WIFI_PASS`**: Your local Wi-Fi credentials.
 2.  **`DEVICE_ID`**: The `deviceKey` of your node in the GridFlex Ops Center. You can create a new node or use an existing one. E.g., `device-001`.
-3.  **`SHARED_SECRET`**: The exact value of `EDGE_INGEST_SHARED_SECRET` from your backend environment variables (`backend/.env`). This is critical for the HMAC SHA256 security.
+3.  **`SHARED_SECRET`**: Legacy shared-secret demos only. For production pilot, provision a per-device credential and use **GRIDFLEX-V1** signing — see `backend/examples/esp32_gridflex_v1_hmac_example.ino` and `backend/examples/edge_hmac_test_vector.md`.
 
 ## Deployment to LILYGO T-Call A7670
 

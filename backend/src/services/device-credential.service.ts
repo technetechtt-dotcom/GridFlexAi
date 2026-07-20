@@ -1,11 +1,11 @@
 import { DeviceCredentialStatus, Prisma } from "@prisma/client";
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import { prisma } from "../lib/prisma.js";
-import { recordAuditLog } from "./audit-log.service.js";
 import { AppError } from "../utils/AppError.js";
-
-const hashSecret = (secret: string): string => createHash("sha256").update(secret).digest("hex");
+import { fingerprintDeviceSecret, zeroBuffer } from "../utils/edgeDeviceAuth.js";
+import { recordAuditLog } from "./audit-log.service.js";
+import { getDeviceSecretVault } from "./device-secret-vault/index.js";
 
 export const provisionDeviceCredential = async (input: {
   edgeNodeId: string;
@@ -17,8 +17,19 @@ export const provisionDeviceCredential = async (input: {
     throw new AppError("Edge node not found.", 404);
   }
 
-  const plaintextSecret = randomBytes(32).toString("base64url");
+  const secret = randomBytes(32);
+  const fingerprint = fingerprintDeviceSecret(secret);
   const credentialId = `cred_${randomBytes(12).toString("hex")}`;
+  const vault = getDeviceSecretVault();
+
+  let encrypted: { ciphertext: string; keyId: string; encryptedDataKey?: string };
+  try {
+    encrypted = await vault.encrypt(secret);
+  } catch (error) {
+    zeroBuffer(secret);
+    throw error;
+  }
+
   const latest = await prisma.deviceCredential.findFirst({
     where: { edgeNodeId: input.edgeNodeId },
     orderBy: { keyVersion: "desc" }
@@ -39,13 +50,21 @@ export const provisionDeviceCredential = async (input: {
       data: {
         edgeNodeId: input.edgeNodeId,
         credentialId,
-        secretHash: hashSecret(plaintextSecret),
+        secretHash: null,
+        encryptedSecret: encrypted.ciphertext,
+        encryptedDataKey: encrypted.encryptedDataKey ?? null,
+        secretFingerprint: fingerprint,
+        encryptionKeyId: encrypted.keyId,
+        algorithm: "HMAC-SHA256",
         keyVersion: (latest?.keyVersion ?? 0) + 1,
         status: DeviceCredentialStatus.active,
         expiresAt: input.expiresAt ?? null
       }
     });
   });
+
+  const plaintextOnce = secret.toString("base64url");
+  zeroBuffer(secret);
 
   await prisma.deviceProvisioningEvent.create({
     data: {
@@ -54,7 +73,9 @@ export const provisionDeviceCredential = async (input: {
       actorId: input.actorId,
       metadata: {
         credentialId: credential.credentialId,
-        keyVersion: credential.keyVersion
+        keyVersion: credential.keyVersion,
+        secretFingerprint: fingerprint,
+        encryptionKeyId: encrypted.keyId
       } as Prisma.InputJsonValue
     }
   });
@@ -63,25 +84,85 @@ export const provisionDeviceCredential = async (input: {
     action: "device.credential.provision",
     entityType: "DeviceCredential",
     entityId: credential.id,
-    message: `Provisioned device credential for node ${node.name}`,
+    message: `Provisioned vaulted device credential for node ${node.name}`,
     userId: input.actorId,
     metadata: {
       edgeNodeId: input.edgeNodeId,
       credentialId: credential.credentialId,
-      keyVersion: credential.keyVersion
+      keyVersion: credential.keyVersion,
+      secretFingerprint: fingerprint,
+      encryptionKeyId: encrypted.keyId
     }
   });
 
   return {
     credentialId: credential.credentialId,
     keyVersion: credential.keyVersion,
-    /** Shown once — never stored in plaintext. Sign requests with HMAC using SHA-256(secret) as key material. */
-    secret: plaintextSecret,
-    secretHashAlgorithm: "sha256",
+    /** Shown once — never stored in plaintext. HMAC with this 32-byte secret (base64url). */
+    secret: plaintextOnce,
+    secretFingerprint: fingerprint,
+    algorithm: "HMAC-SHA256",
+    signingVersion: "GRIDFLEX-V1",
     signingNote:
-      "Device must HMAC-sign with secretHash = SHA-256(secret). Server verifies HMAC(message, secretHash).",
+      "Sign GRIDFLEX-V1 canonical message with HMAC-SHA256(deviceSecret). Server stores only vault ciphertext.",
     expiresAt: credential.expiresAt?.toISOString() ?? null
   };
+};
+
+/**
+ * After the device successfully authenticates with key N+1, revoke overlapping N credentials.
+ */
+export const completeCredentialRotation = async (input: {
+  edgeNodeId: string;
+  activeCredentialId: string;
+  actorId?: string;
+}) => {
+  const rotating = await prisma.deviceCredential.findMany({
+    where: {
+      edgeNodeId: input.edgeNodeId,
+      status: DeviceCredentialStatus.rotating,
+      credentialId: { not: input.activeCredentialId }
+    }
+  });
+
+  if (rotating.length === 0) {
+    return { revoked: 0 };
+  }
+
+  const now = new Date();
+  await prisma.deviceCredential.updateMany({
+    where: { id: { in: rotating.map((c) => c.id) } },
+    data: {
+      status: DeviceCredentialStatus.revoked,
+      revokedAt: now
+    }
+  });
+
+  await prisma.deviceProvisioningEvent.create({
+    data: {
+      edgeNodeId: input.edgeNodeId,
+      action: "credential.rotation.complete",
+      actorId: input.actorId ?? null,
+      metadata: {
+        activeCredentialId: input.activeCredentialId,
+        revokedCredentialIds: rotating.map((c) => c.credentialId)
+      } as Prisma.InputJsonValue
+    }
+  });
+
+  await recordAuditLog({
+    action: "device.credential.rotation.complete",
+    entityType: "EdgeNode",
+    entityId: input.edgeNodeId,
+    message: `Completed credential rotation; revoked ${rotating.length} overlapping key(s)`,
+    ...(input.actorId ? { userId: input.actorId } : {}),
+    metadata: {
+      activeCredentialId: input.activeCredentialId,
+      revokedCount: rotating.length
+    }
+  });
+
+  return { revoked: rotating.length };
 };
 
 export const revokeDeviceCredential = async (input: {
@@ -108,7 +189,10 @@ export const revokeDeviceCredential = async (input: {
       edgeNodeId: credential.edgeNodeId,
       action: "credential.revoke",
       actorId: input.actorId,
-      metadata: { credentialId: credential.credentialId }
+      metadata: {
+        credentialId: credential.credentialId,
+        secretFingerprint: credential.secretFingerprint
+      }
     }
   });
 
@@ -117,7 +201,11 @@ export const revokeDeviceCredential = async (input: {
     entityType: "DeviceCredential",
     entityId: credential.id,
     message: `Revoked device credential ${credential.credentialId}`,
-    userId: input.actorId
+    userId: input.actorId,
+    metadata: {
+      credentialId: credential.credentialId,
+      secretFingerprint: credential.secretFingerprint
+    }
   });
 
   return updated;
@@ -132,11 +220,16 @@ export const listDeviceCredentials = async (edgeNodeId: string) => {
       credentialId: true,
       keyVersion: true,
       status: true,
+      algorithm: true,
+      secretFingerprint: true,
+      encryptionKeyId: true,
       createdAt: true,
       expiresAt: true,
       lastUsedAt: true,
       revokedAt: true,
-      rotatedAt: true
+      rotatedAt: true,
+      lastSequenceNumber: true
+      // Never select encryptedSecret / secretHash for API lists
     }
   });
 };

@@ -7,9 +7,10 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { Page, Sidebar } from './components/Sidebar';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { RealTimeProvider } from './context/RealTimeContext';
+import { RealTimeProvider, useRealTime } from './context/RealTimeContext';
 import { canAccessOpsCenter, isPlantManager } from './lib/roles';
 import { PilotReportModal } from './components/PilotReportModal';
+import { OperatingModeBanner } from './components/OperatingModeBanner';
 import { LoginPage } from './pages/LoginPage';
 import { usePilotStore } from './store/pilotStore';
 
@@ -127,6 +128,7 @@ function AuthShell() {
   const location = useLocation();
   const activePage = mapPathToPage(location.pathname);
   const { pilotMode, togglePilotMode, reportOpen, setReportOpen } = usePilotStore();
+  const { isConnected, metricsStale } = useRealTime();
 
   const onNavigate = (page: Page) => {
     navigate(pageToPath[page] ?? '/');
@@ -136,6 +138,7 @@ function AuthShell() {
     <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-emerald-500/30">
       <Sidebar activePage={activePage} onNavigate={onNavigate} />
       <main className="relative min-h-screen transition-all duration-300 lg:pl-64">
+        <OperatingModeBanner isLiveStreamConnected={isConnected} metricsStale={metricsStale} />
         {pilotMode &&
         <div className="relative flex items-center justify-center border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-400">
             <span className="font-medium">PILOT MODE — Northern Cape Demonstration (Prieska • Kathu • Boegoebaai)</span>
