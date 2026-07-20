@@ -27,12 +27,16 @@ The following gates must be complete and evidenced before a real IPP pilot.
    - Evidence: end-to-end tests proving simulated and measured paths cannot be confused.
 4. **Verified inverter integration**
    - Complete one production-grade inverter integration with verified register map and read path.
+   - Framework: read-only Modbus FC03 adapter + decoder + vendor map gate (`docs/INVERTER_INTEGRATION.md`).
+   - Remaining: fill equipment dossier with the pilot unit’s manufacturer map; HIL worksheet sign-off.
    - Evidence: vendor map approval + live telemetry capture trace.
 5. **ESP32 resiliency**
-   - Finish store-and-forward queues, watchdog behavior, and remote config lifecycle.
-   - Evidence: firmware and integration test reports.
+   - Store-and-forward (LittleFS), watchdog, signed remote config, OTA safety — see `docs/EDGE_RELIABILITY.md` and `firmware/GridFlexEdge/`.
+   - Remaining: flash pilot hardware, pin Ed25519 public key, 24h outage soak on site.
+   - Evidence: firmware serial logs + `backend/tests/edge-reliability.test.ts`.
 6. **HIL robustness**
-   - Execute HIL tests for malformed, delayed, duplicated, stale, and out-of-range packets.
+   - Packet matrix + safe bench — `docs/HARDWARE_IN_THE_LOOP.md`.
+   - Remaining: execute on-site bench and complete `docs/equipment/hil-evidence-worksheet.md` sign-off.
    - Evidence: signed HIL report with pass/fail per scenario.
 7. **Managed secrets and credential rotation**
    - Move all secrets to managed secret store; rotate current API/device/admin credentials.

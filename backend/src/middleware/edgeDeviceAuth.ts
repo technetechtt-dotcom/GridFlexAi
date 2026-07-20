@@ -174,7 +174,7 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
       if (
         credential.lastSequenceNumber !== null &&
         credential.lastSequenceNumber !== undefined &&
-        sequenceNumber <= credential.lastSequenceNumber
+        sequenceNumber < credential.lastSequenceNumber
       ) {
         await recordAuthFailure(credential.edgeNodeId, deviceId);
         logger.info("Edge auth failed: sequence regression.", {
@@ -185,6 +185,11 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
         next(new AppError("Replayed or regressed sequence number.", 409));
         return;
       }
+
+      const idempotentReplay =
+        credential.lastSequenceNumber !== null &&
+        credential.lastSequenceNumber !== undefined &&
+        sequenceNumber === credential.lastSequenceNumber;
 
       const rawBody = req.rawBody;
       if (!rawBody || rawBody.length === 0) {
@@ -245,16 +250,18 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
         }
       }
 
+      // Advance watermark only for new sequences. Equal sequence = idempotent retry
+      // (new nonce, same measurement) — receipt lookup happens in the ingest handler.
       await prisma.deviceCredential.update({
         where: { id: credential.id },
         data: {
           lastUsedAt: new Date(),
-          lastSequenceNumber: sequenceNumber
+          ...(idempotentReplay ? {} : { lastSequenceNumber: sequenceNumber })
         }
       });
 
       // Overlap window: first successful use of the new active key completes rotation.
-      if (credential.status === DeviceCredentialStatus.active) {
+      if (credential.status === DeviceCredentialStatus.active && !idempotentReplay) {
         try {
           await completeCredentialRotation({
             edgeNodeId: credential.edgeNodeId,
@@ -270,6 +277,7 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
         credentialId: credential.credentialId,
         keyVersion: credential.keyVersion,
         sequenceNumber,
+        idempotentReplay,
         mode: "device_credential"
       };
       next();

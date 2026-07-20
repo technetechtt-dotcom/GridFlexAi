@@ -13,6 +13,8 @@ type ReadingsResponse = {
 type IngestionResponse = {
   message: string;
   data: Awaited<ReturnType<typeof ingestEdgeDataService>>["data"];
+  idempotent?: boolean;
+  acknowledgedSequence?: number;
 };
 
 type ReadingsSummaryResponse = {
@@ -57,11 +59,23 @@ export const ingestEdgeData = asyncHandler(async (
   res: Response<IngestionResponse>
 ) => {
   const deviceKey = req.header("x-gridflex-device-id") ?? undefined;
-  const result = await ingestEdgeDataService(req.body, deviceKey);
+  const result = await ingestEdgeDataService(req.body, deviceKey, req.edgeAuth
+    ? {
+        deviceId: req.edgeAuth.deviceId,
+        ...(typeof req.edgeAuth.sequenceNumber === "number"
+          ? { sequenceNumber: req.edgeAuth.sequenceNumber }
+          : {}),
+        ...(req.edgeAuth.idempotentReplay ? { idempotentReplay: true } : {})
+      }
+    : undefined);
 
-  res.status(201).json({
+  res.status(result.idempotent ? 200 : 201).json({
     message: result.message,
-    data: result.data
+    data: result.data,
+    ...(result.idempotent ? { idempotent: true } : {}),
+    ...(typeof result.acknowledgedSequence === "number"
+      ? { acknowledgedSequence: result.acknowledgedSequence }
+      : {})
   });
 });
 

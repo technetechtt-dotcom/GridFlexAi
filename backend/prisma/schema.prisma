@@ -431,6 +431,8 @@ model EdgeNode {
   credentials             DeviceCredential[]
   provisioningEvents      DeviceProvisioningEvent[]
   healthHistory           NodeHealthHistory[]
+  lastResetReason         String?
+  appliedConfigVersion    String?
 
   @@index([status])
   @@index([healthState])
@@ -513,6 +515,7 @@ model SensorReading {
   voltageUnit        MeasurementUnit @default(V)
   currentUnit        MeasurementUnit @default(A)
 
+  @@unique([nodeId, sequenceNumber])
   @@index([nodeId, timestamp(sort: Desc)])
   @@index([timestamp(sort: Desc)])
   @@index([nodeId, ingestedAt(sort: Desc)])
@@ -520,6 +523,42 @@ model SensorReading {
   @@index([quality])
   @@index([environment])
   @@index([simulationRunId])
+}
+
+/// Idempotent acknowledgement ledger for store-and-forward retries.
+/// Uniqueness is on device identity (deviceKey) + sequenceNumber — not asset/time.
+model EdgeIngestReceipt {
+  id             String   @id @default(cuid())
+  deviceId       String
+  sequenceNumber Int
+  messageId      String?
+  readingId      String?
+  payloadHash    String?
+  acknowledgedAt DateTime @default(now())
+
+  @@unique([deviceId, sequenceNumber])
+  @@index([deviceId, acknowledgedAt])
+}
+
+/// Signed edge remote configuration (Ed25519). Never carries device HMAC secrets.
+model EdgeRemoteConfig {
+  id                     String   @id @default(cuid())
+  configVersion          String   @unique
+  pollingIntervalMs      Int
+  serverEndpoint         String
+  enabledTelemetryKeys   Json
+  approvedFirmwareMinimum String
+  issuedAt               DateTime
+  expiresAt              DateTime
+  /// Canonical JSON bytes that were signed (UTF-8).
+  payloadJson            String
+  /// Base64url Ed25519 signature over payloadJson.
+  signature              String
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  createdById            String?
+
+  @@index([isActive, issuedAt])
 }
 
 model RefreshToken {

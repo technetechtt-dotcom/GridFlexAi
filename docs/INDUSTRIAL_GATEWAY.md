@@ -4,10 +4,10 @@ Vendor-neutral adapter interfaces live under `backend/src/gateway`.
 
 ## Protocols
 
-| Protocol | Status in PR4 |
+| Protocol | Status |
 |---|---|
-| Modbus RTU | Simulated adapter + register-map schema |
-| Modbus TCP | Simulated adapter + fictitious example map |
+| Modbus RTU | Simulated adapter + register-map schema; verified RTU wiring pending site dossier |
+| Modbus TCP | Simulated adapter + **verified read-only FC03 adapter** (`verified-inverter/`) |
 | SunSpec Modbus | Simulated adapter interface |
 | OPC UA | Simulated adapter interface |
 | MQTT | Simulated adapter + fictitious BESS example map |
@@ -16,6 +16,10 @@ Vendor-neutral adapter interfaces live under `backend/src/gateway`.
 | IEC 60870-5-104 | Placeholder only |
 | DNP3 | Placeholder only |
 
+## Verified inverter (pilot)
+
+See [INVERTER_INTEGRATION.md](./INVERTER_INTEGRATION.md). Official vendor maps live under `gateway/maps/vendor/<manufacturer>/<model>/<firmware>.ts`. Until onboarded, `resolvePilotVerifiedInverterMap()` fails closed.
+
 ## Non-negotiables
 
 - **Do not invent real vendor register addresses.**
@@ -23,21 +27,22 @@ Vendor-neutral adapter interfaces live under `backend/src/gateway`.
 - Gateway defaults: `readOnly: true`, `physicalCommandExecutionEnabled: false`.
 - Writes throw unless both read-only is off **and** the physical flag is explicitly enabled (post-HIL only).
 - In the initial production/pilot build, fictitious “setpoint” points are also **read-only** (no `write`/`read_write`) to prevent any accidental setpoint-writing credentials usage.
+- The verified pilot inverter adapter implements **no Modbus write function codes**.
 
 ## Register maps
 
 - Schema validation: `parseRegisterMap()` in `register-map.ts`
 - Fictitious examples: `gateway/maps/fictitious-examples.ts`
-- Points reference opaque `address` strings supplied by configuration — never hard-coded as “real” plant addresses in application logic
+- Verified maps: `gateway/maps/vendor/` + `parseVerifiedInverterMap()`
+- Points for verified maps use numeric addresses + word order + scale from the official PDF
 
 ### Onboarding a real vendor map
 
-1. Obtain the vendor Modbus/SunSpec/OPC dictionary under NDA.
-2. Create a new JSON/TS map with `fictitious: false`, real vendor/model, and verified addresses.
-3. Peer-review against the vendor PDF / ICD; never copy from fictitious examples.
-4. Bind the map to a site/asset in configuration (future work).
-5. Run HIL with the local safety controller before enabling writes.
-6. Document the map version, checksum and approval ticket in plant change control.
+1. Obtain the vendor Modbus/SunSpec/OPC dictionary under NDA / installer package.
+2. Complete the equipment dossier and copy `_TEMPLATE_/firmware-version.template.ts`.
+3. Peer-review against the vendor PDF; never copy from fictitious examples.
+4. Wire `resolve-pilot-map.ts` and run HIL validation worksheet.
+5. Keep physical command flags false until HIL + plant approval.
 
 ## Runtime features (foundation)
 

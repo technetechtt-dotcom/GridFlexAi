@@ -48,6 +48,10 @@ const envSchema = z.object({
   EDGE_ALLOW_LEGACY_SHARED_SECRET: envBoolean.default(true),
   EDGE_REPLAY_REQUIRE_REDIS: envBoolean.default(false),
   EDGE_ALLOW_MEMORY_REPLAY: envBoolean.default(true),
+  /** PEM-encoded Ed25519 private key for signing edge remote configuration. */
+  EDGE_CONFIG_SIGNING_PRIVATE_KEY_PEM: z.string().optional(),
+  /** PEM-encoded Ed25519 public key pinned on devices (optional if derivable from private). */
+  EDGE_CONFIG_SIGNING_PUBLIC_KEY_PEM: z.string().optional(),
   /**
    * Device secret vault provider.
    * `local` = AES-256-GCM with DEVICE_SECRET_VAULT_KEY (dev/test only).

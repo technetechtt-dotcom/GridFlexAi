@@ -13,6 +13,8 @@ declare namespace Express {
       credentialId?: string;
       keyVersion?: number;
       sequenceNumber?: number;
+      /** True when sequenceNumber equals last acknowledged — handler must ACK without duplicating. */
+      idempotentReplay?: boolean;
       mode: "legacy_shared_secret" | "device_credential";
     };
     /** Exact HTTP body bytes captured before JSON parsing (for GRIDFLEX-V1 HMAC). */

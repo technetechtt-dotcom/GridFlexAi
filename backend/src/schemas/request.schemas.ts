@@ -42,7 +42,27 @@ export const edgeDataBodySchema = z.object({
   location: z.string().min(2).max(160).optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
-  timestamp: z.string().datetime().optional()
+  /** Original measurement time — preserved across store-and-forward retries. */
+  timestamp: z.string().datetime().optional(),
+  messageId: z.string().uuid().optional(),
+  sequenceNumber: z.coerce.number().int().min(0).optional(),
+  queueDepth: z.coerce.number().int().min(0).optional(),
+  watchdogResetCount: z.coerce.number().int().min(0).optional(),
+  restartCount: z.coerce.number().int().min(0).optional(),
+  lastResetReason: z.string().max(120).optional(),
+  appliedConfigVersion: z.string().max(80).optional(),
+  enclosureTemperatureC: z.coerce.number().finite().optional(),
+  storageUtilisationPct: z.coerce.number().min(0).max(100).optional()
+});
+
+export const publishEdgeRemoteConfigBodySchema = z.object({
+  configurationVersion: z.string().min(1).max(80),
+  pollingIntervalMs: z.coerce.number().int().min(5_000).max(3_600_000),
+  serverEndpoint: z.string().url().max(500),
+  enabledTelemetryKeys: z.array(z.string().min(1).max(80)).min(1).max(64),
+  approvedFirmwareMinimum: z.string().min(1).max(40),
+  issuedAt: z.string().datetime(),
+  expiresAt: z.string().datetime()
 });
 
 export const forecastQuerySchema = z.object({

@@ -45,6 +45,17 @@ type CreateReadingInput = {
   latitude?: number;
   longitude?: number;
   timestamp?: Date;
+  sequenceNumber?: number;
+  messageId?: string;
+  quality?: "valid" | "invalid" | "uncertain" | "stale";
+  qualityFlags?: unknown;
+  queueDepth?: number;
+  watchdogResetCount?: number;
+  restartCount?: number;
+  lastResetReason?: string;
+  appliedConfigVersion?: string;
+  enclosureTemperatureC?: number;
+  storageUtilisationPct?: number;
 };
 
 const MAX_DATE_RANGE_MS = 1000 * 60 * 60 * 24 * 90; // 90 days
@@ -284,7 +295,7 @@ export const getReadingsSummary = async (
 };
 
 export type IngestionResult = {
-  reading: Awaited<ReturnType<typeof prisma.sensorReading.create>>;
+  reading: Awaited<ReturnType<typeof prisma.sensorReading.create>> | Awaited<ReturnType<typeof prisma.sensorReading.findUnique>>;
   nodeStatus: {
     id: string;
     name: string;
@@ -292,19 +303,48 @@ export type IngestionResult = {
     status: NodeStatus;
     lastSeen: Date | null;
     createdAt: Date;
+    siteId?: string | null;
   };
   isNewNode: boolean;
+  idempotent?: boolean;
 };
 
 type IngestionEnvelope = {
   message: string;
   data: IngestionResult["reading"];
+  idempotent?: boolean;
+  acknowledgedSequence?: number;
+};
+
+export type EdgeIngestAuthContext = {
+  deviceId: string;
+  sequenceNumber?: number;
+  idempotentReplay?: boolean;
 };
 
 export const createReading = async (payload: CreateReadingInput) => {
   const { node, isNewNode } = await resolveNodeForIngestion(payload.nodeId, payload.deviceKey);
   const ingestedAt = new Date();
   const deviceTimestamp = payload.timestamp ?? ingestedAt;
+
+  // Engineering range / sanity checks — flag, do not silently normalize.
+  const qualityFlags: Record<string, unknown> = {
+    ...((payload.qualityFlags && typeof payload.qualityFlags === "object"
+      ? (payload.qualityFlags as Record<string, unknown>)
+      : {}) as Record<string, unknown>)
+  };
+  let quality: "valid" | "invalid" | "uncertain" | "stale" = payload.quality ?? "valid";
+  if (!Number.isFinite(payload.voltage) || !Number.isFinite(payload.current) || !Number.isFinite(payload.power)) {
+    throw new AppError("voltage, current, and power must be finite numbers.", 400);
+  }
+  if (payload.voltage < 0 || payload.voltage > 1500) {
+    quality = "invalid";
+    qualityFlags.excess_voltage = true;
+  }
+  if (payload.power < -1) {
+    quality = quality === "valid" ? "uncertain" : quality;
+    qualityFlags.unexpected_negative_pv = true;
+  }
 
   const readingData: Prisma.SensorReadingUncheckedCreateInput = {
     nodeId: node.id,
@@ -316,14 +356,18 @@ export const createReading = async (payload: CreateReadingInput) => {
     ingestedAt,
     schemaVersion: "1",
     sourceType: "measured",
-    quality: "valid",
+    quality,
     environment: "live",
     powerUnit: "kW",
     voltageUnit: "V",
-    currentUnit: "A"
+    currentUnit: "A",
+    qualityFlags: qualityFlags as Prisma.InputJsonValue
   };
   if (node.assetId) {
     readingData.sourceAssetId = node.assetId;
+  }
+  if (typeof payload.sequenceNumber === "number") {
+    readingData.sequenceNumber = payload.sequenceNumber;
   }
 
   if (typeof payload.energyToday === "number") {
@@ -339,19 +383,83 @@ export const createReading = async (payload: CreateReadingInput) => {
     readingData.firmwareVersion = payload.firmwareVersion;
   }
 
-  const reading = await prisma.sensorReading.create({
-    data: readingData,
-    include: {
-      node: {
-        select: {
-          id: true,
-          name: true,
-          location: true,
-          status: true
+  let reading;
+  try {
+    reading = await prisma.sensorReading.create({
+      data: readingData,
+      include: {
+        node: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            status: true
+          }
+        }
+      }
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002" &&
+      typeof payload.sequenceNumber === "number" &&
+      payload.deviceKey
+    ) {
+      const existingReceipt = await prisma.edgeIngestReceipt.findUnique({
+        where: {
+          deviceId_sequenceNumber: {
+            deviceId: payload.deviceKey,
+            sequenceNumber: payload.sequenceNumber
+          }
+        }
+      });
+      if (existingReceipt?.readingId) {
+        const existing = await prisma.sensorReading.findUnique({
+          where: { id: existingReceipt.readingId },
+          include: {
+            node: { select: { id: true, name: true, location: true, status: true } }
+          }
+        });
+        if (existing) {
+          return {
+            reading: existing,
+            nodeStatus: {
+              id: existing.node.id,
+              name: existing.node.name,
+              location: existing.node.location,
+              status: existing.node.status,
+              lastSeen: null,
+              createdAt: ingestedAt
+            },
+            isNewNode: false,
+            idempotent: true
+          };
         }
       }
     }
-  });
+    throw error;
+  }
+
+  if (typeof payload.sequenceNumber === "number" && payload.deviceKey) {
+    await prisma.edgeIngestReceipt.upsert({
+      where: {
+        deviceId_sequenceNumber: {
+          deviceId: payload.deviceKey,
+          sequenceNumber: payload.sequenceNumber
+        }
+      },
+      create: {
+        deviceId: payload.deviceKey,
+        sequenceNumber: payload.sequenceNumber,
+        readingId: reading.id,
+        ...(payload.messageId ? { messageId: payload.messageId } : {})
+      },
+      update: {
+        readingId: reading.id,
+        ...(payload.messageId ? { messageId: payload.messageId } : {})
+      }
+    });
+  }
 
   const nodeUpdateData: Prisma.EdgeNodeUpdateInput = {
     status: NodeStatus.online,
@@ -367,6 +475,27 @@ export const createReading = async (payload: CreateReadingInput) => {
   }
   if (typeof payload.firmwareVersion === "string") {
     nodeUpdateData.firmwareVersion = payload.firmwareVersion;
+  }
+  if (typeof payload.queueDepth === "number") {
+    nodeUpdateData.queueDepth = payload.queueDepth;
+  }
+  if (typeof payload.watchdogResetCount === "number") {
+    nodeUpdateData.watchdogResetCount = payload.watchdogResetCount;
+  }
+  if (typeof payload.restartCount === "number") {
+    nodeUpdateData.restartCount = payload.restartCount;
+  }
+  if (typeof payload.lastResetReason === "string") {
+    nodeUpdateData.lastResetReason = payload.lastResetReason;
+  }
+  if (typeof payload.appliedConfigVersion === "string") {
+    nodeUpdateData.appliedConfigVersion = payload.appliedConfigVersion;
+  }
+  if (typeof payload.enclosureTemperatureC === "number") {
+    nodeUpdateData.enclosureTemperatureC = payload.enclosureTemperatureC;
+  }
+  if (typeof payload.storageUtilisationPct === "number") {
+    nodeUpdateData.storageUtilisationPct = payload.storageUtilisationPct;
   }
   if (typeof payload.location === "string") {
     nodeUpdateData.location = payload.location;
@@ -413,7 +542,52 @@ export const createReading = async (payload: CreateReadingInput) => {
   } satisfies IngestionResult;
 };
 
-export const ingestEdgeData = async (payload: EdgeDataBody, deviceKey?: string): Promise<IngestionEnvelope> => {
+export const ingestEdgeData = async (
+  payload: EdgeDataBody,
+  deviceKey?: string,
+  auth?: EdgeIngestAuthContext
+): Promise<IngestionEnvelope> => {
+  const sequenceNumber =
+    typeof auth?.sequenceNumber === "number"
+      ? auth.sequenceNumber
+      : typeof payload.sequenceNumber === "number"
+        ? payload.sequenceNumber
+        : undefined;
+
+  // Idempotent ACK: same deviceId + sequenceNumber already accepted.
+  if (auth?.idempotentReplay && deviceKey && typeof sequenceNumber === "number") {
+    const receipt = await prisma.edgeIngestReceipt.findUnique({
+      where: {
+        deviceId_sequenceNumber: { deviceId: deviceKey, sequenceNumber }
+      }
+    });
+    if (receipt?.readingId) {
+      const existing = await prisma.sensorReading.findUnique({ where: { id: receipt.readingId } });
+      if (existing) {
+        return {
+          message: "Duplicate sequence acknowledged.",
+          data: existing,
+          idempotent: true,
+          acknowledgedSequence: sequenceNumber
+        };
+      }
+    }
+    // Watermark advanced previously but receipt missing (legacy) — still ACK success.
+    return {
+      message: "Duplicate sequence acknowledged.",
+      data: {
+        id: receipt?.id ?? `ack-${deviceKey}-${sequenceNumber}`,
+        nodeId: "",
+        voltage: payload.voltage,
+        current: payload.current,
+        power: payload.power,
+        sequenceNumber
+      } as IngestionResult["reading"],
+      idempotent: true,
+      acknowledgedSequence: sequenceNumber
+    };
+  }
+
   const readingInput = {
     deviceKey,
     voltage: payload.voltage,
@@ -423,6 +597,12 @@ export const ingestEdgeData = async (payload: EdgeDataBody, deviceKey?: string):
 
   if (payload.nodeId) {
     readingInput.nodeId = payload.nodeId;
+  }
+  if (typeof sequenceNumber === "number") {
+    readingInput.sequenceNumber = sequenceNumber;
+  }
+  if (typeof payload.messageId === "string") {
+    readingInput.messageId = payload.messageId;
   }
   if (typeof payload.energyToday === "number") {
     readingInput.energyToday = payload.energyToday;
@@ -454,18 +634,46 @@ export const ingestEdgeData = async (payload: EdgeDataBody, deviceKey?: string):
   if (payload.timestamp) {
     readingInput.timestamp = new Date(payload.timestamp);
   }
+  if (typeof payload.queueDepth === "number") {
+    readingInput.queueDepth = payload.queueDepth;
+  }
+  if (typeof payload.watchdogResetCount === "number") {
+    readingInput.watchdogResetCount = payload.watchdogResetCount;
+  }
+  if (typeof payload.restartCount === "number") {
+    readingInput.restartCount = payload.restartCount;
+  }
+  if (typeof payload.lastResetReason === "string") {
+    readingInput.lastResetReason = payload.lastResetReason;
+  }
+  if (typeof payload.appliedConfigVersion === "string") {
+    readingInput.appliedConfigVersion = payload.appliedConfigVersion;
+  }
+  if (typeof payload.enclosureTemperatureC === "number") {
+    readingInput.enclosureTemperatureC = payload.enclosureTemperatureC;
+  }
+  if (typeof payload.storageUtilisationPct === "number") {
+    readingInput.storageUtilisationPct = payload.storageUtilisationPct;
+  }
 
   const result = await createReading(readingInput);
-  const io = getSocketServer();
-  const siteId = result.nodeStatus && "siteId" in result.nodeStatus ? (result.nodeStatus as { siteId?: string }).siteId : undefined;
-  emitToSiteScope(io, LIVE_READING_EVENT, result.reading, { siteId: siteId ?? null });
-  emitToSiteScope(io, NODE_STATUS_UPDATE_EVENT, result.nodeStatus, { siteId: siteId ?? null });
-  if (result.isNewNode) {
-    emitToSiteScope(io, NEW_NODE_EVENT, result.nodeStatus, { siteId: siteId ?? null });
+  if (!result.idempotent) {
+    const io = getSocketServer();
+    const siteId =
+      result.nodeStatus && "siteId" in result.nodeStatus
+        ? (result.nodeStatus as { siteId?: string }).siteId
+        : undefined;
+    emitToSiteScope(io, LIVE_READING_EVENT, result.reading, { siteId: siteId ?? null });
+    emitToSiteScope(io, NODE_STATUS_UPDATE_EVENT, result.nodeStatus, { siteId: siteId ?? null });
+    if (result.isNewNode) {
+      emitToSiteScope(io, NEW_NODE_EVENT, result.nodeStatus, { siteId: siteId ?? null });
+    }
   }
 
   return {
-    message: "Reading ingested successfully.",
-    data: result.reading
-  };
+    message: result.idempotent ? "Duplicate sequence acknowledged." : "Reading ingested successfully.",
+    data: result.reading as IngestionEnvelope["data"],
+    ...(result.idempotent ? { idempotent: true as const } : {}),
+    ...(typeof sequenceNumber === "number" ? { acknowledgedSequence: sequenceNumber } : {})
+  } as IngestionEnvelope;
 };

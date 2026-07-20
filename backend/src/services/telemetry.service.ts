@@ -78,7 +78,27 @@ export const ingestTelemetryBatch = async (
       continue;
     }
 
-    let quality: "valid" | "invalid" = "valid";
+    const deviceTs = Date.parse(item.deviceTimestamp);
+    if (!Number.isFinite(deviceTs)) {
+      rejected += 1;
+      errors.push({ index, message: "deviceTimestamp must be a valid ISO timestamp." });
+      continue;
+    }
+
+    const skewMs = Math.abs(Date.now() - deviceTs);
+    const maxSkewMs = Number(process.env.EDGE_INGEST_MAX_SKEW_SECONDS ?? 300) * 1000;
+    const futureGraceMs = 60_000;
+    if (deviceTs - Date.now() > futureGraceMs) {
+      rejected += 1;
+      errors.push({ index, message: "deviceTimestamp is too far in the future." });
+      continue;
+    }
+
+    let quality: "valid" | "invalid" | "stale" | "uncertain" = "valid";
+    if (skewMs > maxSkewMs && deviceTs < Date.now()) {
+      quality = "stale";
+    }
+
     const min = definition?.minimumValidValue ?? catalog?.minimumValidValue;
     const max = definition?.maximumValidValue ?? catalog?.maximumValidValue;
     if (typeof item.numericValue === "number") {
@@ -93,6 +113,9 @@ export const ingestTelemetryBatch = async (
         }
         quality = "invalid";
         taggedInvalid += 1;
+      }
+      if (item.key.includes("power") && item.numericValue < -1) {
+        quality = quality === "valid" ? "uncertain" : quality;
       }
     }
 
@@ -122,7 +145,11 @@ export const ingestTelemetryBatch = async (
       await prisma.telemetryReading.create({ data });
       accepted += 1;
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const code =
+        error && typeof error === "object" && "code" in error
+          ? String((error as { code: unknown }).code)
+          : "";
+      if (code === "P2002" || (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) {
         duplicates += 1;
         continue;
       }

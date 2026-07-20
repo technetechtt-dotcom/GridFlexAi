@@ -1,35 +1,34 @@
-# LILYGO T-Call A7670 ESP32 Firmware
+# GridFlex ESP32 edge firmware
 
-This directory contains the firmware for the GridFlex IoT edge node. It is designed to run on the LILYGO T-Call A7670 (ESP32 with 4G/LTE cellular module) but defaults to Wi-Fi for testing purposes.
+Pilot reliability stack (Phase 5) lives in **`firmware/GridFlexEdge/`**.
 
-## Requirements
+## Features
 
-1.  **Arduino IDE** (or PlatformIO)
-2.  **ESP32 Board Support** installed in Arduino IDE.
-3.  **Libraries**:
-    *   `ArduinoJson` (by Benoit Blanchon)
-    *   If switching to cellular later: `TinyGSM` (by Volodymyr Shymanskyy)
+| Area | Implementation |
+|------|----------------|
+| Store-and-forward | LittleFS queue — measure → enqueue → upload → **delete only after ACK** |
+| Idempotency | Persistent `sequenceNumber` + `messageId`; backend unique on `deviceId + sequenceNumber` |
+| Watchdog | ESP task WDT fed only when Modbus, network, upload, queue, and time-sync tasks stay healthy |
+| Network | Wi-Fi reconnect with jittered backoff; LTE modem power-cycle stub (`USE_LTE`) |
+| Remote config | TLS download, Ed25519 verify (pinned key), range checks, last-known-good, rollback |
+| OTA | Dual partitions (`partitions_ota.csv`), signed-image gate, boot confirm / rollback |
 
-## Configuration
+**HMAC device secrets are never delivered through remote configuration.**
 
-Before flashing the device, you **MUST** edit the top of `main.ino`:
+## Flash
 
-1.  **`WIFI_SSID` & `WIFI_PASS`**: Your local Wi-Fi credentials.
-2.  **`DEVICE_ID`**: The `deviceKey` of your node in the GridFlex Ops Center. You can create a new node or use an existing one. E.g., `device-001`.
-3.  **`SHARED_SECRET`**: Legacy shared-secret demos only. For production pilot, provision a per-device credential and use **GRIDFLEX-V1** signing — see `backend/examples/esp32_gridflex_v1_hmac_example.ino` and `backend/examples/edge_hmac_test_vector.md`.
+1. Arduino IDE → ESP32 Dev Module (or LILYGO T-Call).
+2. Tools → Partition Scheme → custom / flash `firmware/partitions_ota.csv`.
+3. Libraries: **ArduinoJson**, LittleFS (bundled with ESP32 core).
+4. Edit `GridFlexEdge/config.h`: Wi-Fi, `DEVICE_ID`, `CREDENTIAL_ID`, provisioned secret, API base, Ed25519 public key PEM.
+5. Open `GridFlexEdge/GridFlexEdge.ino` and upload.
 
-## Deployment to LILYGO T-Call A7670
+## Legacy sketch
 
-1.  Connect the board via USB-C.
-2.  Select **ESP32 Dev Module** in the Arduino IDE Boards Manager.
-3.  Compile and Upload.
-4.  Open the Serial Monitor (115200 baud) to watch the device boot, connect, sync NTP time, and post its first HMAC-secured JSON payload to your live Render backend!
+`firmware/main.ino` is the older Wi-Fi + legacy HMAC demo. Prefer **GridFlexEdge** for pilot.
 
-## Future: Switching to 4G/LTE Cellular
+## Backend contracts
 
-The current `main.ino` uses standard `WiFi.h` and `WiFiClientSecure`. 
-To use the onboard A7670 SIM module:
-1. Define the TinyGSM modem: `#define TINY_GSM_MODEM_SIM7600`
-2. Include `<TinyGsmClient.h>`.
-3. Initialize `Serial1` for the modem AT commands using the LILYGO specific pins (RX: 26, TX: 27, PWR: 4, BAT_ADC: 35).
-4. Replace `WiFiClientSecure` with `TinyGsmClientSecure`.
+- Ingest: `POST /api/edge-data` (GRIDFLEX-V1)
+- Config: `GET /api/edge/config` (signed payload; verify Ed25519)
+- Docs: `docs/EDGE_RELIABILITY.md`, `docs/HARDWARE_IN_THE_LOOP.md`

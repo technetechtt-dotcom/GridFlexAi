@@ -151,6 +151,60 @@ describe("verifyEdgeDeviceAuth GRIDFLEX-V1", () => {
     expect(error).toMatchObject({ statusCode: 409 });
   });
 
+  it("treats equal sequence as idempotent replay (store-and-forward retry)", async () => {
+    const encrypted = await vault.encrypt(deviceSecret);
+    (prisma.deviceCredential.findUnique as jest.Mock).mockResolvedValue({
+      id: "row-1",
+      credentialId: "cred_testvector01",
+      keyVersion: 1,
+      status: "active",
+      expiresAt: null,
+      lastSequenceNumber: 42,
+      encryptedSecret: encrypted.ciphertext,
+      encryptedDataKey: null,
+      encryptionKeyId: encrypted.keyId,
+      secretFingerprint: fingerprintDeviceSecret(deviceSecret),
+      edgeNodeId: "node-1",
+      edgeNode: { deviceKey: "esp32-node-1", isActive: true, id: "node-1" }
+    });
+
+    const timestamp = String(Date.now());
+    const signature = createGridFlexV1Signature(
+      {
+        deviceId: "esp32-node-1",
+        credentialId: "cred_testvector01",
+        keyVersion: 1,
+        timestamp,
+        nonce: "nonce-retry",
+        sequenceNumber: 42,
+        rawBody
+      },
+      deviceSecret
+    );
+
+    const { error, req } = await runAuth({
+      headers: {
+        "x-gridflex-device-id": "esp32-node-1",
+        "x-gridflex-credential-id": "cred_testvector01",
+        "x-gridflex-key-version": "1",
+        "x-gridflex-timestamp": timestamp,
+        "x-gridflex-nonce": "nonce-retry",
+        "x-gridflex-sequence-number": "42",
+        "x-gridflex-signature": signature
+      },
+      rawBody,
+      body: JSON.parse(rawBody.toString("utf8"))
+    });
+
+    expect(error).toBeUndefined();
+    expect(req.edgeAuth?.idempotentReplay).toBe(true);
+    expect(prisma.deviceCredential.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({ lastSequenceNumber: 42 })
+      })
+    );
+  });
+
   it("rejects secretHash-only credentials (must re-provision)", async () => {
     (prisma.deviceCredential.findUnique as jest.Mock).mockResolvedValue({
       id: "row-legacy",
