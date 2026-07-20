@@ -23,7 +23,9 @@ export const FICTITIOUS_INVERTER_MODBUS_MAP = {
       address: "EX-HOLDING-40100",
       dataType: "float32" as const,
       unit: "kW",
-      access: "read_write" as const,
+      // Pilot/production register maps must not include write-capable setpoint points.
+      // If this key is ever used, it is read-only in the initial pilot build.
+      access: "read" as const,
       description: "Fictitious setpoint placeholder — do not use on real devices"
     },
     {
@@ -59,7 +61,8 @@ export const FICTITIOUS_BESS_MQTT_MAP = {
       address: "plant/demo/bess/setpoint",
       dataType: "float32" as const,
       unit: "kW",
-      access: "read_write" as const,
+      // Pilot/production: keep setpoint topics read-only (no write adapter usage).
+      access: "read" as const,
       description: "Fictitious MQTT setpoint topic"
     }
   ]
