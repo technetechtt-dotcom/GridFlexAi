@@ -5,10 +5,12 @@ Stay in observe + advise mode.
 ## Hard safety controls
 
 1. `PHYSICAL_COMMAND_EXECUTION_ENABLED=false` in all pilot environments.
-2. GridFlex does **not** replace protection relays, PPC safety, or BMS protection.
-3. `REDIS_URL` configured for Socket.IO adapter and edge replay protection.
-4. Keep retention purge off until policy sign-off.
-5. Deploy migration `20260719210000_pr5_alarms_incidents`.
+2. `HIL_PLANT_APPROVAL_CONFIRMED=false` in all pilot environments.
+3. Production startup rejects physical actuation unless **both** flags are explicitly `true`.
+4. GridFlex does **not** replace protection relays, PPC safety, or BMS protection.
+5. `REDIS_URL` configured for Socket.IO adapter and edge replay protection.
+6. Keep retention purge off until policy sign-off.
+7. Deploy migration `20260719210000_pr5_alarms_incidents`.
 
 ## Pre-pilot completion gates
 

@@ -50,7 +50,10 @@ const envSchema = z.object({
   EDGE_ALLOW_MEMORY_REPLAY: envBoolean.default(true),
   NODE_HEALTH_CRON_ENABLED: envBoolean.default(true),
   NODE_HEALTH_CRON_SCHEDULE: z.string().default("*/1 * * * *"),
+  /** Arms simulated/physical command send path. Requires HIL_PLANT_APPROVAL_CONFIRMED in production. */
   PHYSICAL_COMMAND_EXECUTION_ENABLED: envBoolean.default(false),
+  /** Independent plant/HIL sign-off. Both flags must be true to arm physical execution in production. */
+  HIL_PLANT_APPROVAL_CONFIRMED: envBoolean.default(false),
   TELEMETRY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(365),
   TELEMETRY_RETENTION_CRON_ENABLED: envBoolean.default(false),
   TELEMETRY_RETENTION_CRON_SCHEDULE: z.string().default("15 3 * * *"),
@@ -132,8 +135,16 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
     problems.push("EDGE_ALLOW_LEGACY_SHARED_SECRET must be false in production. Use per-device credentials.");
   }
 
-  if (config.PHYSICAL_COMMAND_EXECUTION_ENABLED) {
-    problems.push("PHYSICAL_COMMAND_EXECUTION_ENABLED must remain false until plant approval and HIL validation.");
+  if (config.PHYSICAL_COMMAND_EXECUTION_ENABLED && !config.HIL_PLANT_APPROVAL_CONFIRMED) {
+    problems.push(
+      "PHYSICAL_COMMAND_EXECUTION_ENABLED requires HIL_PLANT_APPROVAL_CONFIRMED=true in production. Both flags must be true to arm physical execution."
+    );
+  }
+
+  if (config.HIL_PLANT_APPROVAL_CONFIRMED && !config.PHYSICAL_COMMAND_EXECUTION_ENABLED) {
+    problems.push(
+      "HIL_PLANT_APPROVAL_CONFIRMED=true requires PHYSICAL_COMMAND_EXECUTION_ENABLED=true. During pilot both flags must remain false."
+    );
   }
 
   if (!config.REDIS_URL && !config.EDGE_ALLOW_MEMORY_REPLAY) {
@@ -150,3 +161,8 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
 validateProductionSafety(parsed.data);
 
 export const env = parsed.data;
+
+/** Physical plant actuation is armed only when both production safety flags are explicitly true. */
+export const isPhysicalCommandExecutionArmed = (
+  config: z.infer<typeof envSchema> = parsed.data
+): boolean => config.PHYSICAL_COMMAND_EXECUTION_ENABLED && config.HIL_PLANT_APPROVAL_CONFIRMED;

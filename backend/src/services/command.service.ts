@@ -401,9 +401,9 @@ export const expireCommandIfNeeded = async (id: string) => {
  * Physical adapters are never invoked while PHYSICAL_COMMAND_EXECUTION_ENABLED is false.
  */
 export const executeApprovedCommand = async (id: string, actor?: AccessActor) => {
-  if (env.PHYSICAL_COMMAND_EXECUTION_ENABLED) {
+  if (isPhysicalExecutionEnabled()) {
     throw new AppError(
-      "Physical command execution is not available. Disable PHYSICAL_COMMAND_EXECUTION_ENABLED and use the simulated executor until HIL validation.",
+      "Physical command execution is not available. Keep PHYSICAL_COMMAND_EXECUTION_ENABLED and HIL_PLANT_APPROVAL_CONFIRMED false until HIL validation and plant sign-off.",
       503
     );
   }
@@ -451,4 +451,5 @@ export const executeApprovedCommand = async (id: string, actor?: AccessActor) =>
   return result;
 };
 
-export const isPhysicalExecutionEnabled = (): boolean => env.PHYSICAL_COMMAND_EXECUTION_ENABLED;
+export const isPhysicalExecutionEnabled = (): boolean =>
+  env.PHYSICAL_COMMAND_EXECUTION_ENABLED && env.HIL_PLANT_APPROVAL_CONFIRMED;

@@ -17,4 +17,4 @@ Do not place secret values in these files.
 
 ## Safety lock
 
-Set `PHYSICAL_COMMAND_EXECUTION_ENABLED=false` in staging and production.
+Set `PHYSICAL_COMMAND_EXECUTION_ENABLED=false` and `HIL_PLANT_APPROVAL_CONFIRMED=false` in staging and production. Physical actuation requires both flags true in production.

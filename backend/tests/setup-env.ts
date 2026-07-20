@@ -11,6 +11,7 @@ process.env.EDGE_ALLOW_LEGACY_SHARED_SECRET = "true";
 process.env.EDGE_ALLOW_MEMORY_REPLAY = "true";
 process.env.EDGE_REPLAY_REQUIRE_REDIS = "false";
 process.env.PHYSICAL_COMMAND_EXECUTION_ENABLED = "false";
+process.env.HIL_PLANT_APPROVAL_CONFIRMED = "false";
 delete process.env.REDIS_URL;
 process.env.FORCE_HTTPS = "false";
 process.env.ADMIN_REQUIRE_HTTPS = "false";

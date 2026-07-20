@@ -55,6 +55,8 @@ services:
         value: "false"
       - key: PHYSICAL_COMMAND_EXECUTION_ENABLED
         value: "false"
+      - key: HIL_PLANT_APPROVAL_CONFIRMED
+        value: "false"
       - key: FORECAST_RATE_LIMIT_MAX_PER_MINUTE
         value: "20"
       - key: FORECAST_CRON_ENABLED
