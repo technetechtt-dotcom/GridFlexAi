@@ -83,6 +83,10 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: METRICS_SCRAPE_TOKEN
+        sync: false
+      - key: OTEL_SERVICE_NAME
+        value: gridflex-api
       - key: FORECAST_CIRCUIT_FAILURE_THRESHOLD
         value: "3"
       - key: FORECAST_CIRCUIT_OPEN_MS

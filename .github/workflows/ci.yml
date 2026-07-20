@@ -86,6 +86,22 @@ jobs:
       - name: Build backend container image
         run: docker build -t gridflex-backend:ci ./backend
 
+      - name: Record image digest for promotion
+        run: |
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' gridflex-backend:ci 2>/dev/null || true)
+          if [ -z "$DIGEST" ]; then
+            DIGEST="sha256:$(docker image inspect gridflex-backend:ci --format='{{.Id}}' | sed 's/^sha256://')"
+          fi
+          echo "IMAGE_DIGEST=$DIGEST" >> "$GITHUB_ENV"
+          echo "$DIGEST" > image-digest.txt
+          echo "Recorded IMAGE_DIGEST=$DIGEST"
+
+      - name: Upload image digest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-image-digest
+          path: image-digest.txt
+
       - name: Generate container SBOM (Syft)
         uses: anchore/sbom-action@v0
         with:
@@ -123,6 +139,25 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: Check staging/production env key parity
+        run: npm run check:env-parity
+
+      - name: Generate parity report artifact
+        run: |
+          IMAGE_DIGEST="${{ github.sha }}" npm run report:parity
+        env:
+          STAGING_SMOKE_RESULT: pending
+          PRODUCTION_SMOKE_RESULT: pending
+
+      - name: Upload parity report
+        uses: actions/upload-artifact@v4
+        with:
+          name: env-parity-report
+          path: |
+            go-live-reports/env-parity.json
+            go-live-reports/parity-report-latest.json
+            go-live-reports/*.sha256
 
       - name: Lint frontend
         run: npm run lint

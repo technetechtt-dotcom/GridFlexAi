@@ -46,12 +46,15 @@ export const errorHandler = (
 
   logger.error("Unhandled application error", {
     requestId,
+    traceId: typeof res.locals.traceId === "string" ? res.locals.traceId : undefined,
     route: `${req.method} ${req.originalUrl}`,
+    event: "http.unhandled_error",
     error: err instanceof Error ? err.message : String(err)
   });
 
   res.status(500).json({
     message: "Internal server error.",
-    requestId
+    requestId,
+    ...(typeof res.locals.traceId === "string" ? { traceId: res.locals.traceId } : {})
   });
 };

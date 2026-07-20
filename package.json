@@ -13,6 +13,7 @@
     "baseline:load": "node scripts/load-baseline.mjs",
     "env:templates": "node scripts/generate-env-keys-template.mjs",
     "check:env-parity": "node scripts/check-env-parity.mjs",
+    "report:parity": "node scripts/generate-parity-report.mjs",
     "verify:go-live": "node scripts/verify-go-live.mjs",
     "verify:go-live:full": "node scripts/verify-go-live-full.mjs",
     "verify:go-live:staging": "node scripts/verify-go-live-staging.mjs",

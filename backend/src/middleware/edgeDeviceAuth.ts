@@ -8,6 +8,7 @@ import { assertAndStoreEdgeNonce, clearEdgeReplayCache } from "../lib/edge-repla
 import { prisma } from "../lib/prisma.js";
 import { completeCredentialRotation } from "../services/device-credential.service.js";
 import { getDeviceSecretVault } from "../services/device-secret-vault/index.js";
+import { platformMetrics } from "../services/platform-metrics.service.js";
 import { AppError } from "../utils/AppError.js";
 import { logger } from "../utils/logger.js";
 import {
@@ -226,8 +227,10 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
           logger.info("Edge auth failed: signature mismatch.", {
             deviceId,
             credentialId,
-            reason: "bad_signature"
+            reason: "bad_signature",
+            event: "edge.auth.signature_failed"
           });
+          platformMetrics.recordSignatureFailure();
           next(new AppError("Invalid edge request signature.", 401));
           return;
         }

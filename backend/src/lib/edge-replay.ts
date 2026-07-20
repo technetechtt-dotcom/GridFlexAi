@@ -1,5 +1,6 @@
 import { getRedisClient } from "./redis.js";
 import { env } from "../config/env.js";
+import { platformMetrics } from "../services/platform-metrics.service.js";
 import { AppError } from "../utils/AppError.js";
 
 const memoryReplay = new Map<string, number>();
@@ -37,12 +38,15 @@ export const assertAndStoreEdgeNonce = async (
         ]);
       }
       if (redis.status === "ready") {
+        platformMetrics.setRedisAvailable(true);
         const result = await redis.set(key, "1", "EX", ttlSeconds, "NX");
         if (result !== "OK") {
+          platformMetrics.recordReplayAttempt();
           throw new AppError("Replay request detected for edge ingestion.", 409);
         }
         return;
       }
+      platformMetrics.setRedisAvailable(false);
       if (env.EDGE_REPLAY_REQUIRE_REDIS || env.NODE_ENV === "production") {
         throw new AppError("Replay protection unavailable. Edge ingest temporarily rejected.", 503);
       }
@@ -50,18 +54,21 @@ export const assertAndStoreEdgeNonce = async (
       if (error instanceof AppError) {
         throw error;
       }
+      platformMetrics.setRedisAvailable(false);
       if (env.EDGE_REPLAY_REQUIRE_REDIS || env.NODE_ENV === "production") {
         throw new AppError("Replay protection unavailable. Edge ingest temporarily rejected.", 503);
       }
       // Fall through to memory in non-production when Redis is optional.
     }
   } else if (env.EDGE_REPLAY_REQUIRE_REDIS || (env.NODE_ENV === "production" && !env.EDGE_ALLOW_MEMORY_REPLAY)) {
+    platformMetrics.setRedisAvailable(false);
     throw new AppError("Replay protection unavailable. Configure REDIS_URL for edge ingest.", 503);
   }
 
   const now = Date.now();
   pruneMemoryReplay(now);
   if (memoryReplay.has(key)) {
+    platformMetrics.recordReplayAttempt();
     throw new AppError("Replay request detected for edge ingestion.", 409);
   }
   memoryReplay.set(key, now + ttlSeconds * 1000);

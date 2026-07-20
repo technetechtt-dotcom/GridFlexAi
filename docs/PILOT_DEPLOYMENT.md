@@ -48,11 +48,13 @@ The following gates must be complete and evidenced before a real IPP pilot.
    - Remaining: execute first restore into isolated branch and complete evidence worksheet.
    - Evidence: `docs/runbooks/backup-restore-evidence.md` + `npm run restore:verify`.
 9. **Central observability**
-   - Enable centralized logs, metrics, alerting, and notification routing.
-   - Evidence: alert fire-drill outputs and on-call routing proof.
+   - Structured JSON logs, Prometheus `/api/metrics`, trace IDs, alert catalog — `docs/OBSERVABILITY.md`.
+   - Remaining: wire hosting log drain + live alert routes; complete on-call fire-drill.
+   - Evidence: alert-review log + metrics scrape proof.
 10. **Environment parity**
-    - Prove staging and production parity for configs, migrations, and critical dependencies.
-    - Evidence: parity report and diff-free baseline.
+    - Matrix + immutable digest promotion + `npm run check:env-parity` / `report:parity` — `docs/ENVIRONMENT_PARITY.md`.
+    - Remaining: first signed production promotion evidence.
+    - Evidence: `go-live-reports/parity-report-latest.json`.
 11. **External penetration test**
     - Complete third-party security assessment and remediate critical/high findings.
     - Evidence: final report and remediation closure tracker.

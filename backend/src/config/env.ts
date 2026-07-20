@@ -100,6 +100,10 @@ const envSchema = z.object({
   FORECAST_CRON_ENABLED: envBoolean.default(true),
   FORECAST_CRON_SCHEDULE: z.string().default("*/30 * * * *"),
   REDIS_URL: z.string().optional(),
+  /** Bearer token required to scrape /api/metrics in production. */
+  METRICS_SCRAPE_TOKEN: z.string().min(16).optional(),
+  /** Optional service name override for structured logs / OTel. */
+  OTEL_SERVICE_NAME: z.string().min(1).max(80).optional(),
   OPENWEATHER_API_KEY: z.string().optional(),
   ACCUWEATHER_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),

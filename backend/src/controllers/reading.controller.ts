@@ -2,8 +2,10 @@ import type { Request, Response } from "express";
 import type { ParsedQs } from "qs";
 
 import { getReadings, getReadingsSummary, ingestEdgeData as ingestEdgeDataService } from "../services/reading.service.js";
+import { platformMetrics } from "../services/platform-metrics.service.js";
 import type { EdgeDataBody, ReadingsQuery, ReadingsSummaryQuery } from "../schemas/request.schemas.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { logger } from "../utils/logger.js";
 type ReadingsResponse = {
   data: Awaited<ReturnType<typeof getReadings>>["items"];
   pagination: Awaited<ReturnType<typeof getReadings>>["pagination"];
@@ -58,25 +60,44 @@ export const ingestEdgeData = asyncHandler(async (
   req: Request<Record<string, never>, IngestionResponse, EdgeDataBody>,
   res: Response<IngestionResponse>
 ) => {
+  const started = Date.now();
   const deviceKey = req.header("x-gridflex-device-id") ?? undefined;
-  const result = await ingestEdgeDataService(req.body, deviceKey, req.edgeAuth
-    ? {
-        deviceId: req.edgeAuth.deviceId,
-        ...(typeof req.edgeAuth.sequenceNumber === "number"
-          ? { sequenceNumber: req.edgeAuth.sequenceNumber }
-          : {}),
-        ...(req.edgeAuth.idempotentReplay ? { idempotentReplay: true } : {})
-      }
-    : undefined);
+  try {
+    const result = await ingestEdgeDataService(req.body, deviceKey, req.edgeAuth
+      ? {
+          deviceId: req.edgeAuth.deviceId,
+          ...(typeof req.edgeAuth.sequenceNumber === "number"
+            ? { sequenceNumber: req.edgeAuth.sequenceNumber }
+            : {}),
+          ...(req.edgeAuth.idempotentReplay ? { idempotentReplay: true } : {})
+        }
+      : undefined);
 
-  res.status(result.idempotent ? 200 : 201).json({
-    message: result.message,
-    data: result.data,
-    ...(result.idempotent ? { idempotent: true } : {}),
-    ...(typeof result.acknowledgedSequence === "number"
-      ? { acknowledgedSequence: result.acknowledgedSequence }
-      : {})
-  });
+    platformMetrics.recordIngestAccepted();
+    logger.event("edge.ingest.accepted", {
+      durationMs: Date.now() - started,
+      idempotent: Boolean(result.idempotent),
+      ...(typeof result.acknowledgedSequence === "number"
+        ? { sequenceNumber: result.acknowledgedSequence }
+        : {})
+    });
+
+    res.status(result.idempotent ? 200 : 201).json({
+      message: result.message,
+      data: result.data,
+      ...(result.idempotent ? { idempotent: true } : {}),
+      ...(typeof result.acknowledgedSequence === "number"
+        ? { acknowledgedSequence: result.acknowledgedSequence }
+        : {})
+    });
+  } catch (error) {
+    platformMetrics.recordIngestRejected();
+    logger.event("edge.ingest.rejected", {
+      durationMs: Date.now() - started,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    throw error;
+  }
 });
 
 export const getReadingsSummaryController = asyncHandler(async (
