@@ -19,6 +19,7 @@ const REQUIRED_SHARED_KEYS = [
   "REDIS_URL",
   "PHYSICAL_COMMAND_EXECUTION_ENABLED",
   "HIL_PLANT_APPROVAL_CONFIRMED",
+  "PILOT_LOCK_PHYSICAL_EXECUTION",
   "EDGE_ALLOW_LEGACY_SHARED_SECRET",
   "DEVICE_SECRET_VAULT_PROVIDER",
   "GRIDFLEX_OPERATING_MODE"
@@ -87,6 +88,10 @@ const main = async () => {
   }
   if (prodHil && prodHil.toLowerCase() !== "false") {
     unsafe.push("HIL_PLANT_APPROVAL_CONFIRMED must be false in production key template until dual-flag arming");
+  }
+  const prodPilotLock = production.values.get("PILOT_LOCK_PHYSICAL_EXECUTION");
+  if (prodPilotLock && prodPilotLock.toLowerCase() !== "true") {
+    unsafe.push("PILOT_LOCK_PHYSICAL_EXECUTION should be true in production key template for pilot");
   }
   if (prodLegacy && prodLegacy.toLowerCase() !== "false") {
     unsafe.push("EDGE_ALLOW_LEGACY_SHARED_SECRET should be false in production");

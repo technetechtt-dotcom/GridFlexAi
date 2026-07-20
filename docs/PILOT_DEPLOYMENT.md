@@ -64,11 +64,12 @@ The following gates must be complete and evidenced before a real IPP pilot.
     - Remaining: run formal staging soak; fill evidence worksheet + capacity estimates.
     - Evidence: `docs/load/evidence-worksheet.md` + k6 summaries.
 13. **Supply-chain security**
-    - Add SBOM generation, secret scanning, and container image scanning in CI.
-    - Evidence: CI artifacts and policy gates.
+    - SBOM, Gitleaks, Trivy fail-closed, Dependabot — `docs/SUPPLY_CHAIN.md`.
+    - Evidence: CI artifacts (SBOM, Trivy SARIF, image digest) + Dependabot PRs.
 14. **POPIA governance**
-    - Establish POPIA data-handling procedures and recurring access reviews.
-    - Evidence: approved policy docs + access-review cadence.
+    - Data-handling policy, DSR runbook, access-review log — `docs/policies/popia-data-handling-policy.md`.
+    - Remaining: Information Officer sign-off + first monthly access review entry.
+    - Evidence: signed policy + `docs/policies/access-review-log.md`.
 15. **Physical execution remains disabled**
-    - Keep physical execution disabled throughout the initial pilot.
-    - Evidence: config lock + startup safety validation logs.
+    - Dual flags + `PILOT_LOCK_PHYSICAL_EXECUTION` + boot attestation — `docs/policies/pilot-physical-execution-lock.md`.
+    - Evidence: boot log `physicalExecutionArmed: false` + production-safety tests + env parity.

@@ -74,10 +74,20 @@ describe("production safety env", () => {
   it("allows startup when both physical execution flags are true (post-HIL only)", () => {
     Object.assign(process.env, productionBaseline(), {
       PHYSICAL_COMMAND_EXECUTION_ENABLED: "true",
-      HIL_PLANT_APPROVAL_CONFIRMED: "true"
+      HIL_PLANT_APPROVAL_CONFIRMED: "true",
+      PILOT_LOCK_PHYSICAL_EXECUTION: "false"
     });
     const mod = loadEnvModule();
     expect(mod.isPhysicalCommandExecutionArmed()).toBe(true);
+  });
+
+  it("rejects arming while PILOT_LOCK_PHYSICAL_EXECUTION remains true", () => {
+    Object.assign(process.env, productionBaseline(), {
+      PHYSICAL_COMMAND_EXECUTION_ENABLED: "true",
+      HIL_PLANT_APPROVAL_CONFIRMED: "true",
+      PILOT_LOCK_PHYSICAL_EXECUTION: "true"
+    });
+    expect(() => loadEnvModule()).toThrow(/PILOT_LOCK_PHYSICAL_EXECUTION/);
   });
 
   it("rejects production startup when device secret vault is local", () => {

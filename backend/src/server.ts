@@ -171,7 +171,15 @@ process.on("unhandledRejection", (reason) => {
     }
 
     webServer.server.listen(webServer.port, "0.0.0.0", () => {
-      logger.info(`GridFlex backend listening on ${webServer.protocol}://0.0.0.0:${webServer.port}`);
+      logger.info(`GridFlex backend listening on ${webServer.protocol}://0.0.0.0:${webServer.port}`, {
+        event: "server.listening",
+        physicalExecutionArmed:
+          env.PHYSICAL_COMMAND_EXECUTION_ENABLED && env.HIL_PLANT_APPROVAL_CONFIRMED,
+        physicalCommandExecutionEnabled: env.PHYSICAL_COMMAND_EXECUTION_ENABLED,
+        hilPlantApprovalConfirmed: env.HIL_PLANT_APPROVAL_CONFIRMED,
+        pilotLockPhysicalExecution: env.PILOT_LOCK_PHYSICAL_EXECUTION,
+        operatingMode: env.GRIDFLEX_OPERATING_MODE
+      });
     });
   } catch (err: unknown) {
     process.stderr.write(

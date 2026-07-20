@@ -65,6 +65,8 @@ services:
         value: "false"
       - key: HIL_PLANT_APPROVAL_CONFIRMED
         value: "false"
+      - key: PILOT_LOCK_PHYSICAL_EXECUTION
+        value: "true"
       - key: DEVICE_SECRET_VAULT_PROVIDER
         value: aws_kms
       - key: AWS_KMS_KEY_ID

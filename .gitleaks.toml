@@ -1,0 +1,19 @@
+title = "GridFlex gitleaks"
+[[allowlists]]
+  description = "Documented development placeholders and test fixtures (not production secrets)"
+  paths = [
+    '''backend/\.env\.example''',
+    '''env-keys/.*\.env\.keys''',
+    '''backend/tests/.*''',
+    '''backend/examples/.*''',
+    '''docs/.*''',
+    '''load/.*'''
+  ]
+  regexes = [
+    '''change-this-in-production''',
+    '''dev-only-.*''',
+    '''test-secret-with-minimum-length''',
+    '''test-edge-secret-with-minimum-length''',
+    '''dGVzdC1kZXZpY2Utc2VjcmV0LXZhdWx0LWtleS0zMiEh''',
+    '''replace-me-.*'''
+  ]

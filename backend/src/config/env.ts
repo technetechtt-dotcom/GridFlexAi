@@ -83,6 +83,11 @@ const envSchema = z.object({
   /** Independent plant/HIL sign-off. Both flags must be true to arm physical execution in production. */
   HIL_PLANT_APPROVAL_CONFIRMED: envBoolean.default(false),
   /**
+   * When true, both physical-execution flags must remain false (pilot lock).
+   * Use in all pilot/staging deployments; clear only after HIL + plant written approval.
+   */
+  PILOT_LOCK_PHYSICAL_EXECUTION: envBoolean.default(true),
+  /**
    * Platform operating mode — owned by the backend, not the browser.
    * SIMULATION publishes synthetic telemetry on /simulation only.
    * PILOT_LIVE / PRODUCTION_ADVISORY use measured live streams.
@@ -218,6 +223,15 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
 };
 
 validateProductionSafety(parsed.data);
+
+if (
+  parsed.data.PILOT_LOCK_PHYSICAL_EXECUTION &&
+  (parsed.data.PHYSICAL_COMMAND_EXECUTION_ENABLED || parsed.data.HIL_PLANT_APPROVAL_CONFIRMED)
+) {
+  throw new Error(
+    "PILOT_LOCK_PHYSICAL_EXECUTION=true forbids PHYSICAL_COMMAND_EXECUTION_ENABLED or HIL_PLANT_APPROVAL_CONFIRMED. Disable the pilot lock only after written HIL/plant approval."
+  );
+}
 
 export const env = parsed.data;
 

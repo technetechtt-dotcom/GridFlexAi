@@ -82,6 +82,7 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
 
       - name: Build backend container image
         run: docker build -t gridflex-backend:ci ./backend
@@ -109,6 +110,12 @@ jobs:
           format: cyclonedx-json
           output-file: sbom-backend-image.cdx.json
 
+      - name: Upload container SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-backend-image
+          path: sbom-backend-image.cdx.json
+
       - name: Scan backend container image (Trivy)
         uses: aquasecurity/trivy-action@0.24.0
         with:
@@ -118,8 +125,10 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           vuln-type: os,library
+          exit-code: "1"
 
       - name: Upload Trivy SARIF
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-backend.sarif
@@ -204,6 +213,7 @@ jobs:
       EDGE_INGEST_SHARED_SECRET: test-edge-secret-with-minimum-length
       PHYSICAL_COMMAND_EXECUTION_ENABLED: false
       HIL_PLANT_APPROVAL_CONFIRMED: false
+      PILOT_LOCK_PHYSICAL_EXECUTION: true
       DEVICE_SECRET_VAULT_PROVIDER: local
       DEVICE_SECRET_VAULT_KEY: dGVzdC1kZXZpY2Utc2VjcmV0LXZhdWx0LWtleS0zMiEh
       DEVICE_SECRET_VAULT_KEY_ID: local-test

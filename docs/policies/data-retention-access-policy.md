@@ -55,8 +55,15 @@ All privileged access must be logged with:
   - explicit end date
   - approval from engineering lead + security owner
 
+## Related policies
+
+- POPIA: [`popia-data-handling-policy.md`](./popia-data-handling-policy.md)
+- Access reviews: [`access-review-log.md`](./access-review-log.md)
+- Data subject requests: [`data-subject-request-runbook.md`](./data-subject-request-runbook.md)
+
 ## Ownership
 
 - Policy owner: Platform/Backend lead
+- Review cadence: monthly (access) / quarterly (retention)
 - Enforcement owner: DevOps/SRE
 - Review approver: Product + Security stakeholders
