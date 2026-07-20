@@ -12,7 +12,7 @@ services:
     autoDeploy: true
     healthCheckPath: /api/health/live
     buildCommand: npm install --include=dev && npm run prisma:generate && npm run build
-    startCommand: npx prisma migrate deploy && npm run start
+    startCommand: sh -c "npx prisma migrate deploy || (sleep 8 && npx prisma migrate deploy); npm run start"
     envVars:
       - key: NODE_ENV
         value: production
