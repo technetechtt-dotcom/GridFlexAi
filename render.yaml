@@ -27,6 +27,14 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      - key: JWT_ACTIVE_KID
+        value: v1
+      - key: JWT_SECRETS_JSON
+        sync: false
+      - key: JWT_PREVIOUS_SECRET
+        sync: false
+      - key: JWT_PREVIOUS_KID
+        sync: false
       - key: JWT_ACCESS_EXPIRES_IN
         value: 15m
       - key: JWT_REFRESH_EXPIRES_IN

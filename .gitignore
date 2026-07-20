@@ -17,6 +17,13 @@ go-live-reports/*
 !go-live-reports/README.md
 backend/certs/*.pfx
 
+# Secrets — never commit real env files (root or nested)
+.env
+.env.*
+!.env.example
+!**/.env.example
+!**/*.env.keys
+
 # Neon configs
 .neon
 

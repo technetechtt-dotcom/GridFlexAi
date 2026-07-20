@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "jest --runInBand",
+    "check:secrets-hygiene": "tsx scripts/check-secrets-hygiene.ts",
+    "restore:verify": "tsx scripts/restore-verify.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",

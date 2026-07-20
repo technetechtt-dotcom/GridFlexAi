@@ -1,6 +1,8 @@
 import { config } from "dotenv";
 import { z } from "zod";
 
+import { buildJwtKeyring } from "../utils/jwt-keyring.js";
+
 config();
 
 const envBoolean = z.preprocess((value) => {
@@ -34,6 +36,17 @@ const envSchema = z.object({
   TRUST_PROXY: envBoolean.default(true),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
+  /**
+   * Active JWT key id embedded as JOSE `kid` on newly issued tokens.
+   * During rotation, keep previous secrets in JWT_SECRETS_JSON or JWT_PREVIOUS_SECRET
+   * so existing sessions expire naturally.
+   */
+  JWT_ACTIVE_KID: z.string().min(1).max(64).optional(),
+  /** JSON object map of kid → HMAC secret for overlapping verification. */
+  JWT_SECRETS_JSON: z.string().optional(),
+  /** Previous HMAC secret retained during rotation (optional if in JWT_SECRETS_JSON). */
+  JWT_PREVIOUS_SECRET: z.string().min(16).optional(),
+  JWT_PREVIOUS_KID: z.string().min(1).max(64).optional(),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("30d"),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
@@ -130,6 +143,13 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
   }
   if (forbiddenJwtSecrets.has(jwtSecret) || jwtSecret.toLowerCase().includes("change-this")) {
     problems.push("JWT_SECRET is using a known development placeholder.");
+  }
+  try {
+    buildJwtKeyring(config);
+  } catch (error) {
+    problems.push(
+      `JWT keyring configuration invalid: ${error instanceof Error ? error.message : "unknown error"}`
+    );
   }
 
   if (config.EDGE_ALLOW_LEGACY_SHARED_SECRET && edgeSecret.length < 32) {

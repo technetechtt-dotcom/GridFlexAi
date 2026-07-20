@@ -39,11 +39,14 @@ The following gates must be complete and evidenced before a real IPP pilot.
    - Remaining: execute on-site bench and complete `docs/equipment/hil-evidence-worksheet.md` sign-off.
    - Evidence: signed HIL report with pass/fail per scenario.
 7. **Managed secrets and credential rotation**
-   - Move all secrets to managed secret store; rotate current API/device/admin credentials.
-   - Evidence: rotation log and post-rotation validation run.
+   - Inventory, manager selection, JWT `kid` overlap, ordered rotation — `docs/MANAGED_SECRETS.md`, `docs/SECRETS_INVENTORY.md`, `docs/runbooks/secret-rotation.md`.
+   - Remaining: populate last-rotated dates, execute production rotation, emergency rehearsal log entry.
+   - Evidence: rotation log + inventory owners + `npm run check:secrets-hygiene`.
 8. **Database restoration**
-   - Perform and document restoration drill from production-like backup.
-   - Evidence: RTO/RPO measurements and restored data integrity checks.
+   - Neon PITR/history window + isolated restore drill — `docs/runbooks/database-backup-restore.md`.
+   - Targets: RPO 15m, RTO 2h; quarterly drills.
+   - Remaining: execute first restore into isolated branch and complete evidence worksheet.
+   - Evidence: `docs/runbooks/backup-restore-evidence.md` + `npm run restore:verify`.
 9. **Central observability**
    - Enable centralized logs, metrics, alerting, and notification routing.
    - Evidence: alert fire-drill outputs and on-call routing proof.
