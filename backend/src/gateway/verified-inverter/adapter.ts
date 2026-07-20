@@ -4,6 +4,8 @@ import {
   createModbusTcpReadonlyTransport,
   type ModbusTcpTransport
 } from "./modbus-tcp-transport.js";
+import { expandKeysWithScaleFactors } from "./register-plan.js";
+import { discoverSunSpecModel, type SunSpecDiscoveryResult } from "./sunspec-discovery.js";
 import type {
   CommunicationHealthMetrics,
   DecodedRegisterValue,
@@ -21,6 +23,15 @@ export type VerifiedInverterAdapterConfig = {
   /** Max connect attempts before failing (default 8). */
   maxReconnectAttempts?: number;
   calibrationVersion?: string;
+  /**
+   * When true (default if PILOT_SUNSPEC_DISCOVER=true), run SunSpec discovery
+   * after TCP connect and rebase Model 103 addresses to the discovered base.
+   */
+  discoverSunSpec?: boolean;
+  /** Expected manufacturer substring for Common Model 1 Mn (optional). */
+  expectedManufacturer?: string;
+  /** Expected model substring for Common Model 1 Md (optional). */
+  expectedModel?: string;
 };
 
 /**
@@ -31,8 +42,10 @@ export type VerifiedInverterAdapterConfig = {
  * - Exponential reconnect backoff + communication health metrics
  */
 export class VerifiedReadOnlyInverterAdapter {
-  private readonly map: VerifiedInverterMap;
+  private map: VerifiedInverterMap;
   private transport: ModbusTcpTransport | null = null;
+  private discovery: SunSpecDiscoveryResult | null = null;
+  private identity: { manufacturer: string; model: string; serial: string } | null = null;
   private readonly config: Required<
     Pick<
       VerifiedInverterAdapterConfig,
@@ -71,6 +84,7 @@ export class VerifiedReadOnlyInverterAdapter {
   ) {
     this.map = parseVerifiedInverterMap(mapInput);
     assertNoWriteRegisters(this.map);
+    const discoverEnv = process.env.PILOT_SUNSPEC_DISCOVER?.trim().toLowerCase();
     this.config = {
       port: 502,
       timeoutMs: 3000,
@@ -78,12 +92,21 @@ export class VerifiedReadOnlyInverterAdapter {
       reconnectBaseMs: 500,
       reconnectMaxMs: 30_000,
       maxReconnectAttempts: 8,
+      discoverSunSpec: discoverEnv === "true" || discoverEnv === "1",
       ...config
     };
   }
 
   getMap(): VerifiedInverterMap {
     return this.map;
+  }
+
+  getDiscovery(): SunSpecDiscoveryResult | null {
+    return this.discovery;
+  }
+
+  getIdentity(): { manufacturer: string; model: string; serial: string } | null {
+    return this.identity;
   }
 
   /**
@@ -98,6 +121,9 @@ export class VerifiedReadOnlyInverterAdapter {
 
   async connect(): Promise<void> {
     await this.connectWithBackoff();
+    if (this.config.discoverSunSpec) {
+      await this.runSunSpecDiscovery();
+    }
   }
 
   async disconnect(): Promise<void> {
@@ -115,7 +141,8 @@ export class VerifiedReadOnlyInverterAdapter {
 
   async readKeys(keys: string[]): Promise<DecodedRegisterValue[]> {
     await this.ensureConnected();
-    const selected = this.map.registers.filter((r) => keys.includes(r.key));
+    const expanded = expandKeysWithScaleFactors(this.map.registers, keys);
+    const selected = this.map.registers.filter((r) => expanded.includes(r.key));
     if (selected.length === 0) {
       return [];
     }
@@ -151,13 +178,18 @@ export class VerifiedReadOnlyInverterAdapter {
         raw,
         { measuredAt: receivedAt, receivedAt }
       );
-      if (typeof decoded.rawDecoded === "number") {
+      if (typeof decoded.rawDecoded === "number" && !decoded.unavailable) {
+        // SunSpec sunssf N/A is −32768; also reject absurd exponents outside ±10.
+        if (decoded.rawDecoded < -10 || decoded.rawDecoded > 10) {
+          continue;
+        }
         scaleFactors[definition.key] = decoded.rawDecoded;
       }
     }
 
     return selected
       .filter((definition) => !definition.key.startsWith("sf_"))
+      .filter((definition) => keys.includes(definition.key))
       .map((definition) => {
         const raw: number[] = [];
         for (let i = 0; i < definition.length; i += 1) {
@@ -176,6 +208,87 @@ export class VerifiedReadOnlyInverterAdapter {
 
   health(): CommunicationHealthMetrics {
     return { ...this.metrics };
+  }
+
+  private async runSunSpecDiscovery(): Promise<void> {
+    if (!this.transport) {
+      throw new Error("SunSpec discovery requires an active Modbus transport.");
+    }
+    const transport = this.transport;
+    const result = await discoverSunSpecModel((start, quantity) =>
+      transport.readHoldingRegisters(start, quantity)
+    );
+    if (result.modelId !== 103) {
+      throw new Error(`Unsupported SunSpec model ${result.modelId}; expected Model 103.`);
+    }
+
+    const mappedBase = this.inferMappedModelBase();
+    const delta = result.modelBaseZero - mappedBase;
+    if (delta !== 0) {
+      this.map = {
+        ...this.map,
+        registers: this.map.registers.map((r) => ({
+          ...r,
+          address: r.address + delta
+        }))
+      };
+    }
+    this.discovery = result;
+    this.identity = await this.readCommonIdentity(result.commonBaseZero);
+    this.assertIdentityAllowed(this.identity);
+    this.metrics.detail = `sunspec model103@${result.modelBaseZero} mn=${this.identity.manufacturer}`;
+  }
+
+  private inferMappedModelBase(): number {
+    const w = this.map.registers.find((r) => r.key === "active_power_kw");
+    // Model 103 W point is offset 16 from model ID register.
+    if (!w) return 0;
+    return w.address - 16;
+  }
+
+  private async readCommonIdentity(
+    commonBaseZero: number
+  ): Promise<{ manufacturer: string; model: string; serial: string }> {
+    // SunSpec Common Model 1: after SunS (2) + ID/L (2), Mn@4 len16, Md@20 len16, SN@52 len16 (approx offsets).
+    const words = await this.transport!.readHoldingRegisters(commonBaseZero + 4, 64);
+    const decodeStr = (start: number, len: number) => {
+      const chars: string[] = [];
+      for (let i = 0; i < len; i += 1) {
+        const w = words[start + i] ?? 0;
+        const hi = (w >> 8) & 0xff;
+        const lo = w & 0xff;
+        if (hi) chars.push(String.fromCharCode(hi));
+        if (lo) chars.push(String.fromCharCode(lo));
+      }
+      return chars.join("").replace(/\0/g, "").trim();
+    };
+    return {
+      manufacturer: decodeStr(0, 16),
+      model: decodeStr(16, 16),
+      serial: decodeStr(36, 16)
+    };
+  }
+
+  private assertIdentityAllowed(identity: {
+    manufacturer: string;
+    model: string;
+    serial: string;
+  }): void {
+    const expectedMn = this.config.expectedManufacturer ?? process.env.PILOT_INVERTER_EXPECTED_MN;
+    const expectedMd = this.config.expectedModel ?? process.env.PILOT_INVERTER_EXPECTED_MD;
+    if (expectedMn && !identity.manufacturer.toLowerCase().includes(expectedMn.toLowerCase())) {
+      throw new Error(
+        `Unsupported inverter manufacturer "${identity.manufacturer}"; expected to include "${expectedMn}".`
+      );
+    }
+    if (expectedMd && !identity.model.toLowerCase().includes(expectedMd.toLowerCase())) {
+      throw new Error(
+        `Unsupported inverter model "${identity.model}"; expected to include "${expectedMd}".`
+      );
+    }
+    if (!identity.manufacturer && !identity.model) {
+      throw new Error("Inverter Common Model identity registers empty — refusing unsupported unit.");
+    }
   }
 
   private async ensureConnected(): Promise<void> {

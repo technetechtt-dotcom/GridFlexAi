@@ -54,6 +54,36 @@ export const validateRemoteConfigRanges = (payload: EdgeRemoteConfigPayload): vo
   if (expires <= Date.now()) {
     throw new AppError("Remote configuration is already expired.", 400);
   }
+
+  // Pilot: remote config must never carry physical-control / arming knobs.
+  const forbidden = [
+    "physicalExecution",
+    "physical_execution",
+    "allowPhysical",
+    "PHYSICAL_COMMAND_EXECUTION_ENABLED",
+    "HIL_PLANT_APPROVAL_CONFIRMED",
+    "setpoint",
+    "writeEnable",
+    "actuator",
+    "controlArmed"
+  ];
+  const blob = JSON.stringify(payload).toLowerCase();
+  for (const key of forbidden) {
+    if (blob.includes(key.toLowerCase())) {
+      throw new AppError(
+        `Remote configuration must not include physical-control field "${key}" during pilot.`,
+        400
+      );
+    }
+  }
+  for (const telemetryKey of payload.enabledTelemetryKeys) {
+    if (/setpoint|write|actuator|command/i.test(telemetryKey)) {
+      throw new AppError(
+        `enabledTelemetryKeys must not include control-oriented key "${telemetryKey}".`,
+        400
+      );
+    }
+  }
 };
 
 export const generateEdgeConfigSigningKeyPair = () => generateKeyPairSync("ed25519");

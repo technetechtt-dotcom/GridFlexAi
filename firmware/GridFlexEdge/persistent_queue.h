@@ -133,17 +133,32 @@ class PersistentQueue {
     count_ = 0;
     nextSequence_ = 1;
     uint32_t maxSeq = 0;
+    uint32_t minSeq = UINT32_MAX;
+    uint32_t minSlot = 0;
+    uint32_t maxSlot = 0;
+    bool any = false;
     for (uint32_t slot = 0; slot < QUEUE_MAX_RECORDS; slot++) {
       QueueRecord rec;
       if (!readRecord(slot, rec)) continue;
+      any = true;
       count_++;
+      if (rec.sequenceNumber <= minSeq) {
+        minSeq = rec.sequenceNumber;
+        minSlot = slot;
+      }
       if (rec.sequenceNumber >= maxSeq) {
         maxSeq = rec.sequenceNumber;
-        tail_ = (slot + 1) % QUEUE_MAX_RECORDS;
+        maxSlot = slot;
       }
     }
+    if (!any) {
+      Serial.println("[queue] rebuilt meta empty");
+      return;
+    }
+    head_ = minSlot;
+    tail_ = (maxSlot + 1) % QUEUE_MAX_RECORDS;
     nextSequence_ = maxSeq + 1;
-    Serial.printf("[queue] rebuilt meta count=%u nextSeq=%u\n", count_, nextSequence_);
+    Serial.printf("[queue] rebuilt meta count=%u head=%u nextSeq=%u\n", count_, head_, nextSequence_);
   }
 
   bool persistMeta() {

@@ -17,6 +17,9 @@ go-live-reports/*
 !go-live-reports/README.md
 backend/certs/*.pfx
 
+# TypeScript incremental build info
+*.tsbuildinfo
+
 # Secrets — never commit real env files (root or nested)
 .env
 .env.*
@@ -38,3 +41,9 @@ backend/certs/*.pfx
 *.sln
 *.sw?
 node_modules
+
+# Archives / build dumps
+*.zip
+*.tar.gz
+/backend/coverage/
+/coverage/

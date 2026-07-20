@@ -4,11 +4,13 @@
 #include <Arduino.h>
 #include <esp_task_wdt.h>
 #include <esp_system.h>
+#include <Preferences.h>
 #include "config.h"
 
 /**
  * Hardware watchdog: only reset after critical tasks report healthy.
  * Tasks monitored: modbus, network, upload, queue, time sync.
+ * Restart / WDT counters persist in NVS for backend reporting across boots.
  */
 
 enum class HealthTask : uint8_t {
@@ -24,10 +26,19 @@ class WatchdogHealth {
  public:
   void begin() {
     resetReason_ = decodeResetReason(esp_reset_reason());
+
+    Preferences prefs;
+    prefs.begin("wdt", false);
+    watchdogResetCount_ = prefs.getUInt("wdt_count", 0);
+    restartCount_ = prefs.getUInt("rst_count", 0) + 1;
     if (esp_reset_reason() == ESP_RST_TASK_WDT || esp_reset_reason() == ESP_RST_WDT) {
       watchdogResetCount_++;
     }
-    restartCount_++;
+    prefs.putUInt("wdt_count", watchdogResetCount_);
+    prefs.putUInt("rst_count", restartCount_);
+    prefs.putString("last_reason", resetReason_);
+    prefs.end();
+
     esp_task_wdt_init(WATCHDOG_TIMEOUT_MS / 1000, true);
     esp_task_wdt_add(NULL);
     for (uint8_t i = 0; i < (uint8_t)HealthTask::COUNT; i++) {

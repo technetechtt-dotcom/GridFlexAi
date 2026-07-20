@@ -223,6 +223,30 @@ describe("HIL packet robustness matrix", () => {
     });
     expect(parsed.success).toBe(false);
   });
+
+  it("HIL-14 remote config rejects physical-control fields", () => {
+    expect(() =>
+      validateRemoteConfigRanges({
+        configurationVersion: "cfg-bad",
+        pollingIntervalMs: 60000,
+        serverEndpoint: "https://example.com/api/edge-data",
+        enabledTelemetryKeys: ["voltage", "setpoint_kw"],
+        approvedFirmwareMinimum: "5.0.0",
+        issuedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60_000).toISOString()
+      })
+    ).toThrow(/control-oriented|physical/i);
+  });
+
+  it("HIL-15 queue-full refuses overwrite", () => {
+    const q = new PersistentStoreAndForwardQueue({ maxRecords: 2 });
+    q.enqueue({ v: 1 }, "2026-07-20T08:00:00Z", "11111111-1111-4111-a111-111111111111");
+    q.enqueue({ v: 2 }, "2026-07-20T08:01:00Z", "22222222-2222-4222-a222-222222222222");
+    expect(() =>
+      q.enqueue({ v: 3 }, "2026-07-20T08:02:00Z", "33333333-3333-4333-a333-333333333333")
+    ).toThrow(/full/i);
+    expect(q.depth).toBe(2);
+  });
 });
 
 /** Evidence checklist keys for plant sign-off worksheets. */

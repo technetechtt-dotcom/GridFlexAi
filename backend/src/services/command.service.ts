@@ -58,6 +58,31 @@ const assertTransition = (from: CommandRequestStatus, to: CommandRequestStatus) 
   }
 };
 
+/** Audit every blocked control attempt (override, plant lock, physical arm denied, etc.). */
+const auditBlockedAttempt = async (input: {
+  commandId?: string;
+  action: string;
+  message: string;
+  userId?: string;
+  organisationId?: string;
+  siteId?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> => {
+  await recordAuditLog({
+    action: input.action,
+    entityType: "CommandRequest",
+    entityId: input.commandId ?? "none",
+    message: input.message,
+    ...(input.userId ? { userId: input.userId } : {}),
+    ...(input.organisationId ? { organisationId: input.organisationId } : {}),
+    ...(input.siteId ? { siteId: input.siteId } : {}),
+    metadata: {
+      blocked: true,
+      ...(input.metadata ?? {})
+    }
+  });
+};
+
 const auditTransition = async (input: {
   commandId: string;
   from: CommandRequestStatus;
@@ -107,25 +132,44 @@ const assertSiteAccess = async (actor: AccessActor | undefined, siteId: string) 
   }
 };
 
-const assertAssetAndPlantReady = (command: {
-  plant: { status: PlantStatus };
-  targetAsset: { status: AssetStatus; state: { available: boolean; operatingState: string } | null };
-  overrideState: CommandOverrideState;
-}) => {
+const assertAssetAndPlantReady = async (
+  command: {
+    id: string;
+    organisationId: string;
+    siteId: string;
+    plant: { status: PlantStatus };
+    targetAsset: { status: AssetStatus; state: { available: boolean; operatingState: string } | null };
+    overrideState: CommandOverrideState;
+  },
+  actor?: AccessActor
+) => {
+  const block = async (reason: string, status: number) => {
+    await auditBlockedAttempt({
+      commandId: command.id,
+      action: "command.blocked",
+      message: reason,
+      ...optionalUserId(actor?.id),
+      organisationId: command.organisationId,
+      siteId: command.siteId,
+      metadata: { httpStatus: status, overrideState: command.overrideState }
+    });
+    throw new AppError(reason, status);
+  };
+
   if (command.overrideState === "emergency_stop" || command.overrideState === "safe_state") {
-    throw new AppError(`Command blocked by override state: ${command.overrideState}.`, 409);
+    await block(`Command blocked by override state: ${command.overrideState}.`, 409);
   }
   if (command.plant.status === "decommissioned" || command.plant.status === "maintenance") {
-    throw new AppError(`Plant status ${command.plant.status} does not allow commands.`, 409);
+    await block(`Plant status ${command.plant.status} does not allow commands.`, 409);
   }
   if (
     command.targetAsset.status === "decommissioned" ||
     command.targetAsset.status === "maintenance"
   ) {
-    throw new AppError(`Asset status ${command.targetAsset.status} does not allow commands.`, 409);
+    await block(`Asset status ${command.targetAsset.status} does not allow commands.`, 409);
   }
   if (command.targetAsset.state && command.targetAsset.state.available === false) {
-    throw new AppError("Target asset is marked unavailable.", 409);
+    await block("Target asset is marked unavailable.", 409);
   }
 };
 
@@ -235,7 +279,7 @@ export const submitCommandForApproval = async (id: string, actor?: AccessActor) 
   await assertSiteAccess(actor, command.siteId);
   assertTransition(command.status, "pending_approval");
   assertCommandNotExpired({ expiresAt: command.expiresAt });
-  assertAssetAndPlantReady(command);
+  await assertAssetAndPlantReady(command, actor);
 
   const updated = await prisma.commandRequest.update({
     where: { id },
@@ -283,7 +327,7 @@ export const decideCommandApproval = async (
       currentValue: command.currentValue,
       maxRampPerMinute: command.maxRampPerMinute
     });
-    assertAssetAndPlantReady(command);
+    await assertAssetAndPlantReady(command, actor);
   }
 
   const [, updated] = await prisma.$transaction([
@@ -401,20 +445,43 @@ export const expireCommandIfNeeded = async (id: string) => {
  * Physical adapters are never invoked while PHYSICAL_COMMAND_EXECUTION_ENABLED is false.
  */
 export const executeApprovedCommand = async (id: string, actor?: AccessActor) => {
+  const command = await loadCommandOrThrow(id);
+  await assertSiteAccess(actor, command.siteId);
+
   if (isPhysicalExecutionEnabled()) {
+    await auditBlockedAttempt({
+      commandId: id,
+      action: "command.physical_execution_blocked",
+      message:
+        "Physical command execution refused — dual arming flags set but physical adapters remain unavailable for pilot.",
+      ...optionalUserId(actor?.id),
+      organisationId: command.organisationId,
+      siteId: command.siteId,
+      metadata: {
+        physicalArmed: true,
+        httpStatus: 503
+      }
+    });
     throw new AppError(
       "Physical command execution is not available. Keep PHYSICAL_COMMAND_EXECUTION_ENABLED and HIL_PLANT_APPROVAL_CONFIRMED false until HIL validation and plant sign-off.",
       503
     );
   }
 
-  const command = await loadCommandOrThrow(id);
-  await assertSiteAccess(actor, command.siteId);
   assertCommandNotExpired({ expiresAt: command.expiresAt });
-  assertAssetAndPlantReady(command);
+  await assertAssetAndPlantReady(command, actor);
   assertTransition(command.status, "queued");
 
   if (command.status !== "approved") {
+    await auditBlockedAttempt({
+      commandId: id,
+      action: "command.blocked",
+      message: "Only approved commands can be executed.",
+      ...optionalUserId(actor?.id),
+      organisationId: command.organisationId,
+      siteId: command.siteId,
+      metadata: { status: command.status, httpStatus: 409 }
+    });
     throw new AppError("Only approved commands can be executed.", 409);
   }
 

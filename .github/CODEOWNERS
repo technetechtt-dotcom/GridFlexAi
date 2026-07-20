@@ -1,0 +1,25 @@
+# Security-sensitive paths — require review from maintainers.
+# Replace @technetechtt-dotcom/gridflex-maintainers with the org team once created.
+
+* @technetechtt-dotcom/gridflex-maintainers
+
+# Backend auth, vault, signing, safety
+/backend/src/middleware/edgeDeviceAuth.ts @technetechtt-dotcom/gridflex-maintainers
+/backend/src/utils/edgeDeviceAuth.ts @technetechtt-dotcom/gridflex-maintainers
+/backend/src/services/device-credential*.ts @technetechtt-dotcom/gridflex-maintainers
+/backend/src/services/edge-remote-config.service.ts @technetechtt-dotcom/gridflex-maintainers
+/backend/src/services/command.service.ts @technetechtt-dotcom/gridflex-maintainers
+/backend/src/safety/ @technetechtt-dotcom/gridflex-maintainers
+/backend/src/config/env.ts @technetechtt-dotcom/gridflex-maintainers
+
+# Firmware credentials / TLS / remote config
+/firmware/GridFlexEdge/config.h @technetechtt-dotcom/gridflex-maintainers
+/firmware/GridFlexEdge/certs.h @technetechtt-dotcom/gridflex-maintainers
+/firmware/GridFlexEdge/remote_config.h @technetechtt-dotcom/gridflex-maintainers
+/firmware/GridFlexEdge/network_manager.h @technetechtt-dotcom/gridflex-maintainers
+/firmware/GridFlexEdge/gridflex_auth.h @technetechtt-dotcom/gridflex-maintainers
+
+# CI / supply chain
+/.github/workflows/ @technetechtt-dotcom/gridflex-maintainers
+/docs/SECRETS_INVENTORY.md @technetechtt-dotcom/gridflex-maintainers
+/docs/policies/ @technetechtt-dotcom/gridflex-maintainers

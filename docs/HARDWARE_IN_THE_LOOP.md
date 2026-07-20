@@ -43,8 +43,13 @@ Alarm acknowledgement never equates to control authority.
 | Database outage | Ingest unavailable | Device retains queue | firmware behaviour |
 | Clock drift | Incorrect ESP32 clock | Alert + NTP correction | firmware `syncTime` |
 | Wrong register scale | Extreme decoded value | Validation catches | HIL-05 + inverter worksheet |
+| Remote config physical enable | Control fields in bundle | Rejected server + device | HIL-14 |
+| Queue full | Overflow enqueue | Refuse overwrite | HIL-15 + firmware |
+| SunSpec sentinel / SF | −32768 / missing SF | unavailable / uncertain | `sunspec-register-plan.test.ts` |
+| Malformed Modbus / CRC / FC | Wire faults | Bench worksheet | Open — physical HIL |
+| Watchdog reset recovery | TWDT trip | NVS counters + telemetry | Firmware + bench Open |
 
-Automated packet cases: `backend/tests/hil-packet-matrix.test.ts`.
+Automated packet cases: `backend/tests/hil-packet-matrix.test.ts`, `backend/tests/sunspec-register-plan.test.ts`.
 
 ## Evidence (every test)
 

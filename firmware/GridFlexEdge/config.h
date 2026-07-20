@@ -35,6 +35,10 @@ static const char* LTE_APN = "internet";
 static const char* LTE_USER = "";
 static const char* LTE_PASS = "";
 
+// RS485 Modbus RTU (set 1 on hardware with transceiver wired). Fail-closed when 0 — no random metrics.
+#define USE_RS485_MODBUS 0
+static const uint8_t MODBUS_SLAVE_ID = 1;
+
 // TLS: CA is provided by certs.h (ISRG Root X1). Insecure TLS is not supported.
 
 #endif

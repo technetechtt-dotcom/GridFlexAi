@@ -72,7 +72,8 @@ const rawMap = {
       scale: 1,
       unit: "sunssf",
       access: "read" as const,
-      description: "A_SF"
+      description: "A_SF",
+      unavailableRaw: [-32768]
     },
     {
       key: "sf_V",
@@ -83,7 +84,8 @@ const rawMap = {
       scale: 1,
       unit: "sunssf",
       access: "read" as const,
-      description: "V_SF"
+      description: "V_SF",
+      unavailableRaw: [-32768]
     },
     {
       key: "sf_Hz",
@@ -94,7 +96,8 @@ const rawMap = {
       scale: 1,
       unit: "sunssf",
       access: "read" as const,
-      description: "Hz_SF"
+      description: "Hz_SF",
+      unavailableRaw: [-32768]
     },
     {
       key: "sf_W",
@@ -105,7 +108,8 @@ const rawMap = {
       scale: 1,
       unit: "sunssf",
       access: "read" as const,
-      description: "W_SF"
+      description: "W_SF",
+      unavailableRaw: [-32768]
     },
     {
       key: "sf_VAr",
@@ -116,7 +120,8 @@ const rawMap = {
       scale: 1,
       unit: "sunssf",
       access: "read" as const,
-      description: "VAr_SF"
+      description: "VAr_SF",
+      unavailableRaw: [-32768]
     },
     {
       key: "sf_WH",
@@ -127,7 +132,8 @@ const rawMap = {
       scale: 1,
       unit: "sunssf",
       access: "read" as const,
-      description: "WH_SF"
+      description: "WH_SF",
+      unavailableRaw: [-32768]
     },
     {
       key: "sf_Tmp",
@@ -138,7 +144,8 @@ const rawMap = {
       scale: 1,
       unit: "sunssf",
       access: "read" as const,
-      description: "Tmp_SF"
+      description: "Tmp_SF",
+      unavailableRaw: [-32768]
     },
     {
       key: "active_power_kw",
@@ -151,6 +158,7 @@ const rawMap = {
       scaleFactorKey: "sf_W",
       unit: "kW",
       access: "read" as const,
+      unavailableRaw: [-32768],
       description: "SunSpec W (Watts) with W_SF; convert to kW after decode if needed"
     },
     {
@@ -163,7 +171,8 @@ const rawMap = {
       scaleMode: "sunssf" as const,
       scaleFactorKey: "sf_VAr",
       unit: "kvar",
-      access: "read" as const
+      access: "read" as const,
+      unavailableRaw: [-32768]
     },
     {
       key: "voltage_v",
@@ -175,7 +184,8 @@ const rawMap = {
       scaleMode: "sunssf" as const,
       scaleFactorKey: "sf_V",
       unit: "V",
-      access: "read" as const
+      access: "read" as const,
+      unavailableRaw: [65535]
     },
     {
       key: "current_a",
@@ -187,7 +197,8 @@ const rawMap = {
       scaleMode: "sunssf" as const,
       scaleFactorKey: "sf_A",
       unit: "A",
-      access: "read" as const
+      access: "read" as const,
+      unavailableRaw: [65535]
     },
     {
       key: "frequency_hz",
@@ -199,7 +210,8 @@ const rawMap = {
       scaleMode: "sunssf" as const,
       scaleFactorKey: "sf_Hz",
       unit: "Hz",
-      access: "read" as const
+      access: "read" as const,
+      unavailableRaw: [65535]
     },
     {
       key: "lifetime_energy_kwh",
@@ -212,6 +224,7 @@ const rawMap = {
       scaleFactorKey: "sf_WH",
       unit: "kWh",
       access: "read" as const,
+      unavailableRaw: [4294967295],
       description: "Lifetime WH only — daily energy must be derived from deltas, not remapped"
     },
     {
@@ -222,7 +235,8 @@ const rawMap = {
       wordOrder: "ABCD" as const,
       scale: 1,
       unit: "enum",
-      access: "read" as const
+      access: "read" as const,
+      unavailableRaw: [65535]
     },
     {
       key: "alarm_code",
@@ -232,7 +246,8 @@ const rawMap = {
       wordOrder: "ABCD" as const,
       scale: 1,
       unit: "bitfield",
-      access: "read" as const
+      access: "read" as const,
+      unavailableRaw: [4294967295]
     },
     {
       key: "temperature_c",
@@ -244,7 +259,8 @@ const rawMap = {
       scaleMode: "sunssf" as const,
       scaleFactorKey: "sf_Tmp",
       unit: "C",
-      access: "read" as const
+      access: "read" as const,
+      unavailableRaw: [-32768]
     }
   ]
 };
