@@ -75,7 +75,7 @@ jobs:
         working-directory: backend
 
       - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-artifacts
           path: |
@@ -102,7 +102,7 @@ jobs:
           echo "Recorded IMAGE_DIGEST=$DIGEST"
 
       - name: Upload image digest artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-image-digest
           path: image-digest.txt
@@ -115,7 +115,7 @@ jobs:
           output-file: sbom-backend-image.cdx.json
 
       - name: Upload container SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-backend-image
           path: sbom-backend-image.cdx.json
@@ -164,7 +164,7 @@ jobs:
           PRODUCTION_SMOKE_RESULT: pending
 
       - name: Upload parity report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: env-parity-report
           path: |
