@@ -13,6 +13,16 @@ cd backend
 npm run check:secrets-hygiene
 ```
 
+Generate JWT overlapping-kid env snippet (stdout only — do not commit):
+
+```bash
+npm run secrets:jwt-rotation-snippet
+# or:
+node scripts/generate-jwt-rotation-snippet.mjs --from-kid legacy --to-kid v2 --previous-secret "<CURRENT_JWT_SECRET>"
+```
+
+Day 1 checklist: [`day1-jwt-rotation-checklist.md`](./day1-jwt-rotation-checklist.md)
+
 ## 1) Staging parity diff (env keys only)
 
 Generate templates from backend env schema:

@@ -6,30 +6,30 @@ One section per drill. **Never** paste connection strings with passwords.
 
 | Field | Value |
 |-------|-------|
-| Backup identifier / PITR time / snapshot id | |
-| Backup time (UTC) | |
-| Restore start (UTC) | |
-| Restore end (UTC) | |
-| Achieved RPO | |
-| Achieved RTO | |
-| Record counts (orgs / users / nodes / readings) | |
-| Integrity checks | |
-| Application smoke-test results | |
-| Failures and corrections | |
-| Approver | |
-| Date | |
+| Backup identifier / PITR time / snapshot id | Neon branch `restore-drill-20260720` (`br-dawn-shadow-afaej62i`) forked from `main` (`br-nameless-cake-af451y8j`) |
+| Backup time (UTC) | 2026-07-20T11:35:00Z (approx branch create) |
+| Restore start (UTC) | 2026-07-20T11:35:00Z |
+| Restore end (UTC) | 2026-07-20T11:36:00Z |
+| Achieved RPO | Instant branch clone from primary (history window currently 6h on project) |
+| Achieved RTO | ~1 min to branch ready + `restore:verify` 9.1s |
+| Record counts (orgs / users / nodes / readings) | orgs 1 / users 5 / edgeNodes 1 / sensorReadings 1 / telemetryReadings 0 |
+| Integrity checks | `RESTORE_VERIFY_ALLOW=true npm run restore:verify` → OK; prisma migrations present through `20260719210000_pr5_alarms_incidents` |
+| Application smoke-test results | `restore:verify` OK (full HTTP go-live smoke still pending against a backend pointed at this branch) |
+| Failures and corrections | None. Note: vault/edge-reliability migrations not yet on this DB (apply when promoting that release). History retention 6h — raise before pilot if multi-day PITR required. Branch TTL expires 2026-07-22T18:00:00Z. |
+| Approver | _pending sign-off_ |
+| Date | 2026-07-20 |
 
 ## History
 
 | Date | Environment | RPO | RTO | Pass? | Approver |
 |------|-------------|-----|-----|-------|----------|
-| _TBD_ | isolated staging branch | | | | |
+| 2026-07-20 | Neon `gridflex` isolated branch `restore-drill-20260720` | branch clone / 6h window | ~1 min + 9s verify | yes (verify) | _pending_ |
 
 ## Quarterly schedule
 
 | Quarter | Planned | Completed | Notes |
 |---------|---------|-----------|-------|
-| 2026 Q3 | | | |
+| 2026 Q3 | 2026-07-20 | 2026-07-20 (verify) | First automated drill; HTTP smoke + approver still open |
 | 2026 Q4 | | | |
 | 2027 Q1 | | | |
 | 2027 Q2 | | | |

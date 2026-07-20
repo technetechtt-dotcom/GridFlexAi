@@ -21,6 +21,17 @@ Preferred stack for GridFlex Postgres:
 
 Never rely on developer laptop dumps as the only backup.
 
+### GridFlex project (ops)
+
+| Field | Value |
+|-------|-------|
+| Neon project | `gridflex` |
+| Project id | `odd-truth-63844972` |
+| Region | `aws-us-west-2` |
+| Primary branch | `main` (`br-nameless-cake-af451y8j`) |
+| History retention (as of 2026-07-20) | **6 hours** (`21600s`) — raise toward plan max before pilot if multi-day PITR is required |
+| Example restore branch | `restore-drill-YYYYMMDD` (TTL recommended; never restore over `main`) |
+
 ## Recovery rule
 
 **Never restore over the production primary.** Always create an **isolated** restoration environment (Neon branch / separate project), use **separate credentials**, and restrict network access.

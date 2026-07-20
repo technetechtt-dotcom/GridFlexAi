@@ -21,7 +21,7 @@ Engineering frameworks for gates 7–15 are in-repo. This sprint collects **oper
 |-----|------|------|-------------------|-------|
 | 1 | 7 | Staging secret rotation (JWT kid overlap + DB/Redis rehearsal) | [`secret-rotation-log.md`](./secret-rotation-log.md) + inventory dates | |
 | 1 | 7 | Emergency rotation rehearsal (JWT or device) | Emergency table in rotation log | |
-| 2 | 8 | Neon isolated restore drill + `restore:verify` | [`backup-restore-evidence.md`](./backup-restore-evidence.md) | |
+| 2 | 8 | Neon isolated restore drill + `restore:verify` | [`backup-restore-evidence.md`](./backup-restore-evidence.md) — **verify OK 2026-07-20**; approver + HTTP smoke pending | partial |
 | 3 | 9 | Log drain + scrape `/api/metrics` + wire catalog alerts | Drain URL + scrape proof | |
 | 3 | 9 | Critical on-call fire-drill | [`../observability/alert-review.md`](../observability/alert-review.md) | |
 | 4 | 10 | Promote one image digest staging→prod + parity report | [`parity-promotion-evidence.md`](./parity-promotion-evidence.md) | |
@@ -35,15 +35,19 @@ Engineering frameworks for gates 7–15 are in-repo. This sprint collects **oper
 
 ## Day 1 — Secrets (Gate 7)
 
+**Operator sheet:** [`day1-jwt-rotation-checklist.md`](./day1-jwt-rotation-checklist.md)
+
 ### Preconditions
 - Staging backend reachable; on-call notified.
 - Secret manager access (Render / AWS SM / platform store).
 - [`secret-rotation.md`](./secret-rotation.md) open.
+- Hygiene + env parity already PASS on current branch.
 
 ### Execute
 1. Confirm inventory owners in [`../SECRETS_INVENTORY.md`](../SECRETS_INVENTORY.md).
-2. Staging only: rotate JWT with overlapping `kid` (section 4 of secret-rotation runbook).
-3. Smoke: login, refresh, authenticated API.
+2. Generate snippet: `npm run secrets:jwt-rotation-snippet` (stdout only).
+3. Staging only: rotate JWT with overlapping `kid` (section 4 of secret-rotation runbook).
+4. Smoke: login, refresh, authenticated API.
 4. Optional same day: rotate staging `DATABASE_URL` / `REDIS_URL` passwords; revoke old.
 5. Run emergency rehearsal (simulated JWT exposure): add new kid, drop compromised kid, force re-login, confirm recovery.
 6. Append rows to rotation log; set **Last rotated** dates (even if staging-only — note env).
