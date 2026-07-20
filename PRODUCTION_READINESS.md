@@ -1,74 +1,62 @@
 # GridFlex Production Readiness Tracker
 
 Use this tracker to move from pilot-ready to production-ready with explicit ownership and evidence.
+Do **not** mark ops items complete without dated evidence artifacts.
 
 ## Current Snapshot
 
-- Estimated readiness: **~85% engineering / pilot frameworks**; **ops evidence still required** for go-live.
+- Estimated readiness: **~70% code frameworks**; **ops / plant evidence still open** for go-live.
 - Last updated: **2026-07-20**.
-- Pre-pilot gates (1–15): see `docs/PILOT_DEPLOYMENT.md` (frameworks landed on `feat/pentest-load-testing`).
+- Pre-pilot gates: `docs/PILOT_DEPLOYMENT.md`
 - Ops remaining: [`docs/runbooks/ops-completion-pack.md`](./docs/runbooks/ops-completion-pack.md)
 
 ## P0 - Go-Live Blockers
 
-- [x] **Backend/frontend build and type safety are green in CI**
-  - Evidence: `.github/workflows/ci.yml` runs lint/typecheck/build/test.
+- [ ] **CI required jobs green on `main`**
+  - Target: `security`, `supply-chain`, `frontend`, `backend` all green after latest push.
+  - Evidence: GitHub Actions run URL on `main`.
 - [x] **Public health route has automated API smoke coverage**
   - Evidence: `backend/tests/health.routes.test.ts`.
 - [x] **Production env guardrails for unsafe placeholders**
   - Evidence: `backend/src/config/env.ts` + `PILOT_LOCK_PHYSICAL_EXECUTION`.
-- [x] **Live dashboard no longer invents synthetic actual/demand/frequency**
+- [x] **Live dashboard does not invent synthetic actual/demand/frequency**
   - Evidence: `Dashboard.tsx`, `RealTimeContext.tsx`, `OperatingModeBanner` UNKNOWN-on-failure.
-- [x] **Verified read-only inverter map (SunSpec Model 103) wired**
-  - Evidence: `gateway/maps/vendor/sunspec/model103/1.0.ts`; confirm base address on site.
-- [x] **Critical supply-chain findings block CI**
-  - Evidence: npm audit critical, Gitleaks, Trivy CRITICAL/HIGH exit 1, `check:secrets-hygiene` in CI.
+- [x] **Verified read-only SunSpec Model 103 map (dynamic SF; no false daily WH)**
+  - Evidence: `gateway/maps/vendor/sunspec/model103/1.0.ts` + `sunspec-discovery.ts`.
+  - Remaining on site: discovery of `PILOT_SUNSPEC_MODEL103_BASE` + HIL-20 scale check.
+- [x] **Supply-chain controls in CI (audit / Gitleaks CLI / Trivy v0.36+)**
+  - Evidence: `.github/workflows/ci.yml` (fail-closed on CRITICAL/HIGH when fixed vulns exist).
 - [x] **Alert webhook delivery path in code**
   - Evidence: `ALERT_WEBHOOK_*` + `alert-dispatcher.ts` (host must set URL).
+- [x] **AWS KMS client dependency present for vault provider**
+  - Evidence: `backend/package.json` → `@aws-sdk/client-kms`.
+- [x] **Atomic, body-hash-bound sequence advancement**
+  - Evidence: `edgeDeviceAuth.ts` CAS `updateMany` + `lastAcceptedBodyHash`.
 - [ ] **Secrets moved to managed secret store and rotated** *(ops)*
-  - Framework: vaulted GRIDFLEX-V1, `EDGE_ALLOW_LEGACY_SHARED_SECRET=false` default, `npm run rotate:devices`.
-  - Evidence needed: inventory last-rotated dates + rotation log after cutover.
-- [ ] **Backup and restore test completed** *(ops)*
-  - Framework: `docs/runbooks/database-backup-restore.md`, `npm run restore:verify`.
-  - Evidence needed: filled `docs/runbooks/backup-restore-evidence.md`.
-- [ ] **Centralized logging + alerting enabled** *(ops)*
-  - Framework: `docs/OBSERVABILITY.md`, Prometheus `/api/metrics`, alert catalog.
-  - Remaining: host log drain + live alert routes + on-call fire-drill.
-- [ ] **Staging parity with production runtime config** *(ops)*
-  - Framework: `docs/ENVIRONMENT_PARITY.md`, `npm run check:env-parity` / `report:parity`.
-  - Evidence needed: promote one image digest staging→prod and attach parity report.
+  - Evidence needed: inventory last-rotated dates + `docs/runbooks/secret-rotation-log.md`.
+- [ ] **Backup and restore drill signed off** *(ops)*
+  - Partial: `restore:verify` OK on `restore-drill-20260720`; approver + HTTP smoke still open.
+- [ ] **Centralized logging + alerting live** *(ops)*
+  - Remaining: log drain + `ALERT_WEBHOOK_URL` fire-drill row in `docs/observability/alert-review.md`.
+- [ ] **Staging→prod image digest promotion evidence** *(ops)*
+  - Evidence: `docs/runbooks/parity-promotion-evidence.md`.
 
 ## P1 - First Week Hardening
 
-- [x] Add critical-path E2E tests (login, dashboard, forecast, dispatch, retry banners).
-  - Evidence: `e2e/critical-path.spec.ts`, `playwright.config.ts`, `.github/workflows/ci.yml`.
-- [x] Add API contract tests for high-traffic chart payloads.
-  - Evidence: `backend/tests/readings.routes.contract.test.ts`.
-- [ ] Define p95 latency SLO and run baseline load test. *(ops)*
-  - Framework: `docs/LOAD_TESTING.md`, `load/k6/*`, `npm run baseline:load` / `load:socketio`.
-  - Evidence needed: staging soak + `docs/load/evidence-worksheet.md`.
-- [x] Add dependency vulnerability gating (`npm audit`/SCA policy).
-  - Evidence: CI security job + Trivy fail-closed + Dependabot (`docs/SUPPLY_CHAIN.md`).
-- [x] Write incident runbooks (provider outage, DB outage, secret rotation).
-  - Evidence: `docs/runbooks/*`.
+- [x] Critical-path E2E + API contract tests in repo.
+- [ ] Formal staging load soak + evidence worksheet *(ops)* — `docs/load/evidence-worksheet.md`.
+- [x] Dependency vulnerability gating in CI.
+- [x] Incident runbooks present under `docs/runbooks/*`.
 
-## P2 - Scale & Enterprise Hardening
+## P2 / External approvals
 
-- [ ] Canary or blue/green deployments with auto rollback trigger.
-  - Status: rollout/rollback runbook defined; platform implementation still pending.
-  - Evidence: `docs/runbooks/canary-blue-green-rollout.md`.
-- [ ] Formal data retention/access review policy *(sign-off)*.
-  - Framework: retention + POPIA + access-review log (`docs/policies/*`).
-  - Remaining: Information Officer approval + first monthly review entry.
-- [ ] Routine failure drills for provider and cache outages. *(ops)*
-  - Evidence: `docs/runbooks/failure-drill-program.md` — schedule executions.
-- [ ] Capacity forecasting and cost guardrails. *(ops)*
-  - Framework: guardrails + `docs/load/capacity-cost-estimates.md`; wire budget alerts.
+- [ ] Physical HIL bench matrix HIL-14…20 + plant signatures — `docs/equipment/hil-evidence-worksheet.md`.
+- [ ] External penetration test engagement closed — `docs/PENETRATION_TEST.md`.
+- [ ] POPIA Information Officer approval + access-review #1 — `docs/policies/*`.
+- [ ] Plant-safety / physical-execution lock attestation — `docs/policies/pilot-physical-execution-lock.md`.
 
 ## External Execution Guide
 
-- Pre-pilot gates: `docs/PILOT_DEPLOYMENT.md`
-- **Ops sprint (Days 1–6):** `docs/runbooks/ops-execution-sprint.md`
-- Operator playbook: `docs/runbooks/go-live-execution-playbook.md`
+- Ops sprint: `docs/runbooks/ops-execution-sprint.md`
+- Completion pack: `docs/runbooks/ops-completion-pack.md`
 - Command sheet: `docs/runbooks/operator-command-sheet.md`
-- Checklist: `docs/runbooks/readiness-execution-checklist.md`

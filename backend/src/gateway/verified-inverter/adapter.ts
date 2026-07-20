@@ -139,19 +139,39 @@ export class VerifiedReadOnlyInverterAdapter {
       }
     }
 
-    return selected.map((definition) => {
+    const scaleFactors: Record<string, number> = {};
+    for (const definition of selected) {
+      if (!definition.key.startsWith("sf_")) continue;
       const raw: number[] = [];
       for (let i = 0; i < definition.length; i += 1) {
-        raw.push(registerBank.get(definition.address + i) ?? 0xffff);
+        raw.push(registerBank.get(definition.address + i) ?? 0);
       }
-      return decodeRegisterWords(definition, raw, {
-        measuredAt: receivedAt,
-        receivedAt,
-        ...(this.config.calibrationVersion
-          ? { calibrationVersion: this.config.calibrationVersion }
-          : {})
+      const decoded = decodeRegisterWords(
+        { ...definition, scaleMode: "fixed", scale: 1 },
+        raw,
+        { measuredAt: receivedAt, receivedAt }
+      );
+      if (typeof decoded.rawDecoded === "number") {
+        scaleFactors[definition.key] = decoded.rawDecoded;
+      }
+    }
+
+    return selected
+      .filter((definition) => !definition.key.startsWith("sf_"))
+      .map((definition) => {
+        const raw: number[] = [];
+        for (let i = 0; i < definition.length; i += 1) {
+          raw.push(registerBank.get(definition.address + i) ?? 0xffff);
+        }
+        return decodeRegisterWords(definition, raw, {
+          measuredAt: receivedAt,
+          receivedAt,
+          scaleFactors,
+          ...(this.config.calibrationVersion
+            ? { calibrationVersion: this.config.calibrationVersion }
+            : {})
+        });
       });
-    });
   }
 
   health(): CommunicationHealthMetrics {

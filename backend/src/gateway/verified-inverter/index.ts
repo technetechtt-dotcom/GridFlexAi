@@ -11,3 +11,5 @@ export {
   createModbusTcpReadonlyTransport,
   createFixtureModbusTransport
 } from "./modbus-tcp-transport.js";
+export { discoverSunSpecModel, SUNSPEC_ID } from "./sunspec-discovery.js";
+export type { SunSpecDiscoveryResult } from "./sunspec-discovery.js";

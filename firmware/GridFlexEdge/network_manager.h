@@ -5,22 +5,23 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include "config.h"
+#include "certs.h"
 
 /**
- * Persistent network for sequenced 4G edge client.
- * Primary: LTE (when USE_LTE=1) for field sites without reliable Wi-Fi.
- * Fallback: Wi-Fi STA with exponential backoff.
- * Offline queue survives reboot (PersistentQueue / LittleFS) — never dropped on net loss.
- *
- * TinyGSM: install TinyGSM + ArduinoHttpClient; set modem type in config.h.
+ * Persistent network for sequenced 4G edge client (SIM7670X / TinyGSM).
+ * Primary: LTE when USE_LTE=1. Fallback: Wi-Fi STA.
+ * TLS requires GRIDFLEX_ROOT_CA_PEM — insecure mode is not available.
  */
 
 #if USE_LTE
-#define TINY_GSM_MODEM_A7670
-// #include <TinyGsmClient.h>  // uncomment after installing TinyGSM
-// HardwareSerial SerialAT(1);
-// TinyGsm modem(SerialAT);
-// TinyGsmClient gsmClient(modem);
+#ifndef TINY_GSM_MODEM_SIM7670
+#define TINY_GSM_MODEM_SIM7670
+#endif
+#include <TinyGsmClient.h>
+#include <ArduinoHttpClient.h>
+HardwareSerial SerialAT(1);
+TinyGsm modem(SerialAT);
+TinyGsmClient gsmClient(modem);
 #endif
 
 class NetworkManager {
@@ -30,11 +31,11 @@ class NetworkManager {
     pinMode(MODEM_PWR, OUTPUT);
     digitalWrite(MODEM_PWR, LOW);
     delay(100);
+    SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
     powerOnModem();
-    Serial.println("[net] LTE primary path enabled (TinyGSM bring-up)");
+    Serial.println("[net] SIM7670X / TinyGSM LTE primary");
 #endif
     WiFi.mode(WIFI_STA);
-    // Wi-Fi remains available as fallback even when LTE is primary.
   }
 
   bool ensureConnected() {
@@ -61,13 +62,13 @@ class NetworkManager {
   }
 
   WiFiClientSecure& tlsClient() {
-#if defined(GRIDFLEX_ROOT_CA_PEM)
     client_.setCACert(GRIDFLEX_ROOT_CA_PEM);
-#else
-    client_.setInsecure(); // Prefer GRIDFLEX_ROOT_CA_PEM in production.
-#endif
     return client_;
   }
+
+#if USE_LTE
+  TinyGsmClient& lteClient() { return gsmClient; }
+#endif
 
   bool preferWifi() const { return WiFi.status() == WL_CONNECTED; }
   bool lteReady() const {
@@ -121,21 +122,34 @@ class NetworkManager {
     if (lteFailStreak_ >= 5) {
       Serial.println("[net] LTE modem power-cycle");
       powerOnModem();
+      modem.restart();
       lteFailStreak_ = 0;
     }
 
-    /*
-     * Production bring-up (after TinyGSM is linked):
-     *   SerialAT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
-     *   modem.restart();
-     *   modem.gprsConnect(LTE_APN, LTE_USER, LTE_PASS);
-     *   lteReady_ = modem.isGprsConnected();
-     *
-     * Until TinyGSM is linked, report not-ready so Wi-Fi fallback + queue keep working.
-     */
-    Serial.println("[net] LTE: waiting for TinyGSM link — queue retained, Wi-Fi fallback active");
-    lteReady_ = false;
-    return false;
+    Serial.println("[net] LTE modem init / GPRS attach");
+    if (!modem.init()) {
+      Serial.println("[net] modem.init failed");
+      lteReady_ = false;
+      return false;
+    }
+    if (!modem.waitForNetwork(60000L)) {
+      Serial.println("[net] waitForNetwork failed");
+      lteReady_ = false;
+      return false;
+    }
+    if (!modem.isNetworkConnected()) {
+      Serial.println("[net] network not connected");
+      lteReady_ = false;
+      return false;
+    }
+    if (!modem.gprsConnect(LTE_APN, LTE_USER, LTE_PASS)) {
+      Serial.println("[net] gprsConnect failed");
+      lteReady_ = false;
+      return false;
+    }
+    lteReady_ = modem.isGprsConnected();
+    Serial.printf("[net] LTE GPRS %s\n", lteReady_ ? "up" : "down");
+    return lteReady_;
   }
 #endif
 };

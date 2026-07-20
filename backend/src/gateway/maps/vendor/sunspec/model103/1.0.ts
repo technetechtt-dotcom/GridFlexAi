@@ -1,24 +1,17 @@
 /**
- * Verified read-only map: SunSpec Alliance Information Model — Model 103 (Three Phase Inverter).
+ * Verified read-only map: SunSpec Alliance Model 103 (Three Phase Inverter).
  *
- * Provenance: SunSpec Alliance Information Model Reference (public standard).
- * Addresses are **offsets within Model 103** relative to the model-start holding register
- * discovered via SunSpec "SunS" ID scan (typically near 40000 one-based). Absolute Modbus
- * address = MODEL_103_BASE + offset (zero-based) or one-based holding as configured.
+ * - Addresses are relative to discovered model base (see sunspec-discovery.ts).
+ * - Scale factors use SunSpec sunssf (engineering = raw * 10^SF).
+ * - No false daily_energy mapping — Model 103 exposes lifetime WH only.
  *
- * Operators must confirm MODEL_103_BASE via discovery on the pilot inverter before go-live.
- * This is not a guessed proprietary OEM map — it is the open SunSpec Model 103 point list.
- *
- * Default MODEL_103_BASE below assumes Common Model occupies 40000–40069 (1-based) and
- * Model 103 begins at 40070 (1-based) = 40069 zero-based. Override with env
- * PILOT_SUNSPEC_MODEL103_BASE (zero-based) when discovery differs.
+ * Set PILOT_SUNSPEC_MODEL103_BASE to a discovered zero-based model ID address,
+ * or leave default and run discovery against the unit before go-live.
  */
 
 import type { VerifiedInverterMap } from "../../../../verified-inverter/types.js";
 import { parseVerifiedInverterMap } from "../../../../verified-inverter/map-loader.js";
-
-/** Default zero-based holding address of Model 103 ID register (after Common @ 40000 1-based). */
-export const DEFAULT_SUNSPEC_MODEL103_BASE_ZERO = 40069;
+import { DEFAULT_SUNSPEC_MODEL103_BASE_ZERO } from "./base.js";
 
 const modelBase = (() => {
   const raw = process.env.PILOT_SUNSPEC_MODEL103_BASE?.trim();
@@ -30,30 +23,32 @@ const modelBase = (() => {
   return n;
 })();
 
-/**
- * SunSpec Model 103 point offsets (from model ID register).
- * Source: SunSpec Information Model — Model 103 Three Phase Inverter.
- */
-const OFFSET = {
+/** Official Model 103 point offsets from model ID register (SunSpec Alliance reference). */
+const O = {
   A: 2,
+  A_SF: 6,
+  PPV_AB: 7,
+  V_SF: 13,
   HZ: 14,
-  W: 15,
-  W_SF: 16,
-  VAR: 19,
-  VAR_SF: 20,
-  WH: 22, // acc32 → length 2
-  WH_SF: 24,
+  HZ_SF: 15,
+  W: 16,
+  W_SF: 17,
+  VAR: 20,
+  VAR_SF: 21,
+  WH: 24,
+  WH_SF: 26,
   TMP_CAB: 33,
-  ST: 36,
-  EVT1: 37 // bitfield32 → length 2
+  TMP_SF: 37,
+  ST: 38,
+  EVT1: 40
 } as const;
 
 const rawMap = {
   fictitious: false as const,
   provenanceAttested: true as const,
   addressingMode: "zero_based" as const,
-  schemaVersion: "sunspec-model103-1.0",
-  mapPath: "vendor/sunspec/model103/1.0",
+  schemaVersion: "sunspec-model103-1.1",
+  mapPath: "vendor/sunspec/model103/1.1",
   equipment: {
     manufacturer: "SunSpec Alliance",
     model: "Model103-ThreePhaseInverter",
@@ -64,124 +59,192 @@ const rawMap = {
     registerMapSource:
       "SunSpec Alliance Information Model Reference — Model 103 Three Phase Inverter (public standard)",
     slaveId: 1,
-    signednessNotes:
-      "W and VAr are int16 with scale factors W_SF / VAr_SF (sunssf). WH is acc32 with WH_SF.",
+    signednessNotes: "W/VAr int16; WH acc32; SF points are sunssf (signed scale exponents).",
     byteOrderNotes: "Modbus big-endian register words; 32-bit values use ABCD word order per SunSpec."
   },
   registers: [
     {
-      key: "active_power_kw",
-      address: modelBase + OFFSET.W,
+      key: "sf_A",
+      address: modelBase + O.A_SF,
       length: 1,
       dataType: "int16" as const,
       wordOrder: "ABCD" as const,
-      // Engineering kW = raw * 10^(W_SF). Scale below assumes W_SF=-3 (W→kW) until SF is read dynamically.
+      scale: 1,
+      unit: "sunssf",
+      access: "read" as const,
+      description: "A_SF"
+    },
+    {
+      key: "sf_V",
+      address: modelBase + O.V_SF,
+      length: 1,
+      dataType: "int16" as const,
+      wordOrder: "ABCD" as const,
+      scale: 1,
+      unit: "sunssf",
+      access: "read" as const,
+      description: "V_SF"
+    },
+    {
+      key: "sf_Hz",
+      address: modelBase + O.HZ_SF,
+      length: 1,
+      dataType: "int16" as const,
+      wordOrder: "ABCD" as const,
+      scale: 1,
+      unit: "sunssf",
+      access: "read" as const,
+      description: "Hz_SF"
+    },
+    {
+      key: "sf_W",
+      address: modelBase + O.W_SF,
+      length: 1,
+      dataType: "int16" as const,
+      wordOrder: "ABCD" as const,
+      scale: 1,
+      unit: "sunssf",
+      access: "read" as const,
+      description: "W_SF"
+    },
+    {
+      key: "sf_VAr",
+      address: modelBase + O.VAR_SF,
+      length: 1,
+      dataType: "int16" as const,
+      wordOrder: "ABCD" as const,
+      scale: 1,
+      unit: "sunssf",
+      access: "read" as const,
+      description: "VAr_SF"
+    },
+    {
+      key: "sf_WH",
+      address: modelBase + O.WH_SF,
+      length: 1,
+      dataType: "int16" as const,
+      wordOrder: "ABCD" as const,
+      scale: 1,
+      unit: "sunssf",
+      access: "read" as const,
+      description: "WH_SF"
+    },
+    {
+      key: "sf_Tmp",
+      address: modelBase + O.TMP_SF,
+      length: 1,
+      dataType: "int16" as const,
+      wordOrder: "ABCD" as const,
+      scale: 1,
+      unit: "sunssf",
+      access: "read" as const,
+      description: "Tmp_SF"
+    },
+    {
+      key: "active_power_kw",
+      address: modelBase + O.W,
+      length: 1,
+      dataType: "int16" as const,
+      wordOrder: "ABCD" as const,
       scale: 0.001,
+      scaleMode: "sunssf" as const,
+      scaleFactorKey: "sf_W",
       unit: "kW",
       access: "read" as const,
-      description: "SunSpec Model 103 W (Watts) at offset 15; confirm W_SF on device"
+      description: "SunSpec W (Watts) with W_SF; convert to kW after decode if needed"
     },
     {
       key: "reactive_power_kvar",
-      address: modelBase + OFFSET.VAR,
+      address: modelBase + O.VAR,
       length: 1,
       dataType: "int16" as const,
       wordOrder: "ABCD" as const,
       scale: 0.001,
+      scaleMode: "sunssf" as const,
+      scaleFactorKey: "sf_VAr",
       unit: "kvar",
-      access: "read" as const,
-      description: "SunSpec Model 103 VAr at offset 19; confirm VAr_SF on device"
+      access: "read" as const
     },
     {
       key: "voltage_v",
-      // Use phase AB voltage PPVphAB offset 7 as representative AC voltage
-      address: modelBase + 7,
+      address: modelBase + O.PPV_AB,
       length: 1,
       dataType: "uint16" as const,
       wordOrder: "ABCD" as const,
       scale: 0.1,
+      scaleMode: "sunssf" as const,
+      scaleFactorKey: "sf_V",
       unit: "V",
-      access: "read" as const,
-      description: "SunSpec Model 103 PPVphAB; confirm V_SF on device"
+      access: "read" as const
     },
     {
       key: "current_a",
-      address: modelBase + OFFSET.A,
+      address: modelBase + O.A,
       length: 1,
       dataType: "uint16" as const,
       wordOrder: "ABCD" as const,
       scale: 0.1,
+      scaleMode: "sunssf" as const,
+      scaleFactorKey: "sf_A",
       unit: "A",
-      access: "read" as const,
-      description: "SunSpec Model 103 A (total AC current); confirm A_SF on device"
+      access: "read" as const
     },
     {
       key: "frequency_hz",
-      address: modelBase + OFFSET.HZ,
+      address: modelBase + O.HZ,
       length: 1,
       dataType: "uint16" as const,
       wordOrder: "ABCD" as const,
       scale: 0.01,
+      scaleMode: "sunssf" as const,
+      scaleFactorKey: "sf_Hz",
       unit: "Hz",
-      access: "read" as const,
-      description: "SunSpec Model 103 Hz; confirm Hz_SF on device"
-    },
-    {
-      key: "daily_energy_kwh",
-      // SunSpec Model 103 does not always expose daily WH separately; map WH lifetime and note.
-      address: modelBase + OFFSET.WH,
-      length: 2,
-      dataType: "uint32" as const,
-      wordOrder: "ABCD" as const,
-      scale: 0.001,
-      unit: "kWh",
-      access: "read" as const,
-      description:
-        "Mapped to lifetime WH (acc32) when daily energy point is absent on Model 103 — verify on pilot unit"
+      access: "read" as const
     },
     {
       key: "lifetime_energy_kwh",
-      address: modelBase + OFFSET.WH,
+      address: modelBase + O.WH,
       length: 2,
       dataType: "uint32" as const,
       wordOrder: "ABCD" as const,
       scale: 0.001,
+      scaleMode: "sunssf" as const,
+      scaleFactorKey: "sf_WH",
       unit: "kWh",
       access: "read" as const,
-      description: "SunSpec Model 103 WH acc32; confirm WH_SF on device"
+      description: "Lifetime WH only — daily energy must be derived from deltas, not remapped"
     },
     {
       key: "inverter_state",
-      address: modelBase + OFFSET.ST,
+      address: modelBase + O.ST,
       length: 1,
       dataType: "uint16" as const,
       wordOrder: "ABCD" as const,
       scale: 1,
       unit: "enum",
-      access: "read" as const,
-      description: "SunSpec Model 103 St operating state"
+      access: "read" as const
     },
     {
       key: "alarm_code",
-      address: modelBase + OFFSET.EVT1,
+      address: modelBase + O.EVT1,
       length: 2,
       dataType: "uint32" as const,
       wordOrder: "ABCD" as const,
       scale: 1,
       unit: "bitfield",
-      access: "read" as const,
-      description: "SunSpec Model 103 Evt1 event bitfield"
+      access: "read" as const
     },
     {
       key: "temperature_c",
-      address: modelBase + OFFSET.TMP_CAB,
+      address: modelBase + O.TMP_CAB,
       length: 1,
       dataType: "int16" as const,
       wordOrder: "ABCD" as const,
       scale: 0.1,
+      scaleMode: "sunssf" as const,
+      scaleFactorKey: "sf_Tmp",
       unit: "C",
-      access: "read" as const,
-      description: "SunSpec Model 103 TmpCab; confirm Tmp_SF on device"
+      access: "read" as const
     }
   ]
 };

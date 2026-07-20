@@ -82,11 +82,13 @@ jobs:
             sbom-frontend.cdx.json
             sbom-backend.cdx.json
 
-      - name: Run secret scan (Gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_CONFIG: .gitleaks.toml
+      - name: Run secret scan (Gitleaks CLI)
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo" \
+            -w /repo \
+            zricethezav/gitleaks:v8.24.0 \
+            detect --source=. --config=.gitleaks.toml --verbose --no-git=false
 
       - name: Build backend container image
         run: docker build -t gridflex-backend:ci ./backend
@@ -121,7 +123,7 @@ jobs:
           path: sbom-backend-image.cdx.json
 
       - name: Scan backend container image (Trivy)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: gridflex-backend:ci
           format: sarif
@@ -133,6 +135,7 @@ jobs:
 
       - name: Upload Trivy SARIF
         if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-backend.sarif

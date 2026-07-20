@@ -851,6 +851,8 @@ model DeviceCredential {
   algorithm           String                 @default("HMAC-SHA256")
   status              DeviceCredentialStatus @default(active)
   lastSequenceNumber  Int?
+  /// SHA-256 hex of raw body accepted for lastSequenceNumber — binds idempotent retries to the same payload.
+  lastAcceptedBodyHash String?
   createdAt           DateTime               @default(now())
   expiresAt           DateTime?
   lastUsedAt          DateTime?

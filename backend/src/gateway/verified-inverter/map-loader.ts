@@ -10,6 +10,8 @@ const registerDefinitionSchema = z.object({
   dataType: z.enum(["uint16", "int16", "uint32", "int32"]),
   wordOrder: z.enum(["ABCD", "CDAB", "BADC", "DCBA"]),
   scale: z.number().finite(),
+  scaleMode: z.enum(["fixed", "sunssf"]).optional(),
+  scaleFactorKey: z.string().min(1).optional(),
   unit: z.string().min(1),
   access: z.literal("read"),
   min: z.number().optional(),
@@ -74,9 +76,9 @@ export const parseVerifiedInverterMap = (input: unknown): VerifiedInverterMap =>
   }
 
   const keys = new Set(parsed.registers.map((r) => r.key));
-  // temperature_c is optional ("where available"); all other pilot keys are required.
+  // temperature_c and daily_energy_kwh are optional (SunSpec Model 103 has no native daily WH).
   for (const required of PILOT_INVERTER_READ_KEYS) {
-    if (required === "temperature_c") continue;
+    if (required === "temperature_c" || required === "daily_energy_kwh") continue;
     if (!keys.has(required)) {
       throw new Error(`Verified map missing required pilot read key: ${required}`);
     }
@@ -118,6 +120,8 @@ export const parseVerifiedInverterMap = (input: unknown): VerifiedInverterMap =>
       if (reg.max !== undefined) next.max = reg.max;
       if (reg.unavailableRaw !== undefined) next.unavailableRaw = reg.unavailableRaw;
       if (reg.description !== undefined) next.description = reg.description;
+      if (reg.scaleMode !== undefined) next.scaleMode = reg.scaleMode;
+      if (reg.scaleFactorKey !== undefined) next.scaleFactorKey = reg.scaleFactorKey;
       return next;
     })
   };

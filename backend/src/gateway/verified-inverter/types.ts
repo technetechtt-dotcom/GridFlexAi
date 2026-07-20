@@ -16,7 +16,15 @@ export type RegisterDefinition = {
   length: number;
   dataType: RegisterDataType;
   wordOrder: ModbusWordOrder;
+  /**
+   * Fixed engineering scale when `scaleMode` is `fixed` (default).
+   * Ignored when `scaleMode` is `sunssf` and a live SF value is supplied.
+   */
   scale: number;
+  /** How to apply scale — SunSpec sunssf uses engineering = raw * 10^(sf). */
+  scaleMode?: "fixed" | "sunssf";
+  /** Key of another register that holds the sunssf value for this point. */
+  scaleFactorKey?: string;
   unit: string;
   access: "read";
   min?: number;
@@ -95,11 +103,12 @@ export const PILOT_INVERTER_READ_KEYS = [
   "voltage_v",
   "current_a",
   "frequency_hz",
-  "daily_energy_kwh",
   "lifetime_energy_kwh",
   "inverter_state",
   "alarm_code",
-  "temperature_c"
+  "temperature_c",
+  /** Optional: prefer lifetime delta; Model 103 has no native daily WH point. */
+  "daily_energy_kwh"
 ] as const;
 
 export type PilotInverterReadKey = (typeof PILOT_INVERTER_READ_KEYS)[number];

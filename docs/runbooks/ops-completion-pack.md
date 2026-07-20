@@ -71,16 +71,17 @@ CI covers packet cases HIL-01… (host). Complete hardware rows in [`../equipmen
 | Critical/high closed | | |
 | Retest pass | | |
 
-## POPIA operational approval
+## Physical HIL / load / monitoring / pen-test / POPIA
 
-1. Name Information Officer on [`../policies/popia-data-handling-policy.md`](../policies/popia-data-handling-policy.md).
-2. Sign policy (status → Approved).
-3. First monthly entry in [`../policies/access-review-log.md`](../policies/access-review-log.md).
-4. Exercise one DSR dry-run via [`../policies/data-subject-request-runbook.md`](../policies/data-subject-request-runbook.md).
+These **cannot** be completed in software alone. Track evidence here:
 
-| Milestone | Done? | Date |
-|-----------|-------|------|
-| IO named | | |
-| Policy signed | | |
-| Access review #1 | | |
-| DSR dry-run | | |
+| Gate | Status | Artifact |
+|------|--------|----------|
+| Physical HIL HIL-14…20 | Open | `docs/equipment/hil-evidence-worksheet.md` |
+| Staging load soak | Open | `docs/load/evidence-worksheet.md` |
+| Monitoring fire-drill | Open | `docs/observability/alert-review.md` |
+| External pen-test | Open | `docs/PENETRATION_TEST.md` + vault report |
+| POPIA IO approval | Open | `docs/policies/popia-data-handling-policy.md` |
+| Plant-safety attestation | Open | `docs/policies/pilot-physical-execution-lock.md` |
+
+Do not check these complete in `PRODUCTION_READINESS.md` without signatures/dates.

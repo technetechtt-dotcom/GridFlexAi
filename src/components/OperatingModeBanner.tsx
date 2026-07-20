@@ -55,11 +55,10 @@ export function OperatingModeBanner({ isLiveStreamConnected, metricsStale }: Pro
     };
   }, []);
 
+  const mode = modeInfo?.mode;
   const disconnected =
-    Boolean(modeInfo) &&
-    (modeInfo!.mode === "PILOT_LIVE" ||
-      modeInfo!.mode === "PRODUCTION_ADVISORY" ||
-      modeInfo!.mode === "HIL") &&
+    Boolean(mode) &&
+    (mode === "PILOT_LIVE" || mode === "PRODUCTION_ADVISORY" || mode === "HIL") &&
     (!isLiveStreamConnected || metricsStale);
 
   const tone = modeUnknown ? "slate" : disconnected ? "red" : (modeInfo?.bannerTone ?? "slate");

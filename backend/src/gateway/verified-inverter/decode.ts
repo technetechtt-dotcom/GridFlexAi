@@ -46,7 +46,13 @@ const wordsToSigned = (words: number[], dataType: RegisterDataType): number => {
 export const decodeRegisterWords = (
   definition: RegisterDefinition,
   rawRegisters: number[],
-  options?: { measuredAt?: string; receivedAt?: string; calibrationVersion?: string }
+  options?: {
+    measuredAt?: string;
+    receivedAt?: string;
+    calibrationVersion?: string;
+    /** Live sunssf values keyed by scaleFactorKey (e.g. W_SF → -3). */
+    scaleFactors?: Record<string, number>;
+  }
 ): DecodedRegisterValue => {
   const measuredAt = options?.measuredAt ?? new Date().toISOString();
   const receivedAt = options?.receivedAt ?? measuredAt;
@@ -89,7 +95,34 @@ export const decodeRegisterWords = (
     };
   }
 
-  const engineeringValue = rawDecoded * definition.scale;
+  let engineeringValue: number;
+  if (definition.scaleMode === "sunssf" && definition.scaleFactorKey) {
+    const sf = options?.scaleFactors?.[definition.scaleFactorKey];
+    if (typeof sf !== "number" || !Number.isFinite(sf)) {
+      return {
+        key: definition.key,
+        engineeringValue: null,
+        unit: definition.unit,
+        quality: "uncertain",
+        sourceType: "measured",
+        rawRegisters: [...rawRegisters],
+        rawDecoded,
+        unavailable: false,
+        rangeViolation: false,
+        measuredAt,
+        receivedAt,
+        ...(options?.calibrationVersion ? { calibrationVersion: options.calibrationVersion } : {})
+      };
+    }
+    engineeringValue = rawDecoded * 10 ** sf;
+    // SunSpec W/VAr/WH are SI base units; pilot keys use kW/kvar/kWh.
+    if (definition.unit === "kW" || definition.unit === "kvar" || definition.unit === "kWh") {
+      engineeringValue /= 1000;
+    }
+  } else {
+    engineeringValue = rawDecoded * definition.scale;
+  }
+
   const rangeViolation =
     (typeof definition.min === "number" && engineeringValue < definition.min) ||
     (typeof definition.max === "number" && engineeringValue > definition.max);

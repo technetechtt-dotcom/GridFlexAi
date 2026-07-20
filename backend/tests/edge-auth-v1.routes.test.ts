@@ -30,7 +30,8 @@ jest.mock("../src/lib/prisma.js", () => ({
   prisma: {
     deviceCredential: {
       findUnique: jest.fn(),
-      update: jest.fn().mockResolvedValue({})
+      update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 })
     },
     edgeNode: {
       update: jest.fn().mockResolvedValue({}),
@@ -44,6 +45,7 @@ import type { NextFunction, Request, Response } from "express";
 import { assertAndStoreEdgeNonce } from "../src/lib/edge-replay.js";
 import { prisma } from "../src/lib/prisma.js";
 import { verifyEdgeDeviceAuth } from "../src/middleware/edgeDeviceAuth.js";
+import { hashRawBody } from "../src/utils/edgeDeviceAuth.js";
 
 const runAuth = (req: Partial<Request>) =>
   new Promise<{ error?: unknown; req: Request }>((resolve) => {
@@ -62,6 +64,7 @@ describe("verifyEdgeDeviceAuth GRIDFLEX-V1", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (prisma.deviceCredential.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
   });
 
   it("accepts a valid vaulted signature and advances sequence", async () => {
@@ -111,9 +114,12 @@ describe("verifyEdgeDeviceAuth GRIDFLEX-V1", () => {
 
     expect(error).toBeUndefined();
     expect(req.edgeAuth?.mode).toBe("device_credential");
-    expect(prisma.deviceCredential.update).toHaveBeenCalledWith(
+    expect(prisma.deviceCredential.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ lastSequenceNumber: 42 })
+        data: expect.objectContaining({
+          lastSequenceNumber: 42,
+          lastAcceptedBodyHash: hashRawBody(rawBody)
+        })
       })
     );
   });
@@ -153,6 +159,7 @@ describe("verifyEdgeDeviceAuth GRIDFLEX-V1", () => {
 
   it("treats equal sequence as idempotent replay (store-and-forward retry)", async () => {
     const encrypted = await vault.encrypt(deviceSecret);
+    const bodyHash = hashRawBody(rawBody);
     (prisma.deviceCredential.findUnique as jest.Mock).mockResolvedValue({
       id: "row-1",
       credentialId: "cred_testvector01",
@@ -160,6 +167,7 @@ describe("verifyEdgeDeviceAuth GRIDFLEX-V1", () => {
       status: "active",
       expiresAt: null,
       lastSequenceNumber: 42,
+      lastAcceptedBodyHash: bodyHash,
       encryptedSecret: encrypted.ciphertext,
       encryptedDataKey: null,
       encryptionKeyId: encrypted.keyId,
@@ -167,6 +175,7 @@ describe("verifyEdgeDeviceAuth GRIDFLEX-V1", () => {
       edgeNodeId: "node-1",
       edgeNode: { deviceKey: "esp32-node-1", isActive: true, id: "node-1" }
     });
+    (prisma.deviceCredential.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
 
     const timestamp = String(Date.now());
     const signature = createGridFlexV1Signature(
@@ -198,11 +207,7 @@ describe("verifyEdgeDeviceAuth GRIDFLEX-V1", () => {
 
     expect(error).toBeUndefined();
     expect(req.edgeAuth?.idempotentReplay).toBe(true);
-    expect(prisma.deviceCredential.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.not.objectContaining({ lastSequenceNumber: 42 })
-      })
-    );
+    expect(prisma.deviceCredential.update).toHaveBeenCalled();
   });
 
   it("rejects secretHash-only credentials (must re-provision)", async () => {

@@ -14,6 +14,7 @@ import { logger } from "../utils/logger.js";
 import {
   createGridFlexV1Signature,
   createLegacyEdgeSignature,
+  hashRawBody,
   safeSignatureEquals,
   zeroBuffer
 } from "../utils/edgeDeviceAuth.js";
@@ -187,16 +188,12 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
         return;
       }
 
-      const idempotentReplay =
-        credential.lastSequenceNumber !== null &&
-        credential.lastSequenceNumber !== undefined &&
-        sequenceNumber === credential.lastSequenceNumber;
-
       const rawBody = req.rawBody;
       if (!rawBody || rawBody.length === 0) {
         next(new AppError("Raw request body required for signature verification.", 400));
         return;
       }
+      const bodyHash = hashRawBody(rawBody);
 
       let plaintext: Buffer | null = null;
       try {
@@ -261,15 +258,55 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
         }
       }
 
-      // Advance watermark only for new sequences. Equal sequence = idempotent retry
-      // (new nonce, same measurement) — receipt lookup happens in the ingest handler.
-      await prisma.deviceCredential.update({
-        where: { id: credential.id },
+      // Atomic watermark advance bound to body hash (CAS on lastSequenceNumber).
+      const advanced = await prisma.deviceCredential.updateMany({
+        where: {
+          id: credential.id,
+          OR: [{ lastSequenceNumber: null }, { lastSequenceNumber: { lt: sequenceNumber } }]
+        },
         data: {
           lastUsedAt: new Date(),
-          ...(idempotentReplay ? {} : { lastSequenceNumber: sequenceNumber })
+          lastSequenceNumber: sequenceNumber,
+          lastAcceptedBodyHash: bodyHash
         }
       });
+
+      let idempotentReplay = false;
+      if (advanced.count === 0) {
+        const current = await prisma.deviceCredential.findUnique({ where: { id: credential.id } });
+        if (!current) {
+          next(new AppError("Device credential disappeared during sequence advance.", 409));
+          return;
+        }
+        if (current.lastSequenceNumber === sequenceNumber) {
+          if (current.lastAcceptedBodyHash && current.lastAcceptedBodyHash !== bodyHash) {
+            await recordAuthFailure(credential.edgeNodeId, deviceId);
+            platformMetrics.recordReplayAttempt();
+            next(new AppError("Sequence reused with a different body hash.", 409));
+            return;
+          }
+          await prisma.deviceCredential.update({
+            where: { id: credential.id },
+            data: {
+              lastUsedAt: new Date(),
+              ...(current.lastAcceptedBodyHash ? {} : { lastAcceptedBodyHash: bodyHash })
+            }
+          });
+          idempotentReplay = true;
+        } else if (
+          current.lastSequenceNumber !== null &&
+          current.lastSequenceNumber !== undefined &&
+          sequenceNumber < current.lastSequenceNumber
+        ) {
+          await recordAuthFailure(credential.edgeNodeId, deviceId);
+          next(new AppError("Replayed or regressed sequence number.", 409));
+          return;
+        } else {
+          await recordAuthFailure(credential.edgeNodeId, deviceId);
+          next(new AppError("Sequence conflict; retry with the next sequence number.", 409));
+          return;
+        }
+      }
 
       // Overlap window: first successful use of the new active key completes rotation.
       if (credential.status === DeviceCredentialStatus.active && !idempotentReplay) {

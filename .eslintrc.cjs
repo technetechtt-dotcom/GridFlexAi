@@ -15,4 +15,26 @@ module.exports = {
       { allowConstantExport: true },
     ],
   },
+  overrides: [
+    {
+      files: ['load/k6/**/*.js', 'load/k6/**/*.mjs'],
+      env: {
+        browser: false,
+        es2020: true,
+        node: false,
+      },
+      globals: {
+        __ENV: 'readonly',
+        __VU: 'readonly',
+        __ITER: 'readonly',
+        __NU: 'readonly',
+        open: 'readonly',
+      },
+    },
+    {
+      files: ['load/**/*.mjs', 'scripts/**/*.mjs'],
+      env: { node: true, es2020: true, browser: false },
+    },
+  ],
 }
+

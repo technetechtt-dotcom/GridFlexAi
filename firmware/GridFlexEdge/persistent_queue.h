@@ -10,6 +10,7 @@
  * Flash-backed store-and-forward queue (LittleFS).
  * Measure → enqueue → upload → delete only after ACK.
  * Never silently overwrites unsent records. Survives reboot.
+ * Meta updates are write-tmp + rename (atomic as provided by LittleFS).
  */
 
 struct QueueRecord {
@@ -23,12 +24,16 @@ struct QueueRecord {
 class PersistentQueue {
  public:
   bool begin() {
-    if (!LittleFS.begin(true)) {
-      Serial.println("[queue] LittleFS mount failed");
+    // Never format-on-fail — that would wipe the store-and-forward queue.
+    if (!LittleFS.begin(false)) {
+      Serial.println("[queue] LittleFS mount failed (not formatting)");
       return false;
     }
     LittleFS.mkdir("/q");
-    loadMeta();
+    if (!loadMeta()) {
+      rebuildMetaFromSlots();
+      persistMeta();
+    }
     return true;
   }
 
@@ -45,14 +50,21 @@ class PersistentQueue {
     }
     QueueRecord rec;
     rec.messageId = messageId;
-    rec.sequenceNumber = nextSequence_++;
+    rec.sequenceNumber = nextSequence_;
     rec.measuredAt = measuredAt;
     rec.payloadJson = payloadJson;
     rec.retryCount = 0;
-    if (!writeRecord(tail_, rec)) return false;
-    count_++;
-    tail_ = (tail_ + 1) % QUEUE_MAX_RECORDS;
-    persistMeta();
+    if (!writeRecordAtomic(tail_, rec)) return false;
+    uint32_t newCount = count_ + 1;
+    uint32_t newTail = (tail_ + 1) % QUEUE_MAX_RECORDS;
+    uint32_t newSeq = nextSequence_ + 1;
+    if (!persistMetaValues(head_, newTail, newCount, newSeq)) {
+      LittleFS.remove(slotPath(tail_));
+      return false;
+    }
+    count_ = newCount;
+    tail_ = newTail;
+    nextSequence_ = newSeq;
     return true;
   }
 
@@ -65,10 +77,12 @@ class PersistentQueue {
     QueueRecord head;
     if (!peek(head)) return false;
     if (head.sequenceNumber != sequenceNumber) return false;
+    uint32_t newHead = (head_ + 1) % QUEUE_MAX_RECORDS;
+    uint32_t newCount = count_ - 1;
+    if (!persistMetaValues(newHead, tail_, newCount, nextSequence_)) return false;
     LittleFS.remove(slotPath(head_));
-    head_ = (head_ + 1) % QUEUE_MAX_RECORDS;
-    count_--;
-    persistMeta();
+    head_ = newHead;
+    count_ = newCount;
     return true;
   }
 
@@ -76,7 +90,7 @@ class PersistentQueue {
     QueueRecord head;
     if (!peek(head)) return 0;
     head.retryCount++;
-    writeRecord(head_, head);
+    writeRecordAtomic(head_, head);
     uint32_t exp = 1000u;
     for (uint16_t i = 1; i < head.retryCount && exp < 150000u; i++) exp *= 2;
     if (exp > 300000u) exp = 300000u;
@@ -94,35 +108,73 @@ class PersistentQueue {
     return String("/q/") + String(slot) + ".json";
   }
 
-  void loadMeta() {
+  String slotTmpPath(uint32_t slot) const {
+    return String("/q/") + String(slot) + ".json.tmp";
+  }
+
+  bool loadMeta() {
     File f = LittleFS.open("/q/meta.json", "r");
-    if (!f) {
-      persistMeta();
-      return;
-    }
+    if (!f) return false;
     StaticJsonDocument<256> doc;
-    deserializeJson(doc, f);
+    DeserializationError err = deserializeJson(doc, f);
     f.close();
+    if (err) return false;
     head_ = doc["head"] | 0;
     tail_ = doc["tail"] | 0;
     count_ = doc["count"] | 0;
     nextSequence_ = doc["nextSequence"] | 1;
+    if (count_ > QUEUE_MAX_RECORDS) return false;
+    return true;
   }
 
-  void persistMeta() {
-    File f = LittleFS.open("/q/meta.json", "w");
-    if (!f) return;
+  void rebuildMetaFromSlots() {
+    head_ = 0;
+    tail_ = 0;
+    count_ = 0;
+    nextSequence_ = 1;
+    uint32_t maxSeq = 0;
+    for (uint32_t slot = 0; slot < QUEUE_MAX_RECORDS; slot++) {
+      QueueRecord rec;
+      if (!readRecord(slot, rec)) continue;
+      count_++;
+      if (rec.sequenceNumber >= maxSeq) {
+        maxSeq = rec.sequenceNumber;
+        tail_ = (slot + 1) % QUEUE_MAX_RECORDS;
+      }
+    }
+    nextSequence_ = maxSeq + 1;
+    Serial.printf("[queue] rebuilt meta count=%u nextSeq=%u\n", count_, nextSequence_);
+  }
+
+  bool persistMeta() {
+    return persistMetaValues(head_, tail_, count_, nextSequence_);
+  }
+
+  bool persistMetaValues(uint32_t head, uint32_t tail, uint32_t count, uint32_t nextSequence) {
+    const char* tmp = "/q/meta.json.tmp";
+    const char* finalPath = "/q/meta.json";
+    File f = LittleFS.open(tmp, "w");
+    if (!f) return false;
     StaticJsonDocument<256> doc;
-    doc["head"] = head_;
-    doc["tail"] = tail_;
-    doc["count"] = count_;
-    doc["nextSequence"] = nextSequence_;
-    serializeJson(doc, f);
+    doc["head"] = head;
+    doc["tail"] = tail;
+    doc["count"] = count;
+    doc["nextSequence"] = nextSequence;
+    if (serializeJson(doc, f) == 0) {
+      f.close();
+      LittleFS.remove(tmp);
+      return false;
+    }
+    f.flush();
     f.close();
+    LittleFS.remove(finalPath);
+    return LittleFS.rename(tmp, finalPath);
   }
 
-  bool writeRecord(uint32_t slot, const QueueRecord& rec) {
-    File f = LittleFS.open(slotPath(slot), "w");
+  bool writeRecordAtomic(uint32_t slot, const QueueRecord& rec) {
+    String tmp = slotTmpPath(slot);
+    String finalPath = slotPath(slot);
+    File f = LittleFS.open(tmp, "w");
     if (!f) return false;
     StaticJsonDocument<1024> doc;
     doc["messageId"] = rec.messageId;
@@ -130,17 +182,24 @@ class PersistentQueue {
     doc["measuredAt"] = rec.measuredAt;
     doc["payloadJson"] = rec.payloadJson;
     doc["retryCount"] = rec.retryCount;
-    serializeJson(doc, f);
+    if (serializeJson(doc, f) == 0) {
+      f.close();
+      LittleFS.remove(tmp);
+      return false;
+    }
+    f.flush();
     f.close();
-    return true;
+    LittleFS.remove(finalPath);
+    return LittleFS.rename(tmp, finalPath);
   }
 
   bool readRecord(uint32_t slot, QueueRecord& out) {
     File f = LittleFS.open(slotPath(slot), "r");
     if (!f) return false;
     StaticJsonDocument<1024> doc;
-    deserializeJson(doc, f);
+    DeserializationError err = deserializeJson(doc, f);
     f.close();
+    if (err) return false;
     out.messageId = doc["messageId"].as<String>();
     out.sequenceNumber = doc["sequenceNumber"] | 0;
     out.measuredAt = doc["measuredAt"].as<String>();
