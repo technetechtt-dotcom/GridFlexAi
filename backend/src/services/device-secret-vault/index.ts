@@ -11,7 +11,8 @@ let cachedVault: DeviceSecretVault | null = null;
 
 /**
  * Resolve the device secret vault for this process.
- * Production must use a managed KMS provider — local AES is rejected at env validation.
+ * Pilot default: `local` AES vault with DEVICE_SECRET_VAULT_KEY from the host secret manager.
+ * Optional later: aws_kms / azure_key_vault / gcp_kms.
  */
 export const getDeviceSecretVault = (): DeviceSecretVault => {
   if (cachedVault) {
@@ -21,9 +22,6 @@ export const getDeviceSecretVault = (): DeviceSecretVault => {
   const provider = env.DEVICE_SECRET_VAULT_PROVIDER;
 
   if (provider === "local") {
-    if (env.NODE_ENV === "production") {
-      throw new Error("DEVICE_SECRET_VAULT_PROVIDER=local is forbidden in production.");
-    }
     const material = env.DEVICE_SECRET_VAULT_KEY;
     if (!material) {
       throw new Error("DEVICE_SECRET_VAULT_KEY is required when DEVICE_SECRET_VAULT_PROVIDER=local.");

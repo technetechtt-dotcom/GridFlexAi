@@ -2,7 +2,9 @@
 
 ## Selected secret manager
 
-**Production default:** hosting-provider secret store (Render Environment Groups / equivalent) **plus** AWS KMS for device-secret vault (`DEVICE_SECRET_VAULT_PROVIDER=aws_kms`).
+**Pilot default:** host secret manager AES vault (`DEVICE_SECRET_VAULT_PROVIDER=local` + `DEVICE_SECRET_VAULT_KEY`).
+
+**Optional later:** AWS KMS (`DEVICE_SECRET_VAULT_PROVIDER=aws_kms` + `AWS_KMS_KEY_ID`).
 
 | Provider | Use |
 |----------|-----|

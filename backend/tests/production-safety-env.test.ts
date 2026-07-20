@@ -26,8 +26,9 @@ const productionBaseline = (): Record<string, string> => ({
   REDIS_URL: "redis://localhost:6379",
   PHYSICAL_COMMAND_EXECUTION_ENABLED: "false",
   HIL_PLANT_APPROVAL_CONFIRMED: "false",
-  DEVICE_SECRET_VAULT_PROVIDER: "aws_kms",
-  AWS_KMS_KEY_ID: "arn:aws:kms:eu-west-1:123456789012:key/example"
+  DEVICE_SECRET_VAULT_PROVIDER: "local",
+  DEVICE_SECRET_VAULT_KEY: "pilot-device-secret-vault-key-32chars-min!!",
+  DEVICE_SECRET_VAULT_KEY_ID: "pilot-local"
 });
 
 const loadEnvModule = () => {
@@ -90,11 +91,24 @@ describe("production safety env", () => {
     expect(() => loadEnvModule()).toThrow(/PILOT_LOCK_PHYSICAL_EXECUTION/);
   });
 
-  it("rejects production startup when device secret vault is local", () => {
+  it("allows production startup with local vault when DEVICE_SECRET_VAULT_KEY is set", () => {
+    Object.assign(process.env, productionBaseline());
+    const mod = loadEnvModule();
+    expect(mod.env.DEVICE_SECRET_VAULT_PROVIDER).toBe("local");
+  });
+
+  it("rejects production local vault when DEVICE_SECRET_VAULT_KEY is missing/short", () => {
     Object.assign(process.env, productionBaseline(), {
-      DEVICE_SECRET_VAULT_PROVIDER: "local",
-      DEVICE_SECRET_VAULT_KEY: "dGVzdC1kZXZpY2Utc2VjcmV0LXZhdWx0LWtleS0zMiEh"
+      DEVICE_SECRET_VAULT_KEY: "short"
     });
-    expect(() => loadEnvModule()).toThrow(/DEVICE_SECRET_VAULT_PROVIDER=local/);
+    expect(() => loadEnvModule()).toThrow(/DEVICE_SECRET_VAULT_KEY/);
+  });
+
+  it("rejects aws_kms in production without AWS_KMS_KEY_ID", () => {
+    Object.assign(process.env, productionBaseline(), {
+      DEVICE_SECRET_VAULT_PROVIDER: "aws_kms"
+    });
+    delete process.env.AWS_KMS_KEY_ID;
+    expect(() => loadEnvModule()).toThrow(/AWS_KMS_KEY_ID/);
   });
 });

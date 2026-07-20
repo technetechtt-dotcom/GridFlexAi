@@ -68,9 +68,11 @@ services:
       - key: PILOT_LOCK_PHYSICAL_EXECUTION
         value: "true"
       - key: DEVICE_SECRET_VAULT_PROVIDER
-        value: aws_kms
-      - key: AWS_KMS_KEY_ID
+        value: local
+      - key: DEVICE_SECRET_VAULT_KEY
         sync: false
+      - key: DEVICE_SECRET_VAULT_KEY_ID
+        value: pilot-local
       - key: GRIDFLEX_OPERATING_MODE
         value: SIMULATION
       - key: FORECAST_RATE_LIMIT_MAX_PER_MINUTE
