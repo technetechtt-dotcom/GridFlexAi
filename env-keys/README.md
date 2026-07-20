@@ -14,3 +14,7 @@ Do not place secret values in these files.
 2. Copy platform key names into each file (keys only).
 3. Run parity:
    - `npm run check:env-parity`
+
+## Safety lock
+
+Set `PHYSICAL_COMMAND_EXECUTION_ENABLED=false` in staging and production.

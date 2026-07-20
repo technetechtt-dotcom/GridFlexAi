@@ -167,6 +167,7 @@ jobs:
       ADMIN_ALLOWED_IPS: ""
       ADMIN_REQUIRE_HTTPS: false
       EDGE_INGEST_SHARED_SECRET: test-edge-secret-with-minimum-length
+      PHYSICAL_COMMAND_EXECUTION_ENABLED: false
       OPENAI_API_KEY: test-key
     steps:
       - name: Checkout repository
