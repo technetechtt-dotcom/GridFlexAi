@@ -47,6 +47,14 @@ services:
         value: "300"
       - key: EDGE_RATE_LIMIT_MAX_PER_MINUTE
         value: "30"
+      - key: EDGE_ALLOW_LEGACY_SHARED_SECRET
+        value: "false"
+      - key: EDGE_REPLAY_REQUIRE_REDIS
+        value: "true"
+      - key: EDGE_ALLOW_MEMORY_REPLAY
+        value: "false"
+      - key: PHYSICAL_COMMAND_EXECUTION_ENABLED
+        value: "false"
       - key: FORECAST_RATE_LIMIT_MAX_PER_MINUTE
         value: "20"
       - key: FORECAST_CRON_ENABLED
