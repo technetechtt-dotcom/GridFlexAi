@@ -1,0 +1,8 @@
+{
+  "messageUtf8": "{\"approvedFirmwareMinimum\":\"5.0.0\",\"configurationVersion\":\"kat-1\",\"enabledTelemetryKeys\":[\"current\",\"power\",\"voltage\"],\"expiresAt\":\"2099-01-01T00:00:00.000Z\",\"issuedAt\":\"2026-07-20T00:00:00.000Z\",\"pollingIntervalMs\":60000,\"serverEndpoint\":\"https://example.com/api/edge-data\"}",
+  "messageBase64Url": "eyJhcHByb3ZlZEZpcm13YXJlTWluaW11bSI6IjUuMC4wIiwiY29uZmlndXJhdGlvblZlcnNpb24iOiJrYXQtMSIsImVuYWJsZWRUZWxlbWV0cnlLZXlzIjpbImN1cnJlbnQiLCJwb3dlciIsInZvbHRhZ2UiXSwiZXhwaXJlc0F0IjoiMjA5OS0wMS0wMVQwMDowMDowMC4wMDBaIiwiaXNzdWVkQXQiOiIyMDI2LTA3LTIwVDAwOjAwOjAwLjAwMFoiLCJwb2xsaW5nSW50ZXJ2YWxNcyI6NjAwMDAsInNlcnZlckVuZHBvaW50IjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9hcGkvZWRnZS1kYXRhIn0",
+  "signatureBase64Url": "psaQNRcB-moebFCkX-xigO0T-CMQ5zuxcGDXJJunTkXwf5KSEpUXW8urxYTeR-03YRHGDJx89U-2wUl62ZVYCw",
+  "signatureHex": "a6c690351701fa6a1e6c50a45fec6280ed13f82310e73bb17060d7249ba74e45f07f92921295175bcbabc584de47ed376111c60c9c7cf54fb6c1497ad995580b",
+  "publicKeyRawHex": "d587406a194b8c9169341317cbe5c62cc25a0bd296e4898b7f4744cec3e64be9",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA1YdAahlLjJFpNBMXy+XGLMJaC9KW5ImLf0dEzsPmS+k=\n-----END PUBLIC KEY-----\n"
+}

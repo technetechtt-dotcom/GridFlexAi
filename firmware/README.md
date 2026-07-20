@@ -22,9 +22,14 @@ Pilot reliability stack lives in **`firmware/GridFlexEdge/`**.
 1. Arduino IDE → ESP32 Dev Module (or LILYGO T-Call / SIM7670X).
 2. Tools → Partition Scheme → custom / flash `firmware/partitions_ota.csv`.
 3. Libraries: **ArduinoJson**, **TinyGSM**, **SSLClient**, LittleFS (ESP32 core).
-4. Edit `GridFlexEdge/config.h`: Wi-Fi, device identity, secret, API base, Ed25519 public key PEM, `USE_RS485_MODBUS`, modem pins.
-5. Ensure `certs.h` contains ISRG Root X1 (`npm run` / `scripts/generate-certs-h.mjs` if regenerating).
-6. Open `GridFlexEdge/GridFlexEdge.ino` and upload.
+4. Edit `GridFlexEdge/config.h`: Wi-Fi, device identity, secret, API base, Ed25519 public key PEM, `USE_RS485_MODBUS`, `SUNSPEC_MODEL103_BASE`, modem pins.
+5. Ensure `certs.h` contains ISRG Root X1 (`scripts/generate-certs-h.mjs` if regenerating).
+6. Boot must print `[boot] Ed25519 KAT passed` (known-answer vectors in `ed25519_kat.h`).
+7. Open `GridFlexEdge/GridFlexEdge.ino` and upload (`ed25519_verify.cpp` builds automatically).
+
+## LTE TLS bench
+
+Complete [`docs/equipment/lte-tls-bench-worksheet.md`](../docs/equipment/lte-tls-bench-worksheet.md) on the exact ESP32/SIM7670 hardware.
 
 ## Backend contracts
 

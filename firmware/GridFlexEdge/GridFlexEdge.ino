@@ -25,6 +25,7 @@
 #include "remote_config.h"
 #include "ota_safety.h"
 #include "modbus_rtu.h"
+#include "ed25519_kat.h"
 
 PersistentQueue gQueue;
 WatchdogHealth gWatchdog;
@@ -77,6 +78,9 @@ void measureAndEnqueue() {
   doc["voltage"] = sample.voltage;
   doc["current"] = sample.current;
   doc["power"] = sample.power;
+  if (isfinite(sample.frequencyHz)) {
+    doc["frequency"] = sample.frequencyHz;
+  }
   doc["timestamp"] = iso8601UtcNow();
   doc["firmwareVersion"] = FIRMWARE_VERSION;
   doc["queueDepth"] = (int)gQueue.depth();
@@ -209,6 +213,12 @@ void setup() {
   gSecretOk = decodeBase64Url(DEVICE_SECRET_B64URL, gDeviceSecret, sizeof(gDeviceSecret));
   if (!gSecretOk) {
     Serial.println("FATAL: invalid DEVICE_SECRET_B64URL");
+  }
+
+  if (!ed25519RunKnownAnswerTest()) {
+    Serial.println("FATAL: Ed25519 known-answer test failed");
+  } else {
+    Serial.println("[boot] Ed25519 KAT passed");
   }
 
   gWatchdog.begin();

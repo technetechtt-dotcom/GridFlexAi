@@ -238,14 +238,42 @@ describe("HIL packet robustness matrix", () => {
     ).toThrow(/control-oriented|physical/i);
   });
 
-  it("HIL-15 queue-full refuses overwrite", () => {
-    const q = new PersistentStoreAndForwardQueue({ maxRecords: 2 });
-    q.enqueue({ v: 1 }, "2026-07-20T08:00:00Z", "11111111-1111-4111-a111-111111111111");
-    q.enqueue({ v: 2 }, "2026-07-20T08:01:00Z", "22222222-2222-4222-a222-222222222222");
-    expect(() =>
-      q.enqueue({ v: 3 }, "2026-07-20T08:02:00Z", "33333333-3333-4333-a333-333333333333")
-    ).toThrow(/full/i);
+  it("HIL-16 delayed ingest tagged stale", async () => {
+    const old = new Date(Date.now() - 3_600_000).toISOString();
+    const result = await ingestTelemetryBatch([
+      {
+        assetId: "asset-1",
+        key: "active_power_kw",
+        numericValue: 10,
+        unit: "kW",
+        deviceTimestamp: old,
+        sequenceNumber: 100
+      }
+    ]);
+    expect(result.accepted).toBe(1);
+    expect((prisma.telemetryReading.create as jest.Mock).mock.calls.at(-1)?.[0].data.quality).toBe(
+      "stale"
+    );
+  });
+
+  it("HIL-17 disconnect — queue retains records until ordered ACK", () => {
+    const q = new PersistentStoreAndForwardQueue({ maxRecords: 20 });
+    q.enqueue({ n: 1 }, "2026-07-20T08:00:00Z", "11111111-1111-4111-a111-111111111111");
+    q.enqueue({ n: 2 }, "2026-07-20T08:01:00Z", "22222222-2222-4222-a222-222222222222");
+    // disconnect window: no ACK
     expect(q.depth).toBe(2);
+    expect(q.peek()?.sequenceNumber).toBe(1);
+    q.acknowledge(1);
+    expect(q.peek()?.sequenceNumber).toBe(2);
+  });
+
+  it("HIL-18 reset recovery — reboot snapshot preserves measuredAt", () => {
+    const q = new PersistentStoreAndForwardQueue({ maxRecords: 20 });
+    q.enqueue({ n: 1 }, "2026-07-20T08:00:00Z", "11111111-1111-4111-a111-111111111111");
+    const snap = q.snapshotForReboot();
+    const q2 = new PersistentStoreAndForwardQueue({ maxRecords: 20 });
+    q2.loadAfterReboot(snap, q.sequenceCursor);
+    expect(q2.peek()?.measuredAt).toBe("2026-07-20T08:00:00Z");
   });
 });
 

@@ -6,9 +6,8 @@
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <Preferences.h>
-#include <mbedtls/pk.h>
-#include <mbedtls/sha512.h>
 #include "config.h"
+#include "ed25519_verify.h"
 
 /**
  * Signed remote configuration (Ed25519).
@@ -257,43 +256,25 @@ class RemoteConfigManager {
       Serial.println("[cfg] Pin a real Ed25519 public key before accepting remote config");
       return false;
     }
-    mbedtls_pk_context pk;
-    mbedtls_pk_init(&pk);
-    int ret = mbedtls_pk_parse_public_key(
-      &pk,
-      (const unsigned char*)PINNED_CONFIG_PUBKEY_PEM,
-      strlen(PINNED_CONFIG_PUBKEY_PEM) + 1
-    );
-    if (ret != 0) {
-      Serial.printf("[cfg] pubkey parse failed %d\n", ret);
-      mbedtls_pk_free(&pk);
+    uint8_t pub[32];
+    if (!ed25519ParseSpkiPem(PINNED_CONFIG_PUBKEY_PEM, pub)) {
+      Serial.println("[cfg] Failed to parse pinned SPKI public key");
       return false;
     }
-
-    // Decode base64url signature (64 bytes for Ed25519).
+    uint8_t sig[64];
     size_t sigLen = 0;
-    unsigned char sig[128];
-    // Minimal base64url decode
-    String b64 = signatureB64url;
-    b64.replace('-', '+');
-    b64.replace('_', '/');
-    while (b64.length() % 4) b64 += '=';
-    // Use mbedtls if available; otherwise reject until linked.
-#if defined(MBEDTLS_PEM_PARSE_C)
-    // Host CI covers verify; on-device require ED25519 type.
-    if (!mbedtls_pk_can_do(&pk, MBEDTLS_PK_ECKEY) && !mbedtls_pk_can_do(&pk, MBEDTLS_PK_ED25519)) {
-      Serial.println("[cfg] Public key type not usable for Ed25519 verify on this build");
-      mbedtls_pk_free(&pk);
+    if (!ed25519DecodeBase64Url(signatureB64url, sig, sizeof(sig), &sigLen) || sigLen != 64) {
+      Serial.println("[cfg] Signature base64url decode failed");
       return false;
     }
-#endif
-    (void)payloadJson;
-    (void)sigLen;
-    (void)sig;
-    // Until MBEDTLS_ED25519_C is enabled in the board sdkconfig, fail closed.
-    Serial.println("[cfg] Ed25519 verify requires MBEDTLS_ED25519_C — rejecting until enabled");
-    mbedtls_pk_free(&pk);
-    return false;
+    const size_t msgLen = strlen(payloadJson);
+    const bool ok = ed25519VerifyDetached(
+      pub, sig, reinterpret_cast<const uint8_t*>(payloadJson), msgLen
+    );
+    if (!ok) {
+      Serial.println("[cfg] Ed25519 verify failed");
+    }
+    return ok;
   }
 };
 

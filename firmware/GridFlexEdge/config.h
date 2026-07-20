@@ -15,7 +15,7 @@ static const char* DEFAULT_API_BASE = "https://gridflex-backend.onrender.com";
 static const char* EDGE_DATA_PATH = "/api/edge-data";
 static const char* EDGE_CONFIG_PATH = "/api/edge/config";
 
-static const char* FIRMWARE_VERSION = "5.1.0-edge-4g-sequenced";
+static const char* FIRMWARE_VERSION = "5.2.0-edge-ed25519-sunspec";
 static const char* PINNED_CONFIG_PUBKEY_PEM =
   "-----BEGIN PUBLIC KEY-----\n"
   "REPLACE_WITH_EDGE_CONFIG_ED25519_PUBLIC_KEY\n"
@@ -38,6 +38,10 @@ static const char* LTE_PASS = "";
 // RS485 Modbus RTU (set 1 on hardware with transceiver wired). Fail-closed when 0 — no random metrics.
 #define USE_RS485_MODBUS 0
 static const uint8_t MODBUS_SLAVE_ID = 1;
+// Zero-based Model 103 ID address from SunSpec discovery (backend default 40069).
+#ifndef SUNSPEC_MODEL103_BASE
+#define SUNSPEC_MODEL103_BASE 40069
+#endif
 
 // TLS: CA is provided by certs.h (ISRG Root X1). Insecure TLS is not supported.
 
