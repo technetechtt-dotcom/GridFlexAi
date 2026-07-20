@@ -8,11 +8,10 @@
 
 | Provider | Use |
 |----------|-----|
-| Render / platform env secrets | App runtime secrets (`DATABASE_URL`, `JWT_*`, API keys, Redis) |
-| AWS KMS | Per-device HMAC secret encryption at rest |
-| Azure Key Vault / GCP KMS / HashiCorp Vault | Supported as vault provider targets; wire when that cloud is primary |
-
-Local AES vault (`DEVICE_SECRET_VAULT_PROVIDER=local`) is **forbidden in production**.
+| Render / platform env secrets | App runtime secrets + `DEVICE_SECRET_VAULT_KEY` |
+| Local AES vault (`local`) | Pilot device-secret encryption at rest |
+| AWS KMS (optional later) | Managed CMK when ready |
+| Azure Key Vault / GCP KMS | Reserved provider targets |
 
 ## Eliminate secrets from files
 
