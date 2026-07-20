@@ -35,6 +35,10 @@ jobs:
         run: npm audit --omit=dev --audit-level=critical
         working-directory: backend
 
+      - name: Secrets hygiene (tracked files)
+        run: npm run check:secrets-hygiene
+        working-directory: backend
+
   supply-chain:
     runs-on: ubuntu-latest
     permissions:

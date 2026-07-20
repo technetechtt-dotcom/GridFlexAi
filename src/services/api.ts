@@ -1579,27 +1579,6 @@ export async function requestNodeMaintenance(id: string, payload: {
   return response.data;
 }
 
-const fallbackForecastProfiles: ForecastNodeProfile[] = [
-  {
-    name: 'Upington',
-    lat: -28.4478,
-    lon: 21.2561,
-    capacity: 220
-  },
-  {
-    name: 'De Aar',
-    lat: -30.6499,
-    lon: 24.0123,
-    capacity: 180
-  },
-  {
-    name: 'Prieska',
-    lat: -29.6699,
-    lon: 22.7447,
-    capacity: 140
-  }
-];
-
 export function buildForecastProfilesFromNodes(
 backendNodes: BackendNode[],
 selectedNodeNames: string[]
@@ -1609,13 +1588,13 @@ selectedNodeNames: string[]
   backendNodes.filter((node) => selectedNodeNames.includes(node.name)) :
   backendNodes;
 
-  const mapped = scopedNodes.flatMap((node) => {
+  return scopedNodes.flatMap((node) => {
     if (typeof node.latitude !== 'number' || typeof node.longitude !== 'number') {
       return [];
     }
 
-    const baselinePower = node.lastReading?.power ?? node.latestReadingSummary.avgPower24h ?? 140;
-    const inferredCapacity = Math.max(120, Math.round(baselinePower * 1.25));
+    const baselinePower = node.lastReading?.power ?? node.latestReadingSummary.avgPower24h;
+    const inferredCapacity = Math.max(120, Math.round((baselinePower ?? 120) * 1.25));
     return [{
       id: node.id,
       name: node.name,
@@ -1624,19 +1603,6 @@ selectedNodeNames: string[]
       capacity: inferredCapacity
     }];
   });
-
-  if (mapped.length) {
-    return mapped;
-  }
-
-  if (hasSpecificNodeScope) {
-    const fallbackScoped = fallbackForecastProfiles.filter((profile) => selectedNodeNames.includes(profile.name));
-    if (fallbackScoped.length) {
-      return fallbackScoped;
-    }
-  }
-
-  return fallbackForecastProfiles;
 }
 
 export async function fetchReadings(params: {

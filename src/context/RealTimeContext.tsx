@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState, createContext, useContext, type Re
 import {
   fetchNodes,
   fetchDashboardSummary,
-  fetchForecast,
   fetchIoTEdgeAssets,
   fetchProactiveAlerts,
   fetchOperatingMode,
@@ -145,42 +144,37 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
 
     const bootstrap = async () => {
       try {
-        const [alerts, assets, nodes, summary, forecast, modeInfo] = await Promise.all([
+        const [alerts, assets, nodes, summary, modeInfo] = await Promise.all([
         fetchProactiveAlerts(),
         fetchIoTEdgeAssets(),
         fetchNodes(),
         fetchDashboardSummary(),
-        fetchForecast({
-          lat: -28.4478,
-          lon: 21.2561,
-          capacity: 220
-        }),
         fetchOperatingMode()]);
         if (!mounted) return;
         setProactiveAlerts(alerts);
         setIotAssets(assets);
         setBackendNodes(nodes);
-        const nextDemand = forecast.hourly[0]?.estimatedPowerKw ?
-        Math.max(forecast.hourly[0].estimatedPowerKw * 0.97, 0) :
-        Math.max(summary.averages.power * 0.96, 0);
         const measuredAt = summary.latestTimestamp ? new Date(summary.latestTimestamp) : new Date();
+        const hasMeasuredPower = summary.averages.power > 0;
         const sourceType =
           modeInfo.defaultTelemetryEnvironment === 'simulation'
             ? 'simulated'
-            : summary.averages.power > 0
+            : hasMeasuredPower
               ? 'measured'
               : 'estimated';
         setMetrics((prev) => ({
           ...prev,
+          // Do not invent demand/frequency from forecast ratios.
           voltage: summary.averages.voltage || prev.voltage,
           totalGeneration: summary.averages.power || prev.totalGeneration,
-          demand: nextDemand,
-          lastUpdated: measuredAt,
+          demand: prev.demand,
+          frequency: prev.frequency,
+          lastUpdated: hasMeasuredPower ? measuredAt : prev.lastUpdated,
           provenance: buildProvenance({
             sourceType,
             sourceId: modeInfo.simulationRunId ?? 'dashboard-summary',
-            quality: summary.averages.power > 0 ? 'good' : 'stale',
-            measuredAt,
+            quality: hasMeasuredPower ? 'good' : 'stale',
+            measuredAt: hasMeasuredPower ? measuredAt : prev.lastUpdated,
             receivedAt: new Date(),
             unit: 'kW'
           })
@@ -215,11 +209,12 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
       if (!mounted) return;
       const measuredAt = new Date(reading.timestamp);
       setMetrics((prev) => ({
-        // Keep frequency tightly bounded around nominal to avoid jittery UX.
-        frequency: Number((50 + Math.max(-0.03, Math.min(0.03, (reading.power - prev.totalGeneration) / 500))).toFixed(2)),
+        // Hold last frequency — readings do not include measured Hz; do not invent from power delta.
+        frequency: prev.frequency,
         voltage: reading.voltage,
         totalGeneration: reading.power,
-        demand: Math.max(reading.power * 0.95, 0),
+        // Hold last demand — no measured demand field on ingest readings.
+        demand: prev.demand,
         lastUpdated: measuredAt,
         provenance: buildProvenance({
           sourceType,

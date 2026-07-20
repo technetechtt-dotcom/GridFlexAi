@@ -1,24 +1,24 @@
 import React, { useEffect, useState } from "react";
 
 import {
-  OPERATING_MODE_LABELS,
-  type GridFlexOperatingMode,
   type OperatingModeResponse
 } from "../lib/operatingMode";
 import { fetchOperatingMode } from "../services/api";
 
-const toneClasses: Record<OperatingModeResponse["bannerTone"] | "red", string> = {
+const toneClasses: Record<OperatingModeResponse["bannerTone"] | "red" | "slate", string> = {
   blue: "border-sky-500/40 bg-sky-500/15 text-sky-100",
   amber: "border-amber-500/40 bg-amber-500/15 text-amber-100",
   green: "border-emerald-500/40 bg-emerald-500/15 text-emerald-100",
-  red: "border-rose-500/40 bg-rose-500/15 text-rose-100"
+  red: "border-rose-500/40 bg-rose-500/15 text-rose-100",
+  slate: "border-slate-500/40 bg-slate-500/15 text-slate-100"
 };
 
-const watermarkClasses: Record<OperatingModeResponse["bannerTone"] | "red", string> = {
+const watermarkClasses: Record<OperatingModeResponse["bannerTone"] | "red" | "slate", string> = {
   blue: "text-sky-500/10",
   amber: "text-amber-500/10",
   green: "text-emerald-500/5",
-  red: "text-rose-500/15"
+  red: "text-rose-500/15",
+  slate: "text-slate-500/10"
 };
 
 type Props = {
@@ -29,29 +29,25 @@ type Props = {
 /**
  * Persistent, unavoidable mode banner + watermark.
  * Mode is determined by the backend (GRIDFLEX_OPERATING_MODE), not the browser.
+ * On fetch failure we show UNKNOWN — never default to Simulation.
  */
 export function OperatingModeBanner({ isLiveStreamConnected, metricsStale }: Props) {
   const [modeInfo, setModeInfo] = useState<OperatingModeResponse | null>(null);
+  const [modeUnknown, setModeUnknown] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     void fetchOperatingMode()
       .then((data) => {
-        if (mounted) setModeInfo(data);
+        if (mounted) {
+          setModeInfo(data);
+          setModeUnknown(false);
+        }
       })
       .catch(() => {
         if (mounted) {
-          setModeInfo({
-            mode: "SIMULATION",
-            label: OPERATING_MODE_LABELS.SIMULATION,
-            defaultTelemetryEnvironment: "simulation",
-            liveNamespace: "/",
-            simulationNamespace: "/simulation",
-            liveTelemetryPath: "/api/v2/telemetry",
-            simulationTelemetryPath: "/api/simulation/telemetry",
-            simulationRunId: null,
-            bannerTone: "blue"
-          });
+          setModeInfo(null);
+          setModeUnknown(true);
         }
       });
     return () => {
@@ -59,14 +55,29 @@ export function OperatingModeBanner({ isLiveStreamConnected, metricsStale }: Pro
     };
   }, []);
 
-  const mode: GridFlexOperatingMode = modeInfo?.mode ?? "SIMULATION";
   const disconnected =
-    (mode === "PILOT_LIVE" || mode === "PRODUCTION_ADVISORY" || mode === "HIL") &&
+    Boolean(modeInfo) &&
+    (modeInfo!.mode === "PILOT_LIVE" ||
+      modeInfo!.mode === "PRODUCTION_ADVISORY" ||
+      modeInfo!.mode === "HIL") &&
     (!isLiveStreamConnected || metricsStale);
-  const tone = disconnected ? "red" : (modeInfo?.bannerTone ?? "blue");
-  const label = disconnected
-    ? "Stale / disconnected — last measured values held; not live"
-    : modeInfo?.label ?? OPERATING_MODE_LABELS[mode];
+
+  const tone = modeUnknown ? "slate" : disconnected ? "red" : (modeInfo?.bannerTone ?? "slate");
+  const label = modeUnknown
+    ? "Operating mode unknown — backend unreachable; not assuming simulation"
+    : disconnected
+      ? "Stale / disconnected — last measured values held; not live"
+      : modeInfo
+        ? modeInfo.label
+        : "Loading operating mode…";
+
+  const watermark = modeUnknown
+    ? "UNKNOWN"
+    : disconnected
+      ? "STALE"
+      : modeInfo
+        ? modeInfo.mode.replace(/_/g, " ")
+        : "…";
 
   return (
     <>
@@ -89,9 +100,10 @@ export function OperatingModeBanner({ isLiveStreamConnected, metricsStale }: Pro
         aria-hidden
       >
         <p className="select-none text-[12vw] font-black uppercase tracking-[0.2em] -rotate-12">
-          {disconnected ? "STALE" : mode.replace(/_/g, " ")}
+          {watermark}
         </p>
       </div>
     </>
   );
 }
+

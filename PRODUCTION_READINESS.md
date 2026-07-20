@@ -7,6 +7,7 @@ Use this tracker to move from pilot-ready to production-ready with explicit owne
 - Estimated readiness: **~85% engineering / pilot frameworks**; **ops evidence still required** for go-live.
 - Last updated: **2026-07-20**.
 - Pre-pilot gates (1–15): see `docs/PILOT_DEPLOYMENT.md` (frameworks landed on `feat/pentest-load-testing`).
+- Ops remaining: [`docs/runbooks/ops-completion-pack.md`](./docs/runbooks/ops-completion-pack.md)
 
 ## P0 - Go-Live Blockers
 
@@ -16,9 +17,17 @@ Use this tracker to move from pilot-ready to production-ready with explicit owne
   - Evidence: `backend/tests/health.routes.test.ts`.
 - [x] **Production env guardrails for unsafe placeholders**
   - Evidence: `backend/src/config/env.ts` + `PILOT_LOCK_PHYSICAL_EXECUTION`.
+- [x] **Live dashboard no longer invents synthetic actual/demand/frequency**
+  - Evidence: `Dashboard.tsx`, `RealTimeContext.tsx`, `OperatingModeBanner` UNKNOWN-on-failure.
+- [x] **Verified read-only inverter map (SunSpec Model 103) wired**
+  - Evidence: `gateway/maps/vendor/sunspec/model103/1.0.ts`; confirm base address on site.
+- [x] **Critical supply-chain findings block CI**
+  - Evidence: npm audit critical, Gitleaks, Trivy CRITICAL/HIGH exit 1, `check:secrets-hygiene` in CI.
+- [x] **Alert webhook delivery path in code**
+  - Evidence: `ALERT_WEBHOOK_*` + `alert-dispatcher.ts` (host must set URL).
 - [ ] **Secrets moved to managed secret store and rotated** *(ops)*
-  - Framework: `docs/MANAGED_SECRETS.md`, JWT `kid` rotation, vaulted device secrets.
-  - Evidence needed: inventory last-rotated dates + `docs/runbooks/secret-rotation-log.md` entries.
+  - Framework: vaulted GRIDFLEX-V1, `EDGE_ALLOW_LEGACY_SHARED_SECRET=false` default, `npm run rotate:devices`.
+  - Evidence needed: inventory last-rotated dates + rotation log after cutover.
 - [ ] **Backup and restore test completed** *(ops)*
   - Framework: `docs/runbooks/database-backup-restore.md`, `npm run restore:verify`.
   - Evidence needed: filled `docs/runbooks/backup-restore-evidence.md`.

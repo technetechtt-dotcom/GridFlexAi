@@ -62,4 +62,5 @@ Weekly review: [`docs/observability/alert-review.md`](./observability/alert-revi
 1. Force a controlled failure (e.g. invalid signature ingest).
 2. Confirm centralized log line with `event=edge.auth.signature_failed` and `traceId`.
 3. Confirm `gridflex_signature_failures_total` increments on `/api/metrics`.
-4. Page a real on-call recipient for a critical test alert; record in alert-review log.
+4. With `ALERT_WEBHOOK_ENABLED=true` and `ALERT_WEBHOOK_URL` set, confirm webhook delivery (`event=alert.webhook.delivered`).
+5. Page a real on-call recipient for a critical test alert; record in alert-review log.

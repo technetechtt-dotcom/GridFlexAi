@@ -11,6 +11,8 @@ Update **Last rotated** and **Owner** after every change. Do not put secret *val
 | `DEVICE_SECRET_VAULT_PROVIDER` | Config | Platform eng | n/a | — | `aws_kms` in prod |
 | `AWS_KMS_KEY_ID` | Platform secret manager | Platform eng | KMS policy | _TBD_ | Key id/ARN — rotate CMK per AWS policy |
 | `DEVICE_SECRET_VAULT_KEY` | **Dev only** | Dev | n/a | — | Forbidden in production |
+| `METRICS_SCRAPE_TOKEN` | Platform secret manager | Platform eng | 90 days | _TBD_ | Required to scrape `/api/metrics` in prod |
+| `ALERT_WEBHOOK_URL` / `ALERT_WEBHOOK_TOKEN` | Platform secret manager | Platform eng | 90–180 days | _TBD_ | Critical alert delivery |
 | `EDGE_INGEST_SHARED_SECRET` | Platform secret manager | Platform eng | Disable for pilot | _TBD_ | Legacy; set `EDGE_ALLOW_LEGACY_SHARED_SECRET=false` |
 | Device HMAC credentials | KMS-encrypted DB rows | Edge ops | 90–180 days | _TBD_ | Per-device; overlap rotation |
 | `EDGE_CONFIG_SIGNING_PRIVATE_KEY_PEM` | Platform secret manager | Platform eng | 180 days | _TBD_ | Ed25519; pin public on devices |

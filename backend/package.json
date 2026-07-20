@@ -12,6 +12,7 @@
     "test": "jest --runInBand",
     "check:secrets-hygiene": "tsx scripts/check-secrets-hygiene.ts",
     "restore:verify": "tsx scripts/restore-verify.ts",
+    "rotate:devices": "tsx scripts/rotate-all-device-credentials.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",

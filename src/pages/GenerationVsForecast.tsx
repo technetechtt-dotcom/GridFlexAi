@@ -28,7 +28,7 @@ interface GenerationVsForecastProps {
 
 type ChartRow = {
   time: string;
-  actual: number;
+  actual: number | null;
   forecast: number;
 };
 
@@ -104,31 +104,47 @@ export function GenerationVsForecast({
 
         if (!active) return;
 
-        const nextChartRows = forecast.hourly.slice(0, 12).map((hour, idx) => {
-          const reading = readings[idx];
-          const actual = reading?.power ?? hour.estimatedPowerKw * (0.9 + (idx % 3) * 0.03);
+        const nextChartRows = forecast.hourly.slice(0, 12).map((hour) => {
+          const hourKey = new Date(hour.timestamp).toISOString().slice(0, 13);
+          const reading = readings.find(
+            (row) => new Date(row.timestamp).toISOString().slice(0, 13) === hourKey
+          );
           return {
             time: new Date(hour.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            actual: Number(actual.toFixed(1)),
+            actual: reading ? Number(reading.power.toFixed(1)) : null,
             forecast: Number(hour.estimatedPowerKw.toFixed(1))
           };
         });
         setChartRows(nextChartRows);
 
-        const perNodeRows = nodes.slice(0, 5).map((node, idx) => {
-          const actual = Number((node.lastReading?.power ?? 0).toFixed(1));
-          const forecastVal = Number((actual * (1 + (idx % 4 - 1.5) * 0.04)).toFixed(1));
-          const error = Number((actual - forecastVal).toFixed(1));
-          const pct = forecastVal === 0 ? 0 : Number((Math.abs(error) / Math.max(forecastVal, 1) * 100).toFixed(1));
-          return {
-            node: node.name,
-            actual,
-            forecast: forecastVal,
-            error,
-            pct,
-            status: pct > 10 ? 'warning' : 'optimal'
-          } satisfies NodeBreakdownRow;
-        });
+        const perNodeRows = await Promise.all(
+          nodes.slice(0, 5).map(async (node) => {
+            const actual = Number((node.lastReading?.power ?? 0).toFixed(1));
+            let forecastVal = 0;
+            if (typeof node.latitude === 'number' && typeof node.longitude === 'number') {
+              try {
+                const nodeForecast = await fetchForecast({
+                  lat: node.latitude,
+                  lon: node.longitude,
+                  capacity: Math.max(actual * 2, 120)
+                });
+                forecastVal = Number((nodeForecast.hourly[0]?.estimatedPowerKw ?? 0).toFixed(1));
+              } catch {
+                forecastVal = 0;
+              }
+            }
+            const error = Number((actual - forecastVal).toFixed(1));
+            const pct = forecastVal === 0 ? 0 : Number((Math.abs(error) / Math.max(forecastVal, 1) * 100).toFixed(1));
+            return {
+              node: node.name,
+              actual,
+              forecast: forecastVal,
+              error,
+              pct,
+              status: pct > 10 ? 'warning' : 'optimal'
+            } satisfies NodeBreakdownRow;
+          })
+        );
         setBreakdownRows(perNodeRows);
         setError(null);
       } catch {

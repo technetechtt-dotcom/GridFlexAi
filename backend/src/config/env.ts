@@ -57,8 +57,8 @@ const envSchema = z.object({
   EDGE_INGEST_SHARED_SECRET: z.string().min(16).default("dev-edge-secret-change-me"),
   EDGE_INGEST_MAX_SKEW_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
   EDGE_RATE_LIMIT_MAX_PER_MINUTE: z.coerce.number().int().min(5).max(1000).default(30),
-  /** Temporary compatibility mode. Disabled by default in production safety checks. */
-  EDGE_ALLOW_LEGACY_SHARED_SECRET: envBoolean.default(true),
+  /** Temporary compatibility mode. Must be false in production (enforced below). */
+  EDGE_ALLOW_LEGACY_SHARED_SECRET: envBoolean.default(false),
   EDGE_REPLAY_REQUIRE_REDIS: envBoolean.default(false),
   EDGE_ALLOW_MEMORY_REPLAY: envBoolean.default(true),
   /** PEM-encoded Ed25519 private key for signing edge remote configuration. */
@@ -109,6 +109,13 @@ const envSchema = z.object({
   METRICS_SCRAPE_TOKEN: z.string().min(16).optional(),
   /** Optional service name override for structured logs / OTel. */
   OTEL_SERVICE_NAME: z.string().min(1).max(80).optional(),
+  /** When set + ALERT_WEBHOOK_ENABLED, critical/warning alerts POST JSON here. */
+  ALERT_WEBHOOK_URL: z.string().url().optional(),
+  ALERT_WEBHOOK_ENABLED: envBoolean.default(false),
+  ALERT_WEBHOOK_TOKEN: z.string().min(8).optional(),
+  ALERT_WEBHOOK_INCLUDE_INFO: envBoolean.default(false),
+  ALERT_WEBHOOK_COOLDOWN_MS: z.coerce.number().int().min(0).max(3_600_000).default(60_000),
+  ALERT_WEBHOOK_TIMEOUT_MS: z.coerce.number().int().min(500).max(30_000).default(5_000),
   OPENWEATHER_API_KEY: z.string().optional(),
   ACCUWEATHER_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),

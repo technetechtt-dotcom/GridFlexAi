@@ -231,6 +231,14 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
             event: "edge.auth.signature_failed"
           });
           platformMetrics.recordSignatureFailure();
+          void import("../observability/alert-dispatcher.js").then(({ dispatchAlert }) =>
+            dispatchAlert({
+              alertId: "A-edge-signature-failed",
+              severity: "critical",
+              title: "Edge ingest signature failure",
+              detail: `Invalid GRIDFLEX-V1 signature for device ${deviceId}`
+            })
+          );
           next(new AppError("Invalid edge request signature.", 401));
           return;
         }

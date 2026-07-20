@@ -15,7 +15,7 @@ static const char* DEFAULT_API_BASE = "https://gridflex-backend.onrender.com";
 static const char* EDGE_DATA_PATH = "/api/edge-data";
 static const char* EDGE_CONFIG_PATH = "/api/edge/config";
 
-static const char* FIRMWARE_VERSION = "5.0.0-edge-reliability";
+static const char* FIRMWARE_VERSION = "5.1.0-edge-4g-sequenced";
 static const char* PINNED_CONFIG_PUBKEY_PEM =
   "-----BEGIN PUBLIC KEY-----\n"
   "REPLACE_WITH_EDGE_CONFIG_ED25519_PUBLIC_KEY\n"
@@ -26,10 +26,16 @@ static const size_t QUEUE_MAX_RECORDS = 2000;
 static const unsigned long DEFAULT_POLL_INTERVAL_MS = 60000;
 static const unsigned long WATCHDOG_TIMEOUT_MS = 30000;
 
-// LTE modem pins (LILYGO T-Call A7670). Used when USE_LTE=1.
-#define USE_LTE 0
+// LTE modem pins (LILYGO T-Call A7670). Sequenced 4G edge client: set USE_LTE=1 for field.
+#define USE_LTE 1
 #define MODEM_RX 26
 #define MODEM_TX 27
 #define MODEM_PWR 4
+static const char* LTE_APN = "internet";
+static const char* LTE_USER = "";
+static const char* LTE_PASS = "";
+
+// Optional: pin TLS root CA instead of setInsecure()
+// #define GRIDFLEX_ROOT_CA_PEM "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n"
 
 #endif

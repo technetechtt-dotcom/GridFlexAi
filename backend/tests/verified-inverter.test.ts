@@ -269,8 +269,24 @@ describe("verified read-only inverter adapter", () => {
 });
 
 describe("pilot map gate and write-function policy", () => {
-  it("fails closed until an official vendor map is onboarded", () => {
-    expect(() => resolvePilotVerifiedInverterMap()).toThrow(/not onboarded/i);
+  it("resolves verified SunSpec Model 103 map by default", () => {
+    const previous = process.env.PILOT_INVERTER_MAP;
+    delete process.env.PILOT_INVERTER_MAP;
+    const map = resolvePilotVerifiedInverterMap();
+    expect(map.fictitious).toBe(false);
+    expect(map.provenanceAttested).toBe(true);
+    expect(map.equipment.manufacturer).toMatch(/SunSpec/i);
+    expect(map.mapPath).toContain("sunspec");
+    if (previous === undefined) delete process.env.PILOT_INVERTER_MAP;
+    else process.env.PILOT_INVERTER_MAP = previous;
+  });
+
+  it("fails closed when PILOT_INVERTER_MAP=none", () => {
+    const previous = process.env.PILOT_INVERTER_MAP;
+    process.env.PILOT_INVERTER_MAP = "none";
+    expect(() => resolvePilotVerifiedInverterMap()).toThrow(/disabled|none/i);
+    if (previous === undefined) delete process.env.PILOT_INVERTER_MAP;
+    else process.env.PILOT_INVERTER_MAP = previous;
   });
 
   it("documents only FC03 as allowed and forbids write FCs", () => {

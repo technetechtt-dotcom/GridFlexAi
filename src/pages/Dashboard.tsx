@@ -30,8 +30,16 @@ import {
 import { Page } from '../components/Sidebar';
 import { useRealTime } from '../context/RealTimeContext';
 import { ForecastProvidersStatusWidget } from '../components/ForecastProvidersStatusWidget';
-import { buildForecastProfilesFromNodes, fetchCongestionNodes, fetchForecast, type CongestionNode } from '../services/api';
+import {
+  buildForecastProfilesFromNodes,
+  fetchCongestionNodes,
+  fetchForecast,
+  fetchOperatingMode,
+  fetchReadings,
+  type CongestionNode
+} from '../services/api';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
+import { SimulationBanner } from '../components/SimulationBanner';
 
 interface DashboardProps {
   onNavigate: (page: Page) => void;
@@ -39,7 +47,8 @@ interface DashboardProps {
 
 type ChartPoint = {
   time: string;
-  actual: number;
+  /** Measured power only — omitted when no reading exists for that slot. */
+  actual: number | null;
   forecast: number;
 };
 
@@ -64,6 +73,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [usesSimulationCongestion, setUsesSimulationCongestion] = useState(false);
   const handleRetry = () => {
     setError(null);
     setLoading(true);
@@ -74,24 +84,45 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     let active = true;
     const loadDashboardForecast = async () => {
       try {
+        const modeInfo = await fetchOperatingMode();
+        const allowSimulationApis =
+          modeInfo.mode === 'SIMULATION' || modeInfo.mode === 'HIL';
+        setUsesSimulationCongestion(allowSimulationApis);
+
         const scopedProfiles = buildForecastProfilesFromNodes(backendNodes, selectedNodeNames);
         const primaryProfile = scopedProfiles[0];
         if (!primaryProfile) {
+          if (!active) return;
+          setHeatmapData([]);
+          setTimeLabels([]);
+          setChartData([]);
+          setInsightCards([{
+            text: 'No nodes with coordinates — forecast and congestion panels require measured node lat/lon.',
+            priority: 'medium'
+          }]);
+          setError(null);
           return;
         }
 
-        const [nodes, forecast] = await Promise.all([
-        fetchCongestionNodes(scopedProfiles),
-        fetchForecast({
-          lat: primaryProfile.lat,
-          lon: primaryProfile.lon,
-          capacity: primaryProfile.capacity
-        })]);
+        const scopedNode = backendNodes.find((node) => node.name === primaryProfile.name || node.id === primaryProfile.id);
+        const [forecast, readings, congestionNodes] = await Promise.all([
+          fetchForecast({
+            lat: primaryProfile.lat,
+            lon: primaryProfile.lon,
+            capacity: primaryProfile.capacity
+          }),
+          fetchReadings({
+            nodeId: scopedNode?.id,
+            limit: 48,
+            sort: 'desc'
+          }),
+          allowSimulationApis ? fetchCongestionNodes(scopedProfiles) : Promise.resolve([] as CongestionNode[])
+        ]);
 
         if (!active) return;
 
         setHeatmapData(
-          nodes.map((node: CongestionNode) => ({
+          congestionNodes.map((node: CongestionNode) => ({
             node: node.name,
             values: node.forecast24h
           }))
@@ -104,15 +135,24 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         );
         setTimeLabels(labels);
 
-        const chartRows = forecast.hourly.slice(0, 12).map((row, idx) => {
-          const actualFactor = 0.9 + (idx % 4) * 0.04;
+        const measuredByHour = new Map<string, number>();
+        for (const reading of readings) {
+          const key = new Date(reading.timestamp).toISOString().slice(0, 13);
+          if (!measuredByHour.has(key)) {
+            measuredByHour.set(key, reading.power);
+          }
+        }
+
+        const chartRows = forecast.hourly.slice(0, 12).map((row) => {
+          const hourKey = new Date(row.timestamp).toISOString().slice(0, 13);
+          const measured = measuredByHour.get(hourKey);
           return {
             time: new Date(row.timestamp).toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit'
             }),
             forecast: Number(row.estimatedPowerKw.toFixed(1)),
-            actual: Number((row.estimatedPowerKw * actualFactor).toFixed(1))
+            actual: measured === undefined ? null : Number(measured.toFixed(1))
           };
         });
         setChartData(chartRows);
@@ -168,18 +208,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     return heatmapData.filter((row) => selectedNodeNames.includes(row.node));
   }, [heatmapData, selectedNodeNames]);
 
-  const filteredChartData = useMemo(() => {
-    if (!hasSpecificNodeScope) {
-      return chartData;
-    }
-
-    const scopeFactor = Math.max(0.35, Math.min(1, selectedNodeNames.length / 3));
-    return chartData.map((point) => ({
-      ...point,
-      actual: Number((point.actual * scopeFactor).toFixed(1)),
-      forecast: Number((point.forecast * scopeFactor).toFixed(1))
-    }));
-  }, [chartData, hasSpecificNodeScope, selectedNodeNames]);
+  const filteredChartData = useMemo(() => chartData, [chartData]);
 
   const operationalAlerts = useMemo(() => {
     const lowPowerThreshold = metrics.totalGeneration > 0 ? metrics.totalGeneration * 0.18 : 20;
@@ -387,11 +416,19 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             onClick={() => onNavigate('congestion')}
             className="cursor-pointer">
 
+            {usesSimulationCongestion ? (
+              <SimulationBanner
+                featureName="Congestion heatmap"
+                detail="Congestion nodes come from the simulation API and are only shown in SIMULATION/HIL mode."
+              />
+            ) : null}
             {loading ?
             <ChartSkeleton heightClass="h-[260px]" /> :
             !filteredHeatmapData.length ?
             <div className="h-[260px] rounded-xl border border-slate-700 bg-slate-900/50 flex items-center justify-center text-sm text-slate-400">
-                Congestion forecast will appear when node telemetry is available.
+                {usesSimulationCongestion
+                  ? 'Congestion forecast will appear when simulation profiles are available.'
+                  : 'Live mode: measured congestion constraints are not wired yet. Simulation congestion is disabled here.'}
               </div> :
             <HeatmapGrid
               title="Congestion Forecast (Next 24h)"
@@ -494,7 +531,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorActual)"
-                    name="Actual Generation" />
+                    name="Actual Generation (measured)"
+                    connectNulls={false} />
 
                   <Area
                     type="monotone"

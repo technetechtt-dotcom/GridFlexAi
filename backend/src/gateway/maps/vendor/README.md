@@ -29,4 +29,12 @@ vendor/sungrow/sg250hx/v1-2-3.ts
 
 ## What is intentionally absent
 
-This repository does **not** currently contain a verified pilot-site inverter map. `resolvePilotVerifiedInverterMap()` fails closed until one is onboarded.
+This repository ships a **verified read-only SunSpec Model 103** map as the default pilot integration:
+
+- `vendor/sunspec/model103/1.0.ts`
+- Selected via `PILOT_INVERTER_MAP=sunspec_model103` (default)
+- Confirm `PILOT_SUNSPEC_MODEL103_BASE` after SunSpec discovery on the unit
+
+OEM-specific maps still require dossier + PDF transcription under `vendor/<mfr>/<model>/<fw>.ts`.
+
+`resolvePilotVerifiedInverterMap()` fails closed when `PILOT_INVERTER_MAP=none`.

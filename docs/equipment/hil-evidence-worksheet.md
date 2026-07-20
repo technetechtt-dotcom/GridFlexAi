@@ -1,11 +1,12 @@
 # HIL evidence worksheet
 
-Complete one row per Phase 6 matrix case. Sign-off requires engineering + plant representative.
+Complete one row per matrix case. Sign-off requires engineering + plant representative.  
+**CI packet suite** (`backend/tests/hil-packet-matrix.test.ts`) covers schema/queue cases on host — mark “CI” in Notes when that is the evidence source. Hardware rows still require bench.
 
 | Field | Value |
 |-------|-------|
 | Test identifier | |
-| Firmware version | |
+| Firmware version | 5.1.0-edge-4g-sequenced (or later) |
 | Backend commit | |
 | Hardware serial number | |
 | Setup | |
@@ -18,30 +19,30 @@ Complete one row per Phase 6 matrix case. Sign-off requires engineering + plant 
 | Reviewer (plant) | |
 | Date | |
 
-## Matrix checklist
+## Matrix checklist (aligned IDs)
 
-| ID | Scenario | Pass? | Notes |
-|----|----------|-------|-------|
-| HIL-01 | Malformed JSON | | |
-| HIL-02 | Missing field | | |
-| HIL-03 | Invalid signature | | |
-| HIL-04 | Old auth timestamp | | |
-| HIL-05 | Duplicate nonce | | |
-| HIL-06 | Duplicate sequence (idempotent) | | |
-| HIL-07 | Delayed data → stale | | |
-| HIL-08 | Future timestamp | | |
-| HIL-09 | Excess / out-of-range | | |
-| HIL-10 | Negative PV | | |
-| HIL-11 | NaN / infinity | | |
-| HIL-12 | Oversized payload | | |
-| HIL-13 | Rate limit 429 | | |
-| HIL-14 | Lost LTE / queue growth | | |
-| HIL-15 | Reconnect ordered replay | | |
-| HIL-16 | Power loss queue survival | | |
-| HIL-17 | Redis outage behaviour | | |
-| HIL-18 | Database outage → retain | | |
-| HIL-19 | Clock drift correction | | |
-| HIL-20 | Wrong register scale | | |
+| ID | Scenario | CI / Bench | Pass? | Notes |
+|----|----------|------------|-------|-------|
+| HIL-01 | Malformed JSON / non-finite fields | CI | | `hil-packet-matrix` |
+| HIL-02 | Missing required fields | CI | | |
+| HIL-03 | NaN / infinity numericValue | CI | | |
+| HIL-04 | Oversized batch (413 semantics) | CI | | |
+| HIL-05 | Out-of-range tagged | CI | | |
+| HIL-06 | Negative PV rejected/tagged | CI | | |
+| HIL-07 | Stale / delayed device timestamp | CI | | |
+| HIL-08 | Future timestamp / skew | CI | | |
+| HIL-09 | Unsigned / bad remote config | CI | | |
+| HIL-10 | Expired remote config | CI | | |
+| HIL-11 | Queue growth under disconnect | CI | | in-memory mirror |
+| HIL-12 | Ordered replay after reconnect | CI | | |
+| HIL-13 | Reboot queue snapshot survival | CI | | |
+| HIL-14 | Invalid signature → 401 + alert | Bench | | also webhook fire-drill |
+| HIL-15 | Duplicate nonce / replay | Bench | | |
+| HIL-16 | Equal sequence idempotent ACK | Bench | | |
+| HIL-17 | Lost LTE / queue growth on device | Bench | | GridFlexEdge USE_LTE=1 |
+| HIL-18 | Power-loss LittleFS survival | Bench | | |
+| HIL-19 | Redis / DB outage behaviour | Bench | | |
+| HIL-20 | Wrong SunSpec register scale | Bench | | worksheet vs meter |
 
 ## Sign-off
 
