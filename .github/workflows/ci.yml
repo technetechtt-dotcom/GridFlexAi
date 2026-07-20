@@ -35,6 +35,79 @@ jobs:
         run: npm audit --omit=dev --audit-level=critical
         working-directory: backend
 
+  supply-chain:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Generate frontend SBOM (CycloneDX)
+        run: npx @cyclonedx/cyclonedx-npm --output-file sbom-frontend.cdx.json --omit dev
+
+      - name: Generate backend SBOM (CycloneDX)
+        run: npx @cyclonedx/cyclonedx-npm --output-file ../sbom-backend.cdx.json --omit dev
+        working-directory: backend
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-artifacts
+          path: |
+            sbom-frontend.cdx.json
+            sbom-backend.cdx.json
+
+      - name: Run secret scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build backend container image
+        run: docker build -t gridflex-backend:ci ./backend
+
+      - name: Generate container SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          image: gridflex-backend:ci
+          format: cyclonedx-json
+          output-file: sbom-backend-image.cdx.json
+
+      - name: Scan backend container image (Trivy)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: gridflex-backend:ci
+          format: sarif
+          output: trivy-backend.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          vuln-type: os,library
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend.sarif
+
   frontend:
     runs-on: ubuntu-latest
     steps:
