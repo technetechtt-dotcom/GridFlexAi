@@ -299,10 +299,10 @@ export function DispatchOptimization({
           className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-slate-100">Advisory Dispatch Profile</h3>
-            <StatusBadge status="info" label="Simulated / Estimated" />
+            <StatusBadge status="warning" label="Simulated / Estimated" />
           </div>
           {loading ?
-          <ChartSkeleton height={320} /> :
+          <ChartSkeleton heightClass="h-80" /> :
 
           <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
@@ -349,7 +349,7 @@ export function DispatchOptimization({
             <h3 className="text-lg font-semibold text-slate-100">Advisory Recommendations</h3>
           </div>
           <div className="space-y-3">
-            {loading && <ChartSkeleton height={180} />}
+            {loading && <ChartSkeleton heightClass="h-44" />}
             {!loading && recommendations.map((rec) =>
             <div
               key={rec.id}
@@ -358,13 +358,13 @@ export function DispatchOptimization({
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center space-x-2">
                     {rec.type === 'curtailment' && <AlertTriangle className="w-4 h-4 text-amber-400" />}
-                    {rec.type === 'storage' && <Battery className="w-4 h-4 text-emerald-400" />}
-                    {rec.type === 'hydrogen' && <Droplet className="w-4 h-4 text-sky-400" />}
-                    {rec.type === 'revenue' && <TrendingUp className="w-4 h-4 text-fuchsia-400" />}
+                    {(rec.type as string) === 'storage' && <Battery className="w-4 h-4 text-emerald-400" />}
+                    {(rec.type as string) === 'hydrogen' && <Droplet className="w-4 h-4 text-sky-400" />}
+                    {(rec.type as string) === 'revenue' && <TrendingUp className="w-4 h-4 text-fuchsia-400" />}
                     <span className="text-sm font-medium text-slate-200">{rec.title}</span>
                   </div>
                   <StatusBadge
-                  status={rec.status === 'approved' ? 'success' : 'warning'}
+                  status={rec.status === 'approved' ? 'optimal' : 'warning'}
                   label={rec.status === 'approved' ? 'Reviewed' : 'Proposal'} />
 
                 </div>
