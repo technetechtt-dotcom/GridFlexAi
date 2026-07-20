@@ -12,10 +12,9 @@ Do **not** mark ops items complete without dated evidence artifacts.
 
 ## P0 - Go-Live Blockers
 
-- [ ] **CI required jobs green on `main`**
-  - Target: `security`, `supply-chain`, `frontend`, `backend` all green after latest push.
-  - Fix landed locally: OperatingModeBanner + E2E `/operating-mode` mock (banner crash blanked dashboard).
-  - Prior partial: https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29741856493 (`security`, `supply-chain`, `backend` green; frontend E2E failed).
+- [x] **CI required jobs green on `main`**
+  - Evidence: https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29742474501 (`security`, `supply-chain`, `frontend`, `backend`).
+  - Last verified: 2026-07-20 @ `0c6dfe6`.
 - [x] **Public health route has automated API smoke coverage**
   - Evidence: `backend/tests/health.routes.test.ts`.
 - [x] **Production env guardrails for unsafe placeholders**
