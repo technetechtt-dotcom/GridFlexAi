@@ -7,7 +7,7 @@
 | npm audit (critical production deps) | `security` job |
 | Secrets hygiene (tracked files) | `npm run check:secrets-hygiene` in `security` job |
 | Gitleaks | Docker CLI `zricethezav/gitleaks:v8.24.0` (OSS; no org license secret required) |
-| Container image scan | `aquasecurity/trivy-action@v0.36.0` — fail-closed on **fixed** CRITICAL/HIGH |
+| Container image scan | `aquasecurity/trivy-action@v0.36.0` — **fail-closed on fixed CRITICAL**; HIGH reported in SARIF |
 | SBOM | CycloneDX (npm) + Syft (image) uploaded as artifacts |
 | Dependabot | `.github/dependabot.yml` weekly PRs |
 
