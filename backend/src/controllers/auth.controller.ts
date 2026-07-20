@@ -47,6 +47,8 @@ type AuthSuccessResponse = {
     lastLoginAt: Date | null;
   };
   token: string;
+  /** Body copy for SPAs where cross-site cookies are blocked. */
+  refreshToken: string;
 };
 
 type MessageResponse = {
@@ -61,7 +63,8 @@ export const register = asyncHandler(async (
   attachRefreshTokenCookie(res, result.refreshToken);
   res.status(201).json({
     user: result.user,
-    token: result.token
+    token: result.token,
+    refreshToken: result.refreshToken
   });
 });
 
@@ -73,32 +76,38 @@ export const login = asyncHandler(async (
   attachRefreshTokenCookie(res, result.refreshToken);
   res.status(200).json({
     user: result.user,
-    token: result.token
+    token: result.token,
+    refreshToken: result.refreshToken
   });
 });
 
 export const refresh = asyncHandler(async (
-  req: Request<Record<string, never>, AuthSuccessResponse>,
+  req: Request<Record<string, never>, AuthSuccessResponse, { refreshToken?: string }>,
   res: Response<AuthSuccessResponse>
 ) => {
-  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined;
+  const refreshToken =
+    (req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined) ??
+    (typeof req.body?.refreshToken === "string" ? req.body.refreshToken : undefined);
   if (!refreshToken) {
-    throw new AppError("Missing refresh token cookie.", 401);
+    throw new AppError("Missing refresh token.", 401);
   }
 
   const result = await rotateRefreshToken(refreshToken);
   attachRefreshTokenCookie(res, result.refreshToken);
   res.status(200).json({
     user: result.user,
-    token: result.token
+    token: result.token,
+    refreshToken: result.refreshToken
   });
 });
 
 export const logout = asyncHandler(async (
-  req: Request<Record<string, never>, MessageResponse>,
+  req: Request<Record<string, never>, MessageResponse, { refreshToken?: string }>,
   res: Response<MessageResponse>
 ) => {
-  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined;
+  const refreshToken =
+    (req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined) ??
+    (typeof req.body?.refreshToken === "string" ? req.body.refreshToken : undefined);
   if (refreshToken) {
     await revokeRefreshToken(refreshToken);
   }

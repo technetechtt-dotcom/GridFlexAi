@@ -3,6 +3,7 @@ import { auditLogger } from '../lib/auditLogger';
 import {
   clearAuthToken,
   getAuthToken,
+  getRefreshToken,
   getSessionUserFromToken,
   loginWithPassword,
   logoutSession,
@@ -32,6 +33,11 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
   useEffect(() => {
     const hydrateSession = async () => {
       if (!token) {
+        if (!getRefreshToken()) {
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
         const refreshed = await tryRefreshAccessToken();
         if (!refreshed) {
           setUser(null);

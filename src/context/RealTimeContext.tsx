@@ -19,6 +19,7 @@ import {
   type NodeStatusUpdatePayload } from
 '../services/socket';
 import { buildProvenance, type Provenance } from '../lib/operatingMode';
+import { useAuth } from './AuthContext';
 interface GridMetrics {
   frequency: number;
   voltage: number;
@@ -52,6 +53,7 @@ const healthFromNodeStatus = (status: NodeStatus | undefined): IoTEdgeAsset['hea
 };
 
 export function RealTimeProvider({ children }: {children: ReactNode;}) {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const DEFAULT_NODE_SELECTION = ['All Nodes'];
   const [metrics, setMetrics] = useState<GridMetrics>({
     frequency: 50.0,
@@ -142,6 +144,12 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
   useEffect(() => {
     let mounted = true;
 
+    if (authLoading || !isAuthenticated) {
+      return () => {
+        mounted = false;
+      };
+    }
+
     const bootstrap = async () => {
       try {
         const [alerts, assets, nodes, summary, modeInfo] = await Promise.all([
@@ -181,14 +189,18 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
         }));
       } catch {
         if (!mounted) return;
-        const [alerts, assets, nodes] = await Promise.all([
-        fetchProactiveAlerts(),
-        fetchIoTEdgeAssets(),
-        fetchNodes()]);
-        if (!mounted) return;
-        setProactiveAlerts(alerts);
-        setIotAssets(assets);
-        setBackendNodes(nodes);
+        try {
+          const [alerts, assets, nodes] = await Promise.all([
+          fetchProactiveAlerts(),
+          fetchIoTEdgeAssets(),
+          fetchNodes()]);
+          if (!mounted) return;
+          setProactiveAlerts(alerts);
+          setIotAssets(assets);
+          setBackendNodes(nodes);
+        } catch {
+          // Stay on bootstrap defaults until a later authenticated refresh succeeds.
+        }
       }
     };
 
@@ -390,7 +402,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
       closeSimulationSocketClient();
       setIsConnected(false);
     };
-  }, [microgridMode]);
+  }, [microgridMode, authLoading, isAuthenticated]);
   return (
     <RealTimeContext.Provider
       value={{

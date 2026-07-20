@@ -702,6 +702,7 @@ export type AuthResponse = {
     createdAt: string;
   };
   token: string;
+  refreshToken?: string;
 };
 
 export type SessionUser = {
@@ -715,6 +716,7 @@ const API_BASE_URL =
 (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
 'http://localhost:4000/api';
 const AUTH_TOKEN_KEY = 'gridflex_token';
+const REFRESH_TOKEN_KEY = 'gridflex_refresh_token';
 const DEFAULT_FORECAST_CAPACITY_KW = 120;
 
 type RequestOptions = {
@@ -733,8 +735,24 @@ export function setAuthToken(token: string): void {
   localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
+export function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function setRefreshToken(token: string): void {
+  localStorage.setItem(REFRESH_TOKEN_KEY, token);
+}
+
 export function clearAuthToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+function persistAuthSession(auth: AuthResponse): void {
+  setAuthToken(auth.token);
+  if (typeof auth.refreshToken === 'string' && auth.refreshToken.length > 0) {
+    setRefreshToken(auth.refreshToken);
+  }
 }
 
 const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
@@ -834,7 +852,7 @@ password: string)
       password
     }
   });
-  setAuthToken(result.token);
+  persistAuthSession(result);
   return result;
 }
 
@@ -851,17 +869,24 @@ password: string)
       password
     }
   });
-  setAuthToken(result.token);
+  persistAuthSession(result);
   return result;
 }
 
 export async function tryRefreshAccessToken(): Promise<boolean> {
+  const storedRefresh = getRefreshToken();
+  if (!storedRefresh && !getAuthToken()) {
+    // Avoid noisy 401s when the user has never signed in.
+    return false;
+  }
+
   try {
     const response = await apiRequest<AuthResponse>('/auth/refresh', {
       method: 'POST',
-      skipRefresh: true
+      skipRefresh: true,
+      body: storedRefresh ? { refreshToken: storedRefresh } : {}
     });
-    setAuthToken(response.token);
+    persistAuthSession(response);
     return true;
   } catch {
     clearAuthToken();
@@ -870,10 +895,12 @@ export async function tryRefreshAccessToken(): Promise<boolean> {
 }
 
 export async function logoutSession(): Promise<void> {
+  const storedRefresh = getRefreshToken();
   try {
     await apiRequest<{message: string;}>('/auth/logout', {
       method: 'POST',
-      skipRefresh: true
+      skipRefresh: true,
+      body: storedRefresh ? { refreshToken: storedRefresh } : {}
     });
   } finally {
     clearAuthToken();
