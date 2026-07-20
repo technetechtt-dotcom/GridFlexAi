@@ -105,7 +105,7 @@ export function ScenarioSimulation({ onNavigate }: ScenarioSimulationProps) {
     <div className="space-y-6 p-6 pb-20">
       <SimulationBanner
         featureName="Scenario simulation / topology optimisation"
-        detail="All revenue, hydrogen, curtailment, stability, congestion, and transfer-capacity outputs use fictional demonstration assumptions. They are not measured plant or network results."
+        detail="All revenue, hydrogen, curtailment, stability, congestion, and transfer-capacity outputs use fictional demonstration assumptions. They are not measured plant or network results. Flexible-asset setpoints shown here are advisory only — physical control remains disabled."
       />
       <div className="flex justify-between items-center">
         <div>

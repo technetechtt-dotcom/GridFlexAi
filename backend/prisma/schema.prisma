@@ -186,6 +186,22 @@ enum GridConstraintType {
   contingency
 }
 
+/// Advisory optimisation run lifecycle. Never implies physical dispatch.
+enum OptimizationRunStatus {
+  pending
+  running
+  completed
+  infeasible
+  failed
+}
+
+enum DispatchScheduleStatus {
+  advisory
+  expired
+  superseded
+  rejected
+}
+
 model User {
   id                       String                        @id @default(cuid())
   email                    String                        @unique
@@ -206,6 +222,7 @@ model User {
   organisationMemberships  OrganisationMembership[]
   siteMemberships          SiteMembership[]
   curtailmentCorrections   CurtailmentCorrection[]
+  optimizationRuns         OptimizationRun[]
 
   @@index([managedById])
   @@index([role])
@@ -239,6 +256,7 @@ model Organisation {
   curtailmentEvents   CurtailmentEvent[]
   forecastRuns        ForecastRun[]
   gridConstraints     GridConstraint[]
+  optimizationRuns    OptimizationRun[]
 
   @@index([status])
 }
@@ -495,6 +513,7 @@ model Site {
   curtailmentEvents   CurtailmentEvent[]
   forecastRuns        ForecastRun[]
   gridConstraints     GridConstraint[]
+  optimizationRuns    OptimizationRun[]
 
   @@index([clientId])
   @@index([organisationId])
@@ -525,6 +544,7 @@ model Plant {
   forecastRuns        ForecastRun[]
   accuracyScores      ForecastAccuracyScore[]
   gridConstraints     GridConstraint[]
+  optimizationRuns    OptimizationRun[]
 
   @@unique([organisationId, code])
   @@index([siteId])
@@ -556,8 +576,13 @@ model Asset {
   edgeNode          EdgeNode?
   constraints       AssetConstraint[]
   state             AssetState?
-  pointDefinitions  TelemetryPointDefinition[]
-  telemetry         TelemetryReading[]
+  pointDefinitions             TelemetryPointDefinition[]
+  telemetry                    TelemetryReading[]
+  bessModelConfig              BessModelConfig?
+  bessState                    BessOperatingState?
+  electrolyserModelConfig      ElectrolyserModelConfig?
+  electrolyserState            ElectrolyserOperatingState?
+  dispatchSchedules            DispatchSchedule[]
 
   @@index([plantId, type])
   @@index([parentAssetId])
@@ -878,4 +903,149 @@ model GridConstraint {
   @@index([plantId, constraintType])
   @@index([validFrom, validTo])
   @@index([sourceType])
+}
+
+/// Configured BESS parameters. Distinguish configSource from measured state.
+model BessModelConfig {
+  id                        String         @id @default(cuid())
+  assetId                   String         @unique
+  asset                     Asset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  ratedPowerKw              Float
+  ratedEnergyKwh            Float
+  minSocPercent             Float          @default(10)
+  maxSocPercent             Float          @default(90)
+  chargeEfficiency          Float          @default(0.95)
+  dischargeEfficiency       Float          @default(0.95)
+  maxChargePowerKw          Float
+  maxDischargePowerKw       Float
+  rampLimitKwPerMin         Float          @default(500)
+  degradationCostZarPerMwh  Float          @default(120)
+  reserveSocPercent         Float          @default(15)
+  minOperatingTempC         Float?
+  maxOperatingTempC         Float?
+  warrantyCycleLimit        Int?
+  simulationMode            Boolean        @default(true)
+  configSource              DataSourceType @default(operator_entered)
+  metadata                  Json?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+}
+
+model BessOperatingState {
+  assetId                     String         @id
+  asset                       Asset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  socPercent                  Float
+  socSource                   DataSourceType @default(simulated)
+  socQuality                  DataQuality    @default(unverified)
+  temperatureC                Float?
+  chargePowerKw               Float          @default(0)
+  dischargePowerKw            Float          @default(0)
+  availableChargePowerKw      Float?
+  availableDischargePowerKw   Float?
+  cycleCount                  Int?
+  alarmState                  String?
+  operatingState              String         @default("unknown")
+  simulationMode              Boolean        @default(true)
+  asOf                        DateTime?
+  updatedAt                   DateTime       @updatedAt
+}
+
+/// Configured electrolyser parameters with provenance on configSource.
+model ElectrolyserModelConfig {
+  id                         String         @id @default(cuid())
+  assetId                    String         @unique
+  asset                      Asset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  technology                 String         @default("alkaline")
+  minStableLoadKw            Float
+  maxLoadKw                  Float
+  rampRateKwPerMin           Float          @default(250)
+  startUpTimeMin             Float          @default(15)
+  shutDownTimeMin            Float          @default(10)
+  minRunTimeMin              Float          @default(30)
+  efficiencyKwhPerKg         Float          @default(52)
+  waterLitresPerKg           Float          @default(10)
+  hydrogenStorageCapacityKg  Float
+  hydrogenSalePriceZarPerKg  Float          @default(85)
+  operatingCostZarPerHour    Float          @default(400)
+  minOperatingTempC          Float?
+  maxOperatingTempC          Float?
+  maintenanceWindowActive    Boolean        @default(false)
+  simulationMode             Boolean        @default(true)
+  configSource               DataSourceType @default(operator_entered)
+  metadata                   Json?
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+}
+
+model ElectrolyserOperatingState {
+  assetId               String         @id
+  asset                 Asset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  loadPowerKw           Float          @default(0)
+  loadSource            DataSourceType @default(simulated)
+  loadQuality           DataQuality    @default(unverified)
+  productionKgPerHour   Float          @default(0)
+  storageLevelKg        Float          @default(0)
+  waterFlowLitrePerHour Float?
+  stackTemperatureC     Float?
+  operatingMode         String         @default("standby")
+  alarmState            String?
+  runTimeMinutes        Float          @default(0)
+  simulationMode        Boolean        @default(true)
+  asOf                  DateTime?
+  updatedAt             DateTime       @updatedAt
+}
+
+model OptimizationRun {
+  id                    String                @id @default(cuid())
+  organisationId        String
+  organisation          Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId                String
+  site                  Site                  @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  plantId               String
+  plant                 Plant                 @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  objective             String
+  status                OptimizationRunStatus @default(pending)
+  solverVersion         String
+  forecastVersion       String?
+  inputs                Json
+  assumptions           Json?
+  result                Json?
+  constraintViolations  Json?
+  warnings              Json?
+  baselineComparison    Json?
+  expectedBenefitZar    Float?
+  advisory              Boolean               @default(true)
+  startedAt             DateTime?
+  completedAt           DateTime?
+  createdById           String?
+  createdBy             User?                 @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  schedules             DispatchSchedule[]
+
+  @@index([organisationId, createdAt])
+  @@index([siteId, createdAt])
+  @@index([plantId, createdAt])
+  @@index([status])
+  @@index([createdById])
+}
+
+model DispatchSchedule {
+  id                String                 @id @default(cuid())
+  optimizationRunId String
+  optimizationRun   OptimizationRun        @relation(fields: [optimizationRunId], references: [id], onDelete: Cascade)
+  assetId           String
+  asset             Asset                  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  intervalStart     DateTime
+  intervalEnd       DateTime
+  targetValue       Float
+  unit              MeasurementUnit        @default(kW)
+  expectedValue     Float?
+  status            DispatchScheduleStatus @default(advisory)
+  metadata          Json?
+  createdAt         DateTime               @default(now())
+
+  @@index([optimizationRunId, intervalStart])
+  @@index([assetId, intervalStart])
+  @@index([status])
 }

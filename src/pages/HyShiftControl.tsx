@@ -125,7 +125,7 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
     <div className="space-y-6 p-6 pb-20">
       <SimulationBanner
         featureName="HyShift / electrolyser digital twin"
-        detail="All electrolyser state, hydrogen production, LCOH, efficiency, water use, and dispatch values on this page are simulated or estimated—not measured plant telemetry. Physical control is unavailable."
+        detail="Electrolyser rated power, ramp, and specific consumption are configured assumptions unless linked measured telemetry is shown with its own provenance. Twin outputs remain simulated/estimated. Advisory only — PHYSICAL_COMMAND_EXECUTION_ENABLED remains false."
       />
       <div className="flex justify-between items-center">
         <div>

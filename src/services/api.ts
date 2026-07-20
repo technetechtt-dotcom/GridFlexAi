@@ -1988,3 +1988,56 @@ export async function generatePilotReport(): Promise<PilotReport> {
   return response.data;
 }
 
+export type AdvisoryDispatchInterval = {
+  intervalStart: string;
+  intervalEnd: string;
+  targetValue: number;
+  assetId: string;
+  status: string;
+  expectedValue?: number | null;
+  unit?: string;
+};
+
+export type AdvisoryOptimisationRunPayload = {
+  id: string;
+  status: string;
+  objective: string;
+  solverVersion: string;
+  expectedBenefitZar: number | null;
+  advisory: boolean;
+  advisoryLabel?: string;
+  baselineComparison?: {
+    baselineObjectiveZar: number;
+    optimisedObjectiveZar: number;
+    deltaZar: number;
+  } | null;
+  schedules?: AdvisoryDispatchInterval[];
+  result?: {
+    expectedBenefitZar: number;
+    objectiveValueZar: number;
+    baselineComparison: {
+      baselineObjectiveZar: number;
+      optimisedObjectiveZar: number;
+      deltaZar: number;
+    };
+  } | null;
+};
+
+/** Create a tenant-scoped advisory optimisation run (no physical actuation). */
+export async function createAdvisoryOptimisationRun(body: {
+  plantId: string;
+  bessAssetId: string;
+  electrolyserAssetId: string;
+  objective?: string;
+}): Promise<AdvisoryOptimisationRunPayload> {
+  const response = await apiRequest<ApiEnvelope<AdvisoryOptimisationRunPayload>>(
+    '/optimisation/runs',
+    {
+      method: 'POST',
+      auth: true,
+      body
+    }
+  );
+  return response.data;
+}
+
