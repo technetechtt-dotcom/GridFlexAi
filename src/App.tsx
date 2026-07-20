@@ -41,6 +41,7 @@ const AdminBillingPage = lazy(() => import('./pages/admin/AdminBillingPage').the
 const AdminDataPage = lazy(() => import('./pages/admin/AdminDataPage').then((module) => ({ default: module.AdminDataPage })));
 const AdminMetricsPage = lazy(() => import('./pages/admin/AdminMetricsPage').then((module) => ({ default: module.AdminMetricsPage })));
 const AdminLogsPage = lazy(() => import('./pages/admin/AdminLogsPage').then((module) => ({ default: module.AdminLogsPage })));
+const AdminAlarmsPage = lazy(() => import('./pages/admin/AdminAlarmsPage').then((module) => ({ default: module.AdminAlarmsPage })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
 const SuperAdminShell = lazy(() => import('./pages/admin/SuperAdminShell').then((module) => ({ default: module.SuperAdminShell })));
 const ManagerTeamPage = lazy(() => import('./pages/ManagerTeamPage').then((module) => ({ default: module.ManagerTeamPage })));
@@ -220,6 +221,7 @@ function AppRoutes() {
               <Route path="billing" element={<AdminBillingPage />} />
               <Route path="data" element={<AdminDataPage />} />
               <Route path="metrics" element={<AdminMetricsPage />} />
+              <Route path="alarms" element={<AdminAlarmsPage />} />
               <Route path="logs" element={<AdminLogsPage />} />
             </Route>
           </Route>

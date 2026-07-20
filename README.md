@@ -1,12 +1,35 @@
 # GridFlex AI
 
-GridFlex AI is a real-time energy optimization platform for IPPs (Independent Power Producers), with:
+GridFlex AI is a real-time **advisory** energy operations platform for IPPs (Independent Power Producers).
+
+**GridFlex does not replace protection relays, PPC safety, or BMS protection.** Physical plant control stays disabled until HIL validation and plant approval.
+
+## Purpose
+
+- Observe multi-tenant plant/site telemetry with provenance
+- Forecast PV/weather and surface curtailment insights
+- Raise tenant-scoped alarms and incidents for operator response
+- Assist operators via Zolt AI (propose-only; no execute tool)
+
+## Stack
 
 - React + Vite frontend dashboard
 - Node.js + Express + TypeScript backend
 - PostgreSQL + Prisma data layer
-- Socket.io real-time telemetry streaming
+- Socket.io real-time telemetry (Redis adapter when `REDIS_URL` is set)
 - Hybrid PV/weather forecast service (Forecast.Solar + OpenWeatherMap + AccuWeather backup)
+- Optional Redis for cache, edge replay protection, and Socket.IO fan-out
+
+## Target SLOs (pilot)
+
+| Signal | Target |
+| --- | --- |
+| API availability (non-ingest) | 99.5% monthly |
+| Authenticated API p95 latency | < 500 ms (excludes forecast provider calls) |
+| Live reading fan-out lag | < 2 s under nominal load |
+| Edge ingest auth failures | Alert when elevated; no silent accept |
+| Alarm list freshness | Operator UI refresh ≤ 20 s when auto-refresh on |
+| Physical command execution | Must remain disabled (`false`) |
 
 ---
 
@@ -240,6 +263,10 @@ See `backend/.env.example` for all values. Important keys:
 
 ## Operational Runbooks
 
+- Security posture: `docs/SECURITY.md`
+- Alarms & incidents: `docs/ALARMS.md`
+- Pilot deployment: `docs/PILOT_DEPLOYMENT.md`
+- Hardware-in-the-loop: `docs/HARDWARE_IN_THE_LOOP.md`
 - Forecast provider outage: `docs/runbooks/provider-outage.md`
 - Database outage: `docs/runbooks/db-outage.md`
 - Secret rotation: `docs/runbooks/secret-rotation.md`

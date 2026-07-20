@@ -1,0 +1,6 @@
+dist
+backend
+Grid Flex
+node_modules
+coverage
+*.tsbuildinfo

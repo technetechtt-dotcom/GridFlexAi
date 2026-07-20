@@ -50,6 +50,7 @@ process.on("unhandledRejection", (reason) => {
       { prisma },
       { closeRedisClient },
       { startForecastCron },
+      { startTelemetryRetentionCron },
       { startNodeHealthMonitor, stopNodeHealthMonitor },
       { platformMetrics },
       { logger }
@@ -65,6 +66,7 @@ process.on("unhandledRejection", (reason) => {
       import("./lib/prisma.js"),
       import("./lib/redis.js"),
       import("./services/forecast-cron.service.js"),
+      import("./services/telemetry-retention.service.js"),
       import("./services/node-health.service.js"),
       import("./services/platform-metrics.service.js"),
       import("./utils/logger.js")
@@ -116,6 +118,7 @@ process.on("unhandledRejection", (reason) => {
 
     const webServer = resolveWebServer();
     let forecastCronTask: ReturnType<typeof startForecastCron> = null;
+    let telemetryRetentionTask: ReturnType<typeof startTelemetryRetentionCron> = null;
 
     const io = new SocketIOServer(webServer.server, {
       cors: {
@@ -123,6 +126,9 @@ process.on("unhandledRejection", (reason) => {
         credentials: true
       }
     });
+
+    const { attachRedisSocketAdapter, closeRedisSocketAdapter } = await import("./lib/socket-redis-adapter.js");
+    await attachRedisSocketAdapter(io);
 
     setSocketServer(io);
 
@@ -136,7 +142,9 @@ process.on("unhandledRejection", (reason) => {
 
     const shutdown = async () => {
       forecastCronTask?.stop();
+      telemetryRetentionTask?.stop();
       stopNodeHealthMonitor();
+      await closeRedisSocketAdapter();
       await closeRedisClient();
       await prisma.$disconnect();
       webServer.server.close(() => process.exit(0));
@@ -151,6 +159,7 @@ process.on("unhandledRejection", (reason) => {
 
     await prisma.$connect();
     forecastCronTask = startForecastCron();
+    telemetryRetentionTask = startTelemetryRetentionCron();
     if (env.NODE_HEALTH_CRON_ENABLED) {
       startNodeHealthMonitor();
     }

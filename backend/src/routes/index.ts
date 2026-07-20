@@ -1,8 +1,9 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 
 import adminRoutes from "./admin.routes.js";
 import activityRoutes from "./activity.routes.js";
 import aiRoutes from "./ai.routes.js";
+import alarmRoutes from "./alarm.routes.js";
 import authRoutes from "./auth.routes.js";
 import commandRoutes from "./command.routes.js";
 import curtailmentRoutes from "./curtailment.routes.js";
@@ -35,6 +36,7 @@ router.use("/grid-constraints", gridConstraintRoutes);
 router.use("/nodes", nodeRoutes);
 router.use("/simulation", simulationRoutes);
 router.use("/v2/telemetry", telemetryRoutes);
+router.use("/", alarmRoutes);
 router.use("/", readingRoutes);
 router.use("/", plantAssetRoutes);
 router.use("/", optimisationRoutes);
