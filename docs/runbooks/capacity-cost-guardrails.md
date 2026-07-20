@@ -1,5 +1,9 @@
 # Capacity Forecasting and Cost Guardrails
 
+## Load-test linkage
+
+Formal soak tests: [`docs/LOAD_TESTING.md`](../LOAD_TESTING.md) and [`docs/load/capacity-cost-estimates.md`](../load/capacity-cost-estimates.md). Update this runbook after each quarterly load run.
+
 ## Goal
 
 Prevent performance regressions and cloud cost surprises as traffic and telemetry volume grow.

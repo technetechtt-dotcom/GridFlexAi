@@ -56,11 +56,13 @@ The following gates must be complete and evidenced before a real IPP pilot.
     - Remaining: first signed production promotion evidence.
     - Evidence: `go-live-reports/parity-report-latest.json`.
 11. **External penetration test**
-    - Complete third-party security assessment and remediate critical/high findings.
-    - Evidence: final report and remediation closure tracker.
+    - Written auth/scope/RoE, independent tester, severity SLAs, retest — `docs/PENETRATION_TEST.md`.
+    - Remaining: select tester, execute engagement, close critical/high via retest.
+    - Evidence: signed report in vault + `docs/pentest/remediation-tracker.md`.
 12. **Load/performance validation**
-    - Run ingest, WebSocket fan-out, and data-volume load tests.
-    - Evidence: throughput/latency/error budget report.
+    - Pilot load model (3× margin), k6 scenarios, Socket.IO fan-out, SLOs — `docs/LOAD_TESTING.md`.
+    - Remaining: run formal staging soak; fill evidence worksheet + capacity estimates.
+    - Evidence: `docs/load/evidence-worksheet.md` + k6 summaries.
 13. **Supply-chain security**
     - Add SBOM generation, secret scanning, and container image scanning in CI.
     - Evidence: CI artifacts and policy gates.

@@ -11,6 +11,8 @@
     "preview": "npx vite preview",
     "smoke:api": "node scripts/smoke-api.mjs",
     "baseline:load": "node scripts/load-baseline.mjs",
+    "load:k6:smoke": "k6 run load/k6/http-health-slo.js",
+    "load:socketio": "node load/socketio-fanout.mjs",
     "env:templates": "node scripts/generate-env-keys-template.mjs",
     "check:env-parity": "node scripts/check-env-parity.mjs",
     "report:parity": "node scripts/generate-parity-report.mjs",
