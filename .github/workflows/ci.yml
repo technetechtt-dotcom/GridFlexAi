@@ -121,7 +121,7 @@ jobs:
           path: sbom-backend-image.cdx.json
 
       - name: Scan backend container image (Trivy)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: gridflex-backend:ci
           format: sarif
