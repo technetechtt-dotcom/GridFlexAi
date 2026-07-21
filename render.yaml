@@ -12,13 +12,15 @@ services:
     autoDeploy: true
     healthCheckPath: /api/health/live
     buildCommand: npm install --include=dev && npm run prisma:generate && npm run build
-    startCommand: sh -c "npx prisma migrate deploy || (sleep 8 && npx prisma migrate deploy); npm run start"
+    startCommand: npx prisma migrate deploy && npm run vault:verify && npm run start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: "4000"
       - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
         sync: false
       - key: REDIS_URL
         fromService:
@@ -109,8 +111,13 @@ services:
     pullRequestPreviewsEnabled: true
     routes:
       - type: rewrite
+        source: /api/*
+        destination: https://gridflex-backend.onrender.com/api/*
+      - type: rewrite
         source: /*
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        sync: false
+        value: /api
+      - key: VITE_SOCKET_BASE_URL
+        value: https://gridflex-backend.onrender.com

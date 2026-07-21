@@ -35,6 +35,8 @@ const envSchema = z.object({
   FORCE_HTTPS: envBoolean.default(false),
   TRUST_PROXY: envBoolean.default(true),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  /** Direct (non-pooler) Postgres URL used by Prisma migrations. */
+  DIRECT_URL: z.string().optional(),
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
   /**
    * Active JWT key id embedded as JOSE `kid` on newly issued tokens.
@@ -143,6 +145,9 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
   }
 
   const problems: string[] = [];
+  if (!config.DIRECT_URL?.trim()) {
+    problems.push("DIRECT_URL is required in production for fail-closed Prisma migrations.");
+  }
   const jwtSecret = config.JWT_SECRET.trim();
   const edgeSecret = config.EDGE_INGEST_SHARED_SECRET.trim();
   const forbiddenJwtSecrets = new Set([

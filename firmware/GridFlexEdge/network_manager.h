@@ -4,9 +4,9 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-#include <HTTPClient.h>
 #include "config.h"
 #include "certs.h"
+#include "network_http.h"
 
 /**
  * Persistent network for sequenced 4G edge client (SIM7670X / TinyGSM).
@@ -18,8 +18,9 @@
  */
 
 #if USE_LTE
-#ifndef TINY_GSM_MODEM_SIM7670
-#define TINY_GSM_MODEM_SIM7670
+#ifndef TINY_GSM_MODEM_SIM7600
+// TinyGSM currently uses the SIM7600 driver for the AT-compatible SIM7670X.
+#define TINY_GSM_MODEM_SIM7600
 #endif
 #include <TinyGsmClient.h>
 #include <SSLClient.h>
@@ -78,7 +79,7 @@ class NetworkManager {
    * Begin HTTPS on the active bearer.
    * LTE path uses SSLClient(TinyGsmClient) — never WiFiClientSecure while LTE is active.
    */
-  bool beginHttps(HTTPClient& http, const String& url) {
+  bool beginHttps(NetworkHttpRequest& http, const String& url) {
 #if USE_LTE
     if (activePath_ == Path::Lte && lteReady_) {
       lteTlsClient.setCACert(GRIDFLEX_ROOT_CA_PEM);

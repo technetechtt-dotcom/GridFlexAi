@@ -14,7 +14,6 @@
  */
 
 #include <Arduino.h>
-#include <HTTPClient.h>
 #include <ArduinoJson.h>
 
 #include "config.h"
@@ -132,7 +131,7 @@ bool uploadHead() {
     url = String(DEFAULT_API_BASE) + EDGE_DATA_PATH;
   }
 
-  HTTPClient http;
+  NetworkHttpRequest http;
   if (!gNet.beginHttps(http, url)) {
     gUploadFailStreak++;
     if (gUploadFailStreak >= 3) {
@@ -179,7 +178,7 @@ bool uploadHead() {
 
 bool pullRemoteConfig() {
   if (!gSecretOk) return false;
-  HTTPClient http;
+  NetworkHttpRequest http;
   String url = String(DEFAULT_API_BASE) + EDGE_CONFIG_PATH;
   if (!gNet.beginHttps(http, url)) return false;
 

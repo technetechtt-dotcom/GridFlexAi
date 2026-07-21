@@ -42,7 +42,8 @@ This guide covers production deployment for the backend (`backend/`) and fronten
 6. Frontend:
    - Build command: `npm run build`
    - Publish directory: `dist`
-   - Set `VITE_API_BASE_URL=https://<backend-domain>/api`
+   - For Render, keep `VITE_API_BASE_URL=/api`; `render.yaml` proxies API calls
+     through the frontend origin so refresh cookies remain same-site.
 
 ## 4) Render
 

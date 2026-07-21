@@ -62,12 +62,7 @@ export const createApp = () => {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  app.use(
-    helmet({
-      // Allow credentialed fetches from the separate Render frontend origin.
-      crossOriginResourcePolicy: { policy: "cross-origin" }
-    })
-  );
+  app.use(helmet());
   app.use(
     cors({
       origin: corsOrigins.length <= 1 ? corsOrigins[0] : corsOrigins,

@@ -8,17 +8,13 @@ import { AppError } from "../utils/AppError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { durationToMs } from "../utils/time.js";
 
-/**
- * Frontend and API are on different onrender.com subdomains (cross-site via PSL).
- * SameSite=Lax blocks the refresh cookie on credentialed fetch; use None+Secure in prod.
- */
-const useCrossSiteAuthCookies =
+const useSecureAuthCookies =
   env.NODE_ENV === "production" || env.FORCE_HTTPS || env.HTTPS_ENABLED;
 
 const buildRefreshCookieOptions = () => ({
   httpOnly: true,
-  secure: useCrossSiteAuthCookies,
-  sameSite: (useCrossSiteAuthCookies ? "none" : "lax") as "none" | "lax",
+  secure: useSecureAuthCookies,
+  sameSite: "lax" as const,
   maxAge: durationToMs(env.JWT_REFRESH_EXPIRES_IN),
   path: "/api/auth"
 });
@@ -47,8 +43,6 @@ type AuthSuccessResponse = {
     lastLoginAt: Date | null;
   };
   token: string;
-  /** Body copy for SPAs where cross-site cookies are blocked. */
-  refreshToken: string;
 };
 
 type MessageResponse = {
@@ -63,8 +57,7 @@ export const register = asyncHandler(async (
   attachRefreshTokenCookie(res, result.refreshToken);
   res.status(201).json({
     user: result.user,
-    token: result.token,
-    refreshToken: result.refreshToken
+    token: result.token
   });
 });
 
@@ -76,38 +69,32 @@ export const login = asyncHandler(async (
   attachRefreshTokenCookie(res, result.refreshToken);
   res.status(200).json({
     user: result.user,
-    token: result.token,
-    refreshToken: result.refreshToken
+    token: result.token
   });
 });
 
 export const refresh = asyncHandler(async (
-  req: Request<Record<string, never>, AuthSuccessResponse, { refreshToken?: string }>,
+  req: Request<Record<string, never>, AuthSuccessResponse>,
   res: Response<AuthSuccessResponse>
 ) => {
-  const refreshToken =
-    (req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined) ??
-    (typeof req.body?.refreshToken === "string" ? req.body.refreshToken : undefined);
+  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined;
   if (!refreshToken) {
-    throw new AppError("Missing refresh token.", 401);
+    throw new AppError("Missing refresh token cookie.", 401);
   }
 
   const result = await rotateRefreshToken(refreshToken);
   attachRefreshTokenCookie(res, result.refreshToken);
   res.status(200).json({
     user: result.user,
-    token: result.token,
-    refreshToken: result.refreshToken
+    token: result.token
   });
 });
 
 export const logout = asyncHandler(async (
-  req: Request<Record<string, never>, MessageResponse, { refreshToken?: string }>,
+  req: Request<Record<string, never>, MessageResponse>,
   res: Response<MessageResponse>
 ) => {
-  const refreshToken =
-    (req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined) ??
-    (typeof req.body?.refreshToken === "string" ? req.body.refreshToken : undefined);
+  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined;
   if (refreshToken) {
     await revokeRefreshToken(refreshToken);
   }

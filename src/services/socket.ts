@@ -2,7 +2,9 @@ import { io, type Socket } from "socket.io-client";
 import { getAuthToken, type NodeStatus } from "./api";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000/api";
-const SOCKET_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, "");
+const SOCKET_BASE_URL =
+  (import.meta.env.VITE_SOCKET_BASE_URL as string | undefined) ??
+  API_BASE_URL.replace(/\/api\/?$/, "");
 
 let liveSocket: Socket | null = null;
 let simulationSocket: Socket | null = null;

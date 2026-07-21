@@ -47,3 +47,4 @@ node_modules
 *.tar.gz
 /backend/coverage/
 /coverage/
+/firmware/.pio/

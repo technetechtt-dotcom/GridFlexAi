@@ -15,13 +15,16 @@ This checklist provisions backend, frontend, Postgres, and Redis in Render using
 After first sync, open the backend and frontend services and set:
 
 - Backend (`gridflex-backend`)
+  - `DATABASE_URL=<pooled Neon connection string for application traffic>`
+  - `DIRECT_URL=<direct, non-pooler Neon connection string for Prisma migrations>`
   - `CORS_ORIGIN=https://<frontend-domain>`
   - `ADMIN_ALLOWED_EMAILS=<comma-separated-admin-emails>`
   - `OPENWEATHER_API_KEY=<key>`
   - `ACCUWEATHER_API_KEY=<key>` (optional)
   - `OPENAI_API_KEY=<key>` (if AI routes enabled)
 - Frontend (`gridflex-frontend`)
-  - `VITE_API_BASE_URL=https://<backend-domain>/api`
+  - API requests are proxied through `/api` by `render.yaml`; do not override
+    `VITE_API_BASE_URL=/api`.
 
 ## 3) Redeploy services
 

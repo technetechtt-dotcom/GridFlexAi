@@ -41,6 +41,7 @@ services:
       NODE_ENV: production
       PORT: 4000
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in the deployment environment}
+      DIRECT_URL: ${DIRECT_URL:?Set DIRECT_URL to a non-pooler Postgres connection}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the deployment environment}
       JWT_ACCESS_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 30d

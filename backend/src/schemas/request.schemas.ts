@@ -265,13 +265,6 @@ export const invoiceUpdateBodySchema = invoiceBodySchema.partial().extend({
 
 export const emptyBodySchema = z.object({}).strict();
 
-/** Cookie preferred; body used when cross-site cookies are blocked (e.g. *.onrender.com). */
-export const refreshBodySchema = z
-  .object({
-    refreshToken: z.string().min(20).optional()
-  })
-  .strict();
-
 const CURTAILMENT_CAUSES = [
   "grid_instruction",
   "network_congestion",

@@ -202,6 +202,26 @@ jobs:
       - name: Run frontend E2E tests
         run: npm run e2e
 
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-platformio-${{ hashFiles('firmware/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-platformio-
+
+      - name: Install PlatformIO
+        run: python -m pip install platformio==6.1.19
+
+      - name: Compile ESP32 edge firmware
+        run: pio run --project-dir firmware
+
   backend:
     runs-on: ubuntu-latest
     services:
@@ -224,6 +244,7 @@ jobs:
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gridflex_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/gridflex_test
       JWT_SECRET: test-secret-with-minimum-length
       CORS_ORIGIN: http://localhost:5173
       ADMIN_ALLOWED_EMAILS: admin@gridflex.ai
@@ -254,6 +275,24 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+
+      - name: Create migration shadow database
+        run: PGPASSWORD=postgres createdb -h localhost -U postgres gridflex_shadow
+
+      - name: Apply all migrations to an empty database
+        run: npx prisma migrate deploy
+
+      - name: Verify migration deploy is idempotent
+        run: npx prisma migrate deploy
+
+      - name: Verify migration history and schema drift
+        run: |
+          npx prisma migrate status
+          npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url postgresql://postgres:postgres@localhost:5432/gridflex_shadow \
+            --exit-code
 
       - name: Typecheck backend
         run: npm run typecheck

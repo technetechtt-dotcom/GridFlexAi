@@ -45,9 +45,12 @@ Remove `DEVICE_SECRET_VAULT_KEY` when using KMS (not used by aws_kms path).
 ## 4. Redeploy and verify
 
 1. Manual deploy the backend.
-2. Logs should **not** show local-vault warnings.
-3. Provision a device credential from Ops/Admin — encrypt/decrypt should succeed.
-4. If boot fails with `AWS_KMS_KEY_ID is required`, the env var is missing/empty on Render.
+2. Startup runs an encrypt/decrypt round trip before opening the API port.
+3. Require this log event:
+   `{"event":"device_secret_vault.round_trip_ok","provider":"aws_kms",...}`.
+4. Any encrypt/decrypt or IAM failure aborts startup; do not bypass it.
+5. Provision a device credential from Ops/Admin only after the startup test passes.
+6. If boot fails with `AWS_KMS_KEY_ID is required`, the env var is missing/empty on Render.
 
 ## Encryption context
 

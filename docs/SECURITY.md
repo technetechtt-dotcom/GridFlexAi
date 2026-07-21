@@ -4,6 +4,11 @@ GridFlex is an **advisory operations platform**. It does **not** replace protect
 
 Physical command execution remains disabled (PHYSICAL_COMMAND_EXECUTION_ENABLED=false) until plant approval and hardware-in-the-loop validation.
 
+Browser refresh tokens are cookie-only (`HttpOnly`, `Secure` in production,
+`SameSite=Lax`) and are never returned in JSON or stored in `localStorage`.
+Render proxies `/api/*` through the frontend origin so the cookie remains
+same-site.
+
 ## Tenancy and access
 - Alarm/incident/Zolt paths use 
 esolveAccessScope.

@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "start": "node dist/server.js",
+    "vault:verify": "node dist/scripts/verify-device-secret-vault.js",
     "test": "jest --runInBand",
     "check:secrets-hygiene": "tsx scripts/check-secrets-hygiene.ts",
     "restore:verify": "tsx scripts/restore-verify.ts",

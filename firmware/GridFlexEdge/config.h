@@ -27,7 +27,9 @@ static const unsigned long DEFAULT_POLL_INTERVAL_MS = 60000;
 static const unsigned long WATCHDOG_TIMEOUT_MS = 30000;
 
 // LTE modem pins (LILYGO T-Call / SIM7670X). Sequenced 4G edge client.
+#ifndef USE_LTE
 #define USE_LTE 1
+#endif
 #define MODEM_RX 26
 #define MODEM_TX 27
 #define MODEM_PWR 4
@@ -36,7 +38,9 @@ static const char* LTE_USER = "";
 static const char* LTE_PASS = "";
 
 // RS485 Modbus RTU (set 1 on hardware with transceiver wired). Fail-closed when 0 — no random metrics.
+#ifndef USE_RS485_MODBUS
 #define USE_RS485_MODBUS 0
+#endif
 static const uint8_t MODBUS_SLAVE_ID = 1;
 // Zero-based Model 103 ID address from SunSpec discovery (backend default 40069).
 #ifndef SUNSPEC_MODEL103_BASE

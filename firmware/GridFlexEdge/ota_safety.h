@@ -3,9 +3,9 @@
 
 #include <Arduino.h>
 #include <Update.h>
-#include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include "config.h"
+#include "network_http.h"
 
 /**
  * OTA safety: signed images, version checks, dual partitions, rollback on boot failure.
@@ -50,22 +50,12 @@ class OtaSafety {
       return false;
     }
 
-    HTTPClient http;
+    NetworkHttpRequest http;
     if (!http.begin(client, url)) return false;
-    int code = http.GET();
-    if (code != 200) {
-      http.end();
-      return false;
-    }
-    int len = http.getSize();
-    if (len <= 0 || !Update.begin(len)) {
-      http.end();
-      return false;
-    }
-    WiFiClient* stream = http.getStreamPtr();
-    size_t written = Update.writeStream(*stream);
+    size_t written = 0;
+    const bool downloaded = http.downloadToUpdate(written);
     http.end();
-    if (written != (size_t)len || !Update.end()) {
+    if (!downloaded) {
       Serial.println("[ota] Flash failed — remaining on current partition");
       return false;
     }

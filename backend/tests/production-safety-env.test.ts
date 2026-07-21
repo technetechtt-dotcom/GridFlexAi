@@ -18,6 +18,7 @@ const restoreEnv = (saved: NodeJS.ProcessEnv): void => {
 const productionBaseline = (): Record<string, string> => ({
   NODE_ENV: "production",
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/gridflex_prod",
+  DIRECT_URL: "postgresql://postgres:postgres@localhost:5432/gridflex_prod",
   JWT_SECRET: "production-jwt-secret-with-32-characters-minimum",
   CORS_ORIGIN: "https://app.gridflex.example",
   ADMIN_REQUIRE_HTTPS: "true",
@@ -48,6 +49,13 @@ describe("production safety env", () => {
   afterEach(() => {
     restoreEnv(savedEnv);
     jest.resetModules();
+  });
+
+  it("requires a direct database URL for production migrations", () => {
+    Object.assign(process.env, productionBaseline());
+    delete process.env.DIRECT_URL;
+
+    expect(() => loadEnvModule()).toThrow(/DIRECT_URL is required/);
   });
 
   it("allows startup when both physical execution flags are false (pilot default)", () => {

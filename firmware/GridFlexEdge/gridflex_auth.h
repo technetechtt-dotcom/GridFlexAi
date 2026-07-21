@@ -17,12 +17,12 @@ inline String sha256Hex(const uint8_t* data, size_t len) {
   mbedtls_md_update(&ctx, data, len);
   mbedtls_md_finish(&ctx, hash);
   mbedtls_md_free(&ctx);
-  static const char* HEX = "0123456789abcdef";
+  static const char* HEX_DIGITS = "0123456789abcdef";
   String out;
   out.reserve(64);
   for (int i = 0; i < 32; i++) {
-    out += HEX[(hash[i] >> 4) & 0x0F];
-    out += HEX[hash[i] & 0x0F];
+    out += HEX_DIGITS[(hash[i] >> 4) & 0x0F];
+    out += HEX_DIGITS[hash[i] & 0x0F];
   }
   return out;
 }

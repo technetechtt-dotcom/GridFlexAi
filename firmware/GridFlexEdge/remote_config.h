@@ -4,10 +4,10 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
-#include <HTTPClient.h>
 #include <Preferences.h>
 #include "config.h"
 #include "ed25519_verify.h"
+#include "network_http.h"
 
 /**
  * Signed remote configuration (Ed25519).
@@ -56,7 +56,7 @@ class RemoteConfigManager {
   const char* lastStatus() const { return lastStatus_.c_str(); }
 
   /** http must already have auth headers; begin() already called by NetworkManager. */
-  bool pullAndApply(HTTPClient& http) {
+  bool pullAndApply(NetworkHttpRequest& http) {
     int code = http.GET();
     if (code != 200) {
       lastStatus_ = String("http_") + code;
