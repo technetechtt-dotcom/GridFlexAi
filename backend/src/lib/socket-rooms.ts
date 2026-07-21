@@ -71,8 +71,7 @@ export const emitToSiteScope = (
   io.to(GLOBAL_OPS_ROOM).emit(eventName, payload);
 };
 
-export const configureAuthenticatedSockets = (io: SocketIOServer): void => {
-  io.use((socket, next) => {
+export const authenticateSocket = (socket: Socket, next: (err?: Error) => void): void => {
     try {
       const token = extractBearerOrAuthToken(socket);
       if (!token) {
@@ -86,11 +85,15 @@ export const configureAuthenticatedSockets = (io: SocketIOServer): void => {
         name: payload.name,
         role: payload.role
       };
+      socket.data.tokenExpiresAtMs = typeof payload.exp === "number" ? payload.exp * 1000 : null;
       next();
     } catch {
       next(new Error("Unauthorized socket connection."));
     }
-  });
+};
+
+export const configureAuthenticatedSockets = (io: SocketIOServer): void => {
+  io.use(authenticateSocket);
 };
 
 export const registerScopedSocketConnection = (
@@ -103,6 +106,14 @@ export const registerScopedSocketConnection = (
 
   io.on("connection", (socket) => {
     onMetricsConnect();
+
+    const expiresAtMs = socket.data.tokenExpiresAtMs as number | null;
+    const expiryTimer = expiresAtMs
+      ? setTimeout(() => {
+          socket.emit("session-expired", { reason: "access_token_expired" });
+          socket.disconnect(true);
+        }, Math.max(0, expiresAtMs - Date.now()))
+      : null;
 
     void (async () => {
       try {
@@ -141,6 +152,7 @@ export const registerScopedSocketConnection = (
     })();
 
     socket.on("disconnect", () => {
+      if (expiryTimer) clearTimeout(expiryTimer);
       onMetricsDisconnect();
     });
   });

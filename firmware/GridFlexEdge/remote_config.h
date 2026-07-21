@@ -55,6 +55,16 @@ class RemoteConfigManager {
   const AppliedConfig& current() const { return current_; }
   const char* lastStatus() const { return lastStatus_.c_str(); }
 
+  bool telemetryKeyEnabled(const char* key) const {
+    StaticJsonDocument<256> keys;
+    if (deserializeJson(keys, current_.enabledKeysJson)) return false;
+    JsonArray list = keys.as<JsonArray>();
+    for (JsonVariant value : list) {
+      if (value.is<const char*>() && strcmp(value.as<const char*>(), key) == 0) return true;
+    }
+    return false;
+  }
+
   /** http must already have auth headers; begin() already called by NetworkManager. */
   bool pullAndApply(NetworkHttpRequest& http) {
     int code = http.GET();
@@ -122,9 +132,9 @@ class RemoteConfigManager {
 
     const char* versionStr = payload["configurationVersion"] | "0";
     unsigned long versionNum = parseVersionNumeric(versionStr);
-    if (versionNum < lastVersionNumeric_) {
-      Serial.println("[cfg] Lower configurationVersion — rejected");
-      lastStatus_ = "lower_version";
+    if (versionNum <= lastVersionNumeric_) {
+      Serial.println("[cfg] Non-increasing configurationVersion — rejected");
+      lastStatus_ = "non_increasing_version";
       return false;
     }
 
@@ -142,11 +152,33 @@ class RemoteConfigManager {
       return false;
     }
 
+    const char* minimumFirmware = payload["approvedFirmwareMinimum"] | "";
+    if (!minimumFirmware[0] || compareVersions(FIRMWARE_VERSION, minimumFirmware) < 0) {
+      Serial.println("[cfg] Firmware below approved minimum — rejected");
+      lastStatus_ = "firmware_below_minimum";
+      return false;
+    }
+
+    JsonArray enabledKeys = payload["enabledTelemetryKeys"].as<JsonArray>();
+    if (enabledKeys.isNull() || enabledKeys.size() == 0 || enabledKeys.size() > 16) {
+      Serial.println("[cfg] enabledTelemetryKeys invalid — rejected");
+      lastStatus_ = "telemetry_keys_invalid";
+      return false;
+    }
+    for (JsonVariant value : enabledKeys) {
+      const char* key = value.as<const char*>();
+      if (!key || !isAllowedTelemetryKey(key)) {
+        Serial.println("[cfg] Unsupported telemetry key — rejected");
+        lastStatus_ = "telemetry_key_forbidden";
+        return false;
+      }
+    }
+
     previous_ = current_;
     current_.configurationVersion = versionStr;
     current_.pollingIntervalMs = poll;
     current_.serverEndpoint = endpoint;
-    current_.approvedFirmwareMinimum = payload["approvedFirmwareMinimum"] | "0.0.0";
+    current_.approvedFirmwareMinimum = minimumFirmware;
     current_.issueId = issueId;
     String keys;
     serializeJson(payload["enabledTelemetryKeys"], keys);
@@ -177,12 +209,36 @@ class RemoteConfigManager {
   String lastIssueId_;
 
   static unsigned long parseVersionNumeric(const char* v) {
-    // Accept "12", "1.2.3" → 10203 style, or plain integer prefix.
+    // Accept "12", "1.2.3", and deployed labels such as "cfg-12".
+    while (v && *v && (*v < '0' || *v > '9')) ++v;
+    if (!v || !*v) return 0;
     unsigned long major = 0, minor = 0, patch = 0;
     if (sscanf(v, "%lu.%lu.%lu", &major, &minor, &patch) >= 1) {
       return major * 10000UL + minor * 100UL + patch;
     }
     return strtoul(v, nullptr, 10);
+  }
+
+  static int compareVersions(const char* left, const char* right) {
+    unsigned long l[3] = {0, 0, 0};
+    unsigned long r[3] = {0, 0, 0};
+    if (sscanf(left, "%lu.%lu.%lu", &l[0], &l[1], &l[2]) < 1) return -1;
+    if (sscanf(right, "%lu.%lu.%lu", &r[0], &r[1], &r[2]) < 1) return -1;
+    for (uint8_t i = 0; i < 3; ++i) {
+      if (l[i] < r[i]) return -1;
+      if (l[i] > r[i]) return 1;
+    }
+    return 0;
+  }
+
+  static bool isAllowedTelemetryKey(const char* key) {
+    static const char* ALLOWED[] = {
+      "voltage", "current", "power", "frequency", "lifetimeEnergyKwh"
+    };
+    for (const char* allowed : ALLOWED) {
+      if (strcmp(key, allowed) == 0) return true;
+    }
+    return false;
   }
 
   void persistVersionWatermark(unsigned long ver, const String& issue) {
@@ -234,7 +290,10 @@ class RemoteConfigManager {
   bool isExpired(const char* isoUtc) {
     if (isoUtc == nullptr || isoUtc[0] == '\0') return true;
     time_t now = time(nullptr);
-    if (now < 1700000000) return false; // clock not synced — defer to signature + server
+    if (now < 1700000000) {
+      Serial.println("[cfg] Clock not synchronized — expiry cannot be verified");
+      return true;
+    }
     int y = 0, mo = 0, d = 0, h = 0, mi = 0, s = 0;
     if (sscanf(isoUtc, "%d-%d-%dT%d:%d:%d", &y, &mo, &d, &h, &mi, &s) < 3) {
       return true;

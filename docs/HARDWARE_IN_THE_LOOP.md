@@ -51,11 +51,14 @@ Alarm acknowledgement never equates to control authority.
 
 Automated packet cases: `backend/tests/hil-packet-matrix.test.ts`, `backend/tests/sunspec-register-plan.test.ts`.
 
-CI compiles `firmware/GridFlexEdge` twice with PlatformIO:
-`esp32dev-ci` (Wi-Fi + Modbus) and `esp32dev-lte-ci` (SIM7670X/TinyGSM TLS +
+CI compiles `firmware/GridFlexEdge` twice for ESP32-S3 with PlatformIO:
+`esp32s3-wifi-ci` (Wi-Fi + Modbus) and `esp32s3-lte-ci` (SIM7670X/TinyGSM TLS +
 Modbus). This catches ESP32, queue, SunSpec/Modbus, crypto, storage, and LTE
 transport build regressions. Compilation is **not** modem or physical bus
 evidence; those rows remain open until run on the isolated bench.
+The LTE compile profile assigns RS485 DE/RE to GPIO 25; confirm that pin against
+the approved board/BOM before wiring. Firmware now rejects builds where RS485
+DE/RE conflicts with the modem power pin.
 
 ## Evidence (every test)
 

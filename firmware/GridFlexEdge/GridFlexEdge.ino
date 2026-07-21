@@ -74,11 +74,14 @@ void measureAndEnqueue() {
   }
 
   StaticJsonDocument<768> doc;
-  doc["voltage"] = sample.voltage;
-  doc["current"] = sample.current;
-  doc["power"] = sample.power;
-  if (isfinite(sample.frequencyHz)) {
+  if (gConfig.telemetryKeyEnabled("voltage")) doc["voltage"] = sample.voltage;
+  if (gConfig.telemetryKeyEnabled("current")) doc["current"] = sample.current;
+  if (gConfig.telemetryKeyEnabled("power")) doc["power"] = sample.power;
+  if (gConfig.telemetryKeyEnabled("frequency") && isfinite(sample.frequencyHz)) {
     doc["frequency"] = sample.frequencyHz;
+  }
+  if (gConfig.telemetryKeyEnabled("lifetimeEnergyKwh") && isfinite(sample.lifetimeEnergyKwh)) {
+    doc["lifetimeEnergyKwh"] = sample.lifetimeEnergyKwh;
   }
   doc["timestamp"] = iso8601UtcNow();
   doc["firmwareVersion"] = FIRMWARE_VERSION;

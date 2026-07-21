@@ -59,7 +59,7 @@ export const publishEdgeRemoteConfigBodySchema = z.object({
   configurationVersion: z.string().min(1).max(80),
   pollingIntervalMs: z.coerce.number().int().min(5_000).max(3_600_000),
   serverEndpoint: z.string().url().max(500),
-  enabledTelemetryKeys: z.array(z.string().min(1).max(80)).min(1).max(64),
+  enabledTelemetryKeys: z.array(z.string().min(1).max(80)).min(1).max(16),
   approvedFirmwareMinimum: z.string().min(1).max(40),
   issuedAt: z.string().datetime(),
   expiresAt: z.string().datetime()

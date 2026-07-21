@@ -1,5 +1,5 @@
 import { io, type Socket } from "socket.io-client";
-import { getAuthToken, type NodeStatus } from "./api";
+import { getAuthToken, tryRefreshAccessToken, type NodeStatus } from "./api";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000/api";
 const SOCKET_BASE_URL =
@@ -8,6 +8,29 @@ const SOCKET_BASE_URL =
 
 let liveSocket: Socket | null = null;
 let simulationSocket: Socket | null = null;
+
+const keepSocketAuthCurrent = (socket: Socket): Socket => {
+  let refreshingSession = false;
+
+  socket.io.on("reconnect_attempt", () => {
+    const token = getAuthToken();
+    socket.auth = token ? { token } : {};
+  });
+  socket.on("session-expired", () => {
+    if (refreshingSession) return;
+    refreshingSession = true;
+    void tryRefreshAccessToken()
+      .then((refreshed) => {
+        const token = getAuthToken();
+        socket.auth = token ? { token } : {};
+        if (refreshed && token) socket.connect();
+      })
+      .finally(() => {
+        refreshingSession = false;
+      });
+  });
+  return socket;
+};
 
 export type LiveReadingPayload = {
   id: string;
@@ -46,12 +69,12 @@ export type NodeStatusUpdatePayload = {
 export const getLiveSocketClient = (): Socket => {
   if (!liveSocket) {
     const token = getAuthToken();
-    liveSocket = io(SOCKET_BASE_URL, {
+    liveSocket = keepSocketAuthCurrent(io(SOCKET_BASE_URL, {
       transports: ["websocket", "polling"],
       autoConnect: true,
       withCredentials: true,
       auth: token ? { token } : undefined
-    });
+    }));
   }
   return liveSocket;
 };
@@ -60,12 +83,12 @@ export const getLiveSocketClient = (): Socket => {
 export const getSimulationSocketClient = (): Socket => {
   if (!simulationSocket) {
     const token = getAuthToken();
-    simulationSocket = io(`${SOCKET_BASE_URL}/simulation`, {
+    simulationSocket = keepSocketAuthCurrent(io(`${SOCKET_BASE_URL}/simulation`, {
       transports: ["websocket", "polling"],
       autoConnect: true,
       withCredentials: true,
       auth: token ? { token } : undefined
-    });
+    }));
   }
   return simulationSocket;
 };

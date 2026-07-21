@@ -22,6 +22,9 @@
 #ifndef MODBUS_DE_RE
 #define MODBUS_DE_RE 4
 #endif
+#if USE_LTE && MODBUS_DE_RE == MODEM_PWR
+#error "MODBUS_DE_RE conflicts with MODEM_PWR; assign a board-specific RS485 direction pin."
+#endif
 HardwareSerial ModbusSerial(2);
 #endif
 

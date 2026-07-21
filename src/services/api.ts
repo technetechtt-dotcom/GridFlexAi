@@ -714,8 +714,9 @@ export type SessionUser = {
 const API_BASE_URL =
 (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
 'http://localhost:4000/api';
-const AUTH_TOKEN_KEY = 'gridflex_token';
+const LEGACY_AUTH_TOKEN_KEY = 'gridflex_token';
 const LEGACY_REFRESH_TOKEN_KEY = 'gridflex_refresh_token';
+let accessToken: string | null = null;
 const DEFAULT_FORECAST_CAPACITY_KW = 120;
 
 type RequestOptions = {
@@ -727,17 +728,20 @@ type RequestOptions = {
 };
 
 export function getAuthToken(): string | null {
-  // One-time cleanup for clients that used the removed localStorage refresh fallback.
+  // Access tokens are memory-only. Clean up tokens persisted by older releases.
+  localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
-  return localStorage.getItem(AUTH_TOKEN_KEY);
+  return accessToken;
 }
 
 export function setAuthToken(token: string): void {
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  accessToken = token;
+  localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
 }
 
 export function clearAuthToken(): void {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
+  accessToken = null;
+  localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
   localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
 }
 
@@ -2065,4 +2069,3 @@ export async function createAdvisoryOptimisationRun(body: {
   );
   return response.data;
 }
-

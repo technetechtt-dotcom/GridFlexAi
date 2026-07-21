@@ -5,8 +5,8 @@ Do **not** mark ops / plant / POPIA items complete without dated evidence artifa
 
 ## Current Snapshot
 
-- Estimated readiness: **~78% code frameworks**; **ops / plant / external evidence still open**.
-- Last updated: **2026-07-20**.
+- Estimated readiness: **~82% code frameworks**; **ops / plant / external evidence still open**.
+- Last updated: **2026-07-21**.
 - Canonical layout: frontend `src/`, backend `backend/`, firmware `firmware/GridFlexEdge/`.
 - Ops remaining: [`docs/runbooks/ops-completion-pack.md`](./docs/runbooks/ops-completion-pack.md)
 - Evidence board: [`docs/runbooks/evidence-completion-board.md`](./docs/runbooks/evidence-completion-board.md)
@@ -14,8 +14,8 @@ Do **not** mark ops / plant / POPIA items complete without dated evidence artifa
 
 ## P0 - Go-Live Blockers (live hardware pilot)
 
-- [x] **CI required jobs green on `main`**
-  - Evidence: https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29742647245
+- [ ] **Required jobs green for the release commit**
+  - Historical evidence exists, but the final release commit must have its own green run.
 - [x] **Physical execution disabled (backend + deploy + firmware telemetry-only)**
   - Evidence: `PILOT_LOCK_PHYSICAL_EXECUTION`, dual arming flags, `docker-compose.yml`, read-only gateway maps.
   - **Initial pilot: keep locked** — see evidence-completion-board.
@@ -27,7 +27,7 @@ Do **not** mark ops / plant / POPIA items complete without dated evidence artifa
   - Evidence: `persistent_queue.h`; host `journaled-queue.ts` crash-stage tests.
 - [x] **HIL host coverage: CRC, length, delayed, duplicate, disconnect, reset**
   - Evidence: `ed25519-kat-and-modbus-hil.test.ts`, `hil-packet-matrix` HIL-16…18.
-- [ ] **LTE TLS compile + bench on ESP32/SIM7670** *(ops/HW)* — `docs/equipment/lte-tls-bench-worksheet.md`
+- [ ] **LTE TLS compile + bench on ESP32-S3/SIM7670** *(ops/HW)* — ESP32-S3 CI profile added; physical bench evidence remains open.
 - [ ] **Hardware-level plant interlock wiring / PPC attestation** *(ops/plant)*
 - [ ] **Physical inverter validation + engineering sign-off** *(ops)* — issue #44
 - [ ] **Credential rotation + revocation rehearsal documented** *(ops)* — `credential-rotation-rehearsal.md`
@@ -44,5 +44,5 @@ Do **not** mark ops / plant / POPIA items complete without dated evidence artifa
 ## P2 - Cleanup
 
 - [x] `*.tsbuildinfo` gitignored; CODEOWNERS added
-- [ ] GitHub issues for every open release blocker *(see checklist)*
-- [ ] Confirm no duplicate project directories / unique ZIP content before purge
+- [x] GitHub issues for every open release blocker *(#43–#50)*
+- [x] Duplicate project directory and repository ZIP archive removed; canonical roots only

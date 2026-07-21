@@ -17,6 +17,13 @@ export type EdgeRemoteConfigPayload = {
 
 const POLL_MIN_MS = 5_000;
 const POLL_MAX_MS = 3_600_000;
+const PILOT_TELEMETRY_KEYS = new Set([
+  "voltage",
+  "current",
+  "power",
+  "frequency",
+  "lifetimeEnergyKwh"
+]);
 
 export const canonicalizeRemoteConfig = (payload: EdgeRemoteConfigPayload): string =>
   JSON.stringify({
@@ -77,9 +84,9 @@ export const validateRemoteConfigRanges = (payload: EdgeRemoteConfigPayload): vo
     }
   }
   for (const telemetryKey of payload.enabledTelemetryKeys) {
-    if (/setpoint|write|actuator|command/i.test(telemetryKey)) {
+    if (!PILOT_TELEMETRY_KEYS.has(telemetryKey)) {
       throw new AppError(
-        `enabledTelemetryKeys must not include control-oriented key "${telemetryKey}".`,
+        `enabledTelemetryKeys contains unsupported pilot key "${telemetryKey}".`,
         400
       );
     }

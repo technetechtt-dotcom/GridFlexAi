@@ -1,4 +1,4 @@
-# P0–P2 checklist status (2026-07-20)
+# P0–P2 checklist status (2026-07-21)
 
 Honest status against the release checklist. **Done** = code/docs in repo. **Open** = needs plant, ops, or external party.
 
@@ -16,11 +16,11 @@ Honest status against the release checklist. **Done** = code/docs in repo. **Ope
 | Wi-Fi↔LTE failover | Done (code) | Bench HIL-17 Open |
 | Real RS485/Modbus (no random) | Done (code) | `USE_RS485_MODBUS=1` on hardware; fail-closed when 0 |
 | LittleFS/queue fail-safe | Done | Skip enqueue on mount fail |
-| Power-loss safe queue writes | Partial | tmp+rename; short remove-before-rename window remains |
-| Queue recovery after resets | Partial | Rebuild restores head/tail; stage-by-stage bench Open |
+| Power-loss safe queue writes | Done (code) | Journal + dual metadata slots; destructive power-cycle bench remains Open |
+| Queue recovery after resets | Done (code) | Rebuild restores head/tail; stage-by-stage physical bench remains Open |
 | Watchdog network/Modbus/FS | Partial | TWDT + NVS counters; FS hang probe limited |
 | Reset/WDT to backend | Done | Telemetry fields + NVS |
-| Remote config auth/sign/validate/rollback/report | Partial | Pull wired; Ed25519 needs `MBEDTLS_ED25519_C` on board |
+| Remote config auth/sign/validate/rollback/report | Done (code) | Ed25519 KAT, strict monotonic versions, expiry, minimum firmware and telemetry-key allowlist; board evidence remains Open |
 | SunSpec discovery at adapter startup | Done | `PILOT_SUNSPEC_DISCOVER=true` |
 | Identity Mn/Md/SN + reject unexpected | Done | Env `PILOT_INVERTER_EXPECTED_MN/MD` |
 | Auto-include SF in partial reads | Done | `expandKeysWithScaleFactors` |
@@ -56,7 +56,7 @@ Honest status against the release checklist. **Done** = code/docs in repo. **Ope
 | CODEOWNERS | Done |
 | Canonical dirs documented | Done |
 | GitHub issues for open blockers | Done — #43–#50 |
-| Duplicate dir / ZIP purge | Confirm locally before delete |
+| Duplicate dir / ZIP purge | Done — neither path is tracked; canonical roots only |
 
 ## Filed issues (2026-07-20)
 
