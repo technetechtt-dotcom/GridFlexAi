@@ -34,7 +34,7 @@
     "@ai-sdk/react": "^3.0.166",
     "@emotion/react": "^11.13.3",
     "@neondatabase/serverless": "^1.1.0",
-    "ai": "^6.0.164",
+    "ai": "^7.0.34",
     "clsx": "latest",
     "framer-motion": "^11.5.4",
     "lucide-react": "0.522.0",
