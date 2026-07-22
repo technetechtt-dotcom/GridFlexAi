@@ -11,6 +11,10 @@ Record **evidence without secret values**. Status remains Open until rows are fi
 
 ## Rotation run
 
+Dry-run against isolated Neon restore branch `restore-drill-20260722` on 2026-07-22:
+`npx tsx scripts/rotate-all-device-credentials.ts --dry-run` → `legacy_hash_only: 0`, `active_vaulted: 0`
+(primary also has **0** `DeviceCredential` rows — provision devices before an execute rehearsal).
+
 For every credential record only provider-safe identifiers such as key ID,
 version, ARN, role name or last four characters. Never record a secret value.
 

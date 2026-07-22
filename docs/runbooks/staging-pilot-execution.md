@@ -10,26 +10,29 @@ execution remains disabled throughout.
 |-------|-------|
 | Pilot start / end (UTC) | |
 | Environment | staging |
-| Git commit SHA | |
+| Git commit SHA | `d68ac65af239d9124941197c63dae1e9207f8a65` (candidate) |
 | Backend image digest (`sha256:`) | |
-| CI run URL / run ID | |
-| Evidence manifest path / SHA-256 | |
+| CI run URL / run ID | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29916761891 |
+| Evidence manifest path / SHA-256 | `577a6212936c42fde5786fea729fadc1be8d0651b9c12c1edf3988ec7aba575a` |
 | Frontend release identifier | |
-| Firmware version / binary SHA-256 | |
+| Firmware version / binary SHA-256 | see CI firmware-evidence artifact |
 | Participants and roles | |
 | On-call primary / escalation contact | |
 
 ## Mandatory safety preflight
 
-- [ ] `PHYSICAL_COMMAND_EXECUTION_ENABLED=false`
-- [ ] `HIL_PLANT_APPROVAL_CONFIRMED=false`
-- [ ] `PILOT_LOCK_PHYSICAL_EXECUTION=true`
+- [x] `PHYSICAL_COMMAND_EXECUTION_ENABLED=false` (blueprint + code default)
+- [x] `HIL_PLANT_APPROVAL_CONFIRMED=false` (blueprint + code default)
+- [x] `PILOT_LOCK_PHYSICAL_EXECUTION=true` (blueprint + code default)
 - [ ] Only simulation or isolated, read-only RS485 equipment is connected
 - [ ] No FC05/06/0F/10 Modbus traffic is exposed or observed
 - [ ] Restore point and rollback digest are recorded
 - [ ] Central logs, metrics, alerts and notification routes are healthy
-- [ ] Tenant-isolation tests passed for this release
+- [x] Tenant-isolation tests passed for this release (CI backend tests)
 - [ ] Secrets are redacted from every evidence artifact
+- [x] Redis up on live backend health (2026-07-22)
+- [ ] Waveshare/board pin map signed before any RS485 energize
+- [ ] Authenticated HTTP smoke against restore/staging target
 
 ## Execution sequence
 

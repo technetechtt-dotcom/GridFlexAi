@@ -1,5 +1,15 @@
 # CI and release evidence
 
+## Latest green evidence (2026-07-22)
+
+| Field | Value |
+|-------|-------|
+| Commit | `d68ac65af239d9124941197c63dae1e9207f8a65` |
+| CI run | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29916761891 |
+| Required jobs | `frontend`, `backend`, `security`, `supply-chain`, `firmware`, `evidence-manifest` — all success |
+| Manifest artifact | `release-evidence-manifest-d68ac65…` |
+| Manifest SHA-256 | `577a6212936c42fde5786fea729fadc1be8d0651b9c12c1edf3988ec7aba575a` |
+
 CI uploads evidence with explicit retention:
 
 - frontend and backend test/build logs: 30 days;

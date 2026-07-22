@@ -7,7 +7,7 @@ Honest status against the release checklist. **Done** = code/docs in repo. **Ope
 | Item | Status | Notes |
 |------|--------|-------|
 | Simulation WebSocket tenant isolation | Done (code/test) | Persisted organisation/site runs, scoped rooms/emits, cross-tenant tests; migration deployment Open |
-| Release CI evidence | Open | `b512ab5` failed `security` (actionlint SC2016 in `release.yml`); follow-up fix required for SHA-bound green run |
+| Release CI evidence | Done | Green `d68ac65` run `29916761891`; manifest SHA-256 `577a6212…575a` |
 | Required checks on `main` | Done (GitHub config) | Strict `security`, `supply-chain`, `frontend`, `firmware`, `backend`, `evidence-manifest`; force-push/delete disabled |
 | Physical execution disabled (backend/firmware/deploy) | Done | Dual flags + `PILOT_LOCK` + compose |
 | Hardware-level execution interlock | Partial | Software interlocks only; plant PPC/relay Open |
@@ -44,7 +44,7 @@ Honest status against the release checklist. **Done** = code/docs in repo. **Ope
 
 | Area | Status |
 |------|--------|
-| DB restore drill | Partial (verify OK; approver Open) |
+| DB restore drill | Partial (2026-07-22 verify + migrations OK; HTTP smoke/approver Open) |
 | Logs/metrics/alerting live | Partial (code Done; drain/fire-drill Open) |
 | Staging/prod parity | Partial (check script Done; promotion evidence Open) |
 | External pen-test | Open |
