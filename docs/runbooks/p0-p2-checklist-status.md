@@ -14,7 +14,7 @@ Canonical RC: [`../releases/RC-2026-07-22.md`](../releases/RC-2026-07-22.md). Ev
 | Hardware-level execution interlock | Partial | Software only; plant PPC/relay Open (#46) |
 | Redis replay mandatory (prod) | Done | Fail-closed env + runtime |
 | Socket.IO Redis fail-closed (prod) | Done | Missing/unreachable Redis aborts production startup |
-| Exact Waveshare board + GPIO map | Open | **Not confirmed** — firmware LILYGO 26/27/4 ≠ Waveshare community 17/18; GPIO 25 candidate only |
+| Exact Waveshare board + GPIO map | Open | **Not confirmed** — unsigned Waveshare candidate env only; defaults remain LILYGO-style |
 | LTE AT / TLS flash + bench | Open | Hardware (#43) |
 | Physical HIL complete | Open | Bench (#43) |
 | Physical inverter E2E | Open | (#44) |
@@ -28,13 +28,13 @@ Canonical RC: [`../releases/RC-2026-07-22.md`](../releases/RC-2026-07-22.md). Ev
 |------|--------|
 | DB restore drill | Partial — verify + HTTP smoke Done 2026-07-22; **approver Open** |
 | Logs/metrics/alerting | Partial — probes + local dispatcher PASS; Render webhook deliver/ack Open |
-| Load soak | Partial — health + restore Socket.IO connect PASS; k6 ingest / event fan-out Open (#50) |
+| Load soak | Partial — health + `/simulation` fan-out + reconnect PASS; k6 ingest / Redis chaos Open (#50) |
 | First device credential + rotation | Partial — restore local-vault rehearsal Done; prod aws_kms blocked (#45) |
 | External pen-test | Open (#47) |
 | POPIA IO + access review | Open (#48) |
-| Staging/prod parity promotion | Open |
+| Staging/prod parity promotion | Open — first signed digest recorded; deploy/parity Open |
 | Telemetry-only staging pilot | Open — physical commands locked |
-| Supply-chain signed release evidence | Partial — workflows Done; first signed digest Open |
+| Supply-chain signed release evidence | **Partial — first signed GHCR image Done** @ `7fd0ba3` digest `1a0f0aa1…`; staging/prod promotion Open |
 
 ## P2 — Cleanup
 

@@ -2,7 +2,9 @@
 
 Status: **OPEN — exact commercial board model/revision and electrical verification are not complete.**
 
-Do **not** treat desk review, CI `esp32-s3-devkitc-1` builds, or community pin sketches as confirmation.
+Do **not** treat desk review, CI `esp32-s3-devkitc-1` builds, the
+`esp32s3-waveshare-sim7670g-candidate` env, or community pin sketches as
+confirmation or flash authorization.
 
 The CI target `esp32-s3-devkitc-1` is a **build** target only. It does not prove that
 GPIO 25 (or any other RS485 pin) is free on the purchased board.
@@ -12,49 +14,65 @@ GPIO 25 (or any other RS485 pin) is free on the purchased board.
 | Field | Verified value / evidence |
 |-------|---------------------------|
 | Board manufacturer | _pending — candidate: Waveshare_ |
-| Commercial board model | _pending — candidate: ESP32-S3-SIM7670G-4G_ |
-| Board revision | |
+| Commercial board model | _pending — candidate: ESP32-S3-SIM7670G-4G_ (schematic family also labeled ESP32-S3-A-SIM7670X-4G) |
+| Board revision | _pending — Waveshare docs distinguish V1 vs V2 (camera / MAX17048 I2C differ)_ |
 | ESP32-S3 module part number | |
-| Schematic revision and URL/path | https://www.waveshare.com/wiki/ESP32-S3-SIM7670G-4G |
+| Schematic revision and URL/path | https://www.waveshare.com/wiki/ESP32-S3-SIM7670G-4G · PDF https://files.waveshare.com/wiki/ESP32-S3-A7670E-4G/ESP32-S3-A-SIM7670X-4G-Sch.pdf |
 | BOM revision | |
 | Photo / annotated drawing path | |
 | Artifact SHA-256 | |
 
 ## Documented pin conflict (desk review 2026-07-22)
 
-Firmware defaults in `firmware/GridFlexEdge/config.h` currently assume a
-**LILYGO-style** modem map, **not** the community Waveshare map:
+Firmware **defaults** in `firmware/GridFlexEdge/config.h` remain **LILYGO-style**.
+Modem pins are `#ifndef`-overridable for board-specific PlatformIO envs.
 
-| Function | Firmware (`config.h` / LTE CI) | Waveshare community examples | Notes |
-|----------|--------------------------------|------------------------------|-------|
-| LTE UART RX (ESP←modem) | GPIO **26** | GPIO **17** (community) | **Mismatch — must pick one board and flash matching defines** |
-| LTE UART TX (ESP→modem) | GPIO **27** | GPIO **18** (community) | **Mismatch** |
-| LTE modem power / PWRKEY | GPIO **4** | _board-specific; SD MMC CMD also uses GPIO 4 on Waveshare wiki TF examples_ | Risk if TF card is enabled |
-| RS485 DE/RE | GPIO **25** (`platformio.ini` `esp32s3-lte-ci`) | **Not onboard** on ESP32-S3-SIM7670G-4G (no integrated RS485) | Needs external transceiver + free header pin |
-| Camera DVP | unused in firmware | GPIOs 7–16, 34–37 reserved when camera used | Leave camera unpopulated for pilot |
-| TF / SDMMC | unused in firmware | CLK=5, CMD=4, DATA=6 (wiki examples) | Keep TF unused if MODEM_PWR stays on GPIO 4 |
-| USB D-/D+ | ESP32-S3 native 19/20 | firmware compile-time rejects RS485 on 19/20 | OK |
-| Strapping | 0 / 3 / 45 / 46 | firmware compile-time rejects RS485 on these | OK |
+| Function | Default (`config.h` / `esp32s3-lte-ci`) | Waveshare desk candidate | Notes |
+|----------|----------------------------------------|--------------------------|-------|
+| LTE UART RX (ESP←modem) | GPIO **26** | GPIO **18** | Schematic level-shifter GPIO17/18 ↔ modem UART |
+| LTE UART TX (ESP→modem) | GPIO **27** | GPIO **17** | Matches TinyGSM/LilyGO SIM7670G UART direction |
+| LTE modem power / PWRKEY | GPIO **4** | GPIO **9** (candidate) | Waveshare TF CMD also uses GPIO **4**; camera Y4 uses GPIO **9** when camera populated — leave camera/TF unused |
+| RS485 DE/RE | GPIO **25** (`esp32s3-lte-ci`) | GPIO **25** header candidate | **Not onboard**; needs external transceiver |
+| RS485 RX / TX | 16 / 17 (modbus defaults) | **15 / 16** in candidate env | Default MODBUS_TX=17 **conflicts** with Waveshare modem TX |
+| Camera DVP | unused | V1/V2 tables on Waveshare Arduino docs | Leave unpopulated for pilot |
+| TF / SDMMC | unused | CLK=5, CMD=4, DATA=6 | Keep unused |
+| RGB | unused | GPIO **38** (WS2812B) | Leave unused |
+| USB D-/D+ | 19/20 | firmware rejects RS485 on 19/20 | OK |
+| Strapping | 0 / 3 / 45 / 46 | firmware rejects RS485 on these | OK |
 
-Sources consulted (desk only — not a signed electrical verification):
+Sources consulted (desk only — **not** a signed electrical verification):
 
-- Waveshare wiki: ESP32-S3-SIM7670G-4G
-- Community TinyGSM sketches using Waveshare: modem RX=17, TX=18
-- LilyGO Modem Series docs (different product family): modem pins differ again (10/11 or 4/5)
+- Waveshare wiki + Arduino docs (V1/V2 camera and fuel-gauge differences)
+- Waveshare schematic PDF (GPIO17/18 level shifter to modem UART)
+- LilyGO T-SIM7670G-S3 docs (UART TX=17, RX=18, PWRKEY=9) — related module family, different PCB
 
-**Conclusion:** The exact Waveshare GPIO map is **not verified for this pilot**.
-`MODBUS_DE_RE=25` is a **candidate header pin** only. Do not treat CI success as board approval.
+**Conclusion:** Board model/revision still **unconfirmed**. Candidate env
+`esp32s3-waveshare-sim7670g-candidate` is **compile-only**. Do not flash or energize
+RS485 until the acceptance table below is signed.
+
+## Unsigned firmware candidate (compile only)
+
+PlatformIO env: `esp32s3-waveshare-sim7670g-candidate`
+
+| Function | Candidate GPIO | Override |
+|----------|----------------|----------|
+| MODEM_RX | 18 | `-DMODEM_RX=18` |
+| MODEM_TX | 17 | `-DMODEM_TX=17` |
+| MODEM_PWR | 9 | `-DMODEM_PWR=9` |
+| MODBUS_RX | 15 | `-DMODBUS_RX=15` |
+| MODBUS_TX | 16 | `-DMODBUS_TX=16` |
+| MODBUS_DE_RE | 25 | `-DMODBUS_DE_RE=25` |
 
 ## Candidate firmware assignment (after board is confirmed)
 
-Update `config.h` / PlatformIO flags to the **signed** map before flash:
+Promote the **signed** map into the approved env / flash profile only after electrical sign-off:
 
 | Function | Approved GPIO | Source | Conflict check |
 |----------|---------------|--------|----------------|
-| LTE modem power | | schematic + continuity | |
+| LTE modem power | | schematic + continuity + AT | |
 | LTE UART RX | | schematic + AT echo | |
 | LTE UART TX | | schematic + AT echo | |
-| RS485 DE/RE | | schematic + transceiver datasheet | distinct from modem/USB/strap |
+| RS485 DE/RE | | schematic + transceiver datasheet | distinct from modem/USB/strap/camera/TF |
 | RS485 RX / TX | | schematic | |
 | Unused reserved | camera / TF / RGB | BOM | left unconnected |
 

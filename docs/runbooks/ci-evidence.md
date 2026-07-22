@@ -2,6 +2,18 @@
 
 ## Latest green evidence
 
+### Post-RC SHA `7fd0ba3` (2026-07-22)
+
+| Field | Value |
+|-------|-------|
+| Commit | `7fd0ba306b71a7a4acf1294deb7763f8c54132a1` |
+| CI run | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29925588915 |
+| Required jobs | all success |
+| Manifest SHA-256 | `4194ad26b3a628f2ec31d2b871a8b4a5cf92ac47c94b3ee35cca75901c2fbb76` |
+| Signed backend image | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29929170597 |
+| Image digest | `sha256:1a0f0aa1c724c026732951b5868ec9941e3b19638150c01baee6f8a27ed24928` |
+| Release evidence manifest SHA-256 | `a620d200132c20578fbf1411d452e302fbe0e02b2eb0a8b396fcd467527aa302` |
+
 ### Post-RC SHA `b12b007` (2026-07-22)
 
 | Field | Value |

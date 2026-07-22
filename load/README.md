@@ -5,7 +5,11 @@ See `docs/LOAD_TESTING.md`.
 ```bash
 k6 run -e BASE_URL=http://localhost:4000 load/k6/http-health-slo.js
 LOAD_SOCKET_OUTPUT=go-live-reports/socket-fanout.json \
-  node load/socketio-fanout.mjs --url http://localhost:4000 --clients 20 --duration 10 --await-event
+  node load/socketio-fanout.mjs --url http://localhost:4000 --namespace /simulation \
+  --clients 20 --duration 12 --await-event
+
+node load/socketio-reconnect-storm.mjs --url http://localhost:4000 --token "$JWT" \
+  --clients 15 --cycles 4 --output go-live-reports/socket-reconnect-storm.json
 
 # Accepted sustained ingest: each request is signed independently.
 BASE_URL=https://authorized-staging.example \

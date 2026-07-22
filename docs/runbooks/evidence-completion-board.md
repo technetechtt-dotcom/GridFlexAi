@@ -16,7 +16,7 @@ pilot (`PILOT_LOCK_PHYSICAL_EXECUTION=true`).
 | Physical execution disabled | Safety P0 | **Enforced in code/config; runtime attestation Open** | Ops / every deploy | Flag dump + boot attestation | Live `/api/health` redis+db up 2026-07-22 | |
 | Redis replay mandatory (prod) | Security P0 | **Done (code + Render blueprint)** | Engineering | `REDIS_URL` + `EDGE_REPLAY_REQUIRE_REDIS=true` + `EDGE_ALLOW_MEMORY_REPLAY=false` | `render.yaml` | |
 | Socket.IO Redis fail-closed (prod) | Security P0 | **Done (code/test)** | Engineering | Missing/unreachable Redis aborts production startup | `socket-redis-adapter.ts` + unit tests | |
-| ESP32-S3 / Waveshare GPIO map approval | Hardware P0 | **Open — board/revision not confirmed** | Hardware / before wiring | `esp32s3-pin-map-approval.md` (desk mismatch only) | | |
+| ESP32-S3 / Waveshare GPIO map approval | Hardware P0 | **Open — board/revision not confirmed** | Hardware / before wiring | Desk candidate env compile-only; electrical sign-off Open | `esp32s3-pin-map-approval.md` | |
 | Ed25519 device verify + KAT | Hardware P0 | **Code done; flash/bench Open** | Firmware / before HIL | Device KAT log | | |
 | SunSpec map on ESP32 Modbus | Hardware P0 | **Code done; hardware Open** | Firmware / issue #44 | Read-only discovery and raw-register comparison | | |
 | LTE TLS compile + bench | Hardware P0 | **Open** | Firmware / issue #43 | `lte-tls-bench-worksheet.md` | | |
@@ -27,9 +27,9 @@ pilot (`PILOT_LOCK_PHYSICAL_EXECUTION=true`).
 | Credential rotation / issue #45 | Provider P0 | **Partial** | Security + ops / before staging | Restore provision+rotate Done (local vault); staging/prod aws_kms **blocked** (no AWS CLI/keys on workstation) | SHA-256 `a6314a3ebfacf1c1d9d3014692d0a04f13e791dd418079b5e06c84b14d8eab9e` | |
 | DB restore approver + HTTP smoke | Recovery P0 | **Partial; approver Open** | DBA + approver / before staging | Neon `restore-drill-20260722`; migrate + verify + authenticated HTTP smoke OK | smoke SHA-256 `57531f57502e6cfe0e7e8458fc36eb374ebe7196f631d9e0e8dd1ccf06edd4bb` | |
 | Observability fire drill / issue #50 | Ops P0 | **Partial** | Ops / before staging | Live probes Done; local webhook dispatcher PASS (`c50405a5…b4b5`); Render `ALERT_WEBHOOK_*` deliver/ack still Open | SHA-256 `c50405a5897c98fb564fabf43511d2a2cc598b2d72376d76eed449030dceb4b5` | |
-| Staging/prod parity promotion | Release P0 | **Open** | Release manager / every promotion | Same `sha256:` digest, migrations, flags and smoke | | |
-| Load soak / issue #50 | Performance P1 | **Partial** | Engineering / before production | Live health baseline PASS; restore Socket.IO 25/25 connect PASS (p95 130 ms); k6 ingest Open | health `c03f2c9d…6055`; socket `2be3c8a5393003d96c806f32212555bebb84e904caaa990547c1aba5aefd6687` | |
-| Supply chain / issue #49 | Security P1 | **Partial** | Security / before production | Immutable pins, scans, signed digest/provenance | | |
+| Staging/prod parity promotion | Release P0 | **Open** | Release manager / every promotion | Same `sha256:` digest, migrations, flags and smoke | first signed image digest recorded below — parity still Open | |
+| Load soak / issue #50 | Performance P1 | **Partial** | Engineering / before production | Health baseline PASS; `/simulation` event fan-out PASS; reconnect storm PASS; k6 ingest Open | fan-out `9bc570c2…dcfa`; reconnect `045e5d19…a633` | |
+| Supply chain / issue #49 | Security P1 | **Partial — first signed image Done** | Security / before production | GHCR digest + SBOM + OIDC attestations + Cosign | run `29929170597`; digest `sha256:1a0f0aa1c724c026732951b5868ec9941e3b19638150c01baee6f8a27ed24928`; manifest `a620d200…a302` | Engineering / 2026-07-22 |
 | External pen-test / issue #47 | External P1 | **Open** | Independent tester / before production | Report, remediation and retest | | |
 | POPIA / issue #48 | Governance P1 | **Open** | Information Officer / before production | Signed policy and first access review | | |
 | Controlled staging pilot | Operations P1 | **Open** | Engineering + ops / before scope expansion | `staging-pilot-execution.md` | | |

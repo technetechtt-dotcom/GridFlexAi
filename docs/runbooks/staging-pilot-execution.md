@@ -11,7 +11,7 @@ execution remains disabled throughout.
 | Pilot start / end (UTC) | |
 | Environment | staging |
 | Git commit SHA | `d1a7363166e13789c08955270d2e7f8f1b445e35` (`RC-2026-07-22`) |
-| Backend image digest (`sha256:`) | |
+| Backend image digest (`sha256:`) | `sha256:1a0f0aa1c724c026732951b5868ec9941e3b19638150c01baee6f8a27ed24928` (signed @ `7fd0ba3`; staging deploy still Open) |
 | CI run URL / run ID | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29922993173 |
 | Evidence manifest path / SHA-256 | `0f7bc5e9a70f35e62ed19e4313b5298731ee8d0bf7a7da587f9ac4488c7f0651` |
 | Frontend release identifier | |

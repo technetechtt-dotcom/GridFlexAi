@@ -26,13 +26,21 @@ static const size_t QUEUE_MAX_RECORDS = 2000;
 static const unsigned long DEFAULT_POLL_INTERVAL_MS = 60000;
 static const unsigned long WATCHDOG_TIMEOUT_MS = 30000;
 
-// LTE modem pins (LILYGO T-Call / SIM7670X). Sequenced 4G edge client.
+// LTE modem pins — default is LILYGO-style. Override via PlatformIO -D for a
+// board-specific candidate/approved map (see docs/equipment/esp32s3-pin-map-approval.md).
+// Do not flash a Waveshare map until the board model/revision is signed.
 #ifndef USE_LTE
 #define USE_LTE 1
 #endif
+#ifndef MODEM_RX
 #define MODEM_RX 26
+#endif
+#ifndef MODEM_TX
 #define MODEM_TX 27
+#endif
+#ifndef MODEM_PWR
 #define MODEM_PWR 4
+#endif
 static const char* LTE_APN = "internet";
 static const char* LTE_USER = "";
 static const char* LTE_PASS = "";
