@@ -15,6 +15,7 @@ playwright-report
 test-results
 go-live-reports/*
 !go-live-reports/README.md
+ci-evidence/
 backend/certs/*.pfx
 
 # TypeScript incremental build info

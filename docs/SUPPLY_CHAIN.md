@@ -4,29 +4,31 @@
 
 | Control | Implementation |
 |---------|----------------|
-| npm audit (critical production deps) | `security` job |
+| npm audit (HIGH/CRITICAL production deps) | `security` job |
 | Secrets hygiene (tracked files) | `npm run check:secrets-hygiene` in `security` job |
 | Gitleaks | Docker CLI `zricethezav/gitleaks:v8.24.0` (OSS; no org license secret required) |
-| Container image scan | `aquasecurity/trivy-action@v0.36.0` — **fail-closed on fixed CRITICAL**; HIGH reported in SARIF (does not fail CI until policy flip) |
+| Container image scan | Trivy — **fail-closed on fixed CRITICAL and HIGH**; SARIF retained and uploaded |
 | SBOM | CycloneDX npm **pinned** `@cyclonedx/cyclonedx-npm@1.19.3` + Syft (image) |
 | Dependabot | `.github/dependabot.yml` weekly PRs |
 | CODEOWNERS | `.github/CODEOWNERS` for auth/vault/firmware/CI |
+| Static analysis | CodeQL `javascript-typescript` with extended security queries |
+| Workflow integrity | actionlint plus immutable full-SHA GitHub Action pins |
+| Release integrity | GHCR digest, SPDX SBOM, GitHub OIDC attestations, and keyless Cosign signature |
 
 ## Vulnerability policy (must match CI)
 
 | Severity | CI behaviour | Promotion |
 |----------|--------------|-----------|
-| CRITICAL (fixed) | Fail `supply-chain` / `security` | Block |
-| HIGH (fixed) | Report SARIF; **do not fail** (current) | Manual review before prod |
+| CRITICAL (fixed) | Fail `supply-chain` / `security`; no exceptions | Block |
+| HIGH (fixed) | Fail unless an approved, unexpired exception exists | Block without exception |
 | Medium/Low | Report | Track |
 
-To fail-closed on HIGH, change Trivy `severity: 'CRITICAL,HIGH'` with `exit-code: "1"` and update this table in the same PR.
+Exception requirements and the 90-day maximum lifetime are defined in
+`docs/policies/supply-chain-vulnerability-policy.md`. The machine-readable register is
+`security/vulnerability-exceptions.json`.
 
-## Still open
-
-- Pin GitHub Actions to immutable commit SHAs
-- Cosign / provenance attestations on promoted images
-- Formal vulnerability exception register with owners + expiry
+CI and release evidence format, retention, and trust boundaries are documented in
+`docs/runbooks/ci-evidence.md`.
 
 ## Local
 

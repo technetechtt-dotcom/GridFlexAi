@@ -22,8 +22,26 @@
 #ifndef MODBUS_DE_RE
 #define MODBUS_DE_RE 4
 #endif
-#if USE_LTE && MODBUS_DE_RE == MODEM_PWR
-#error "MODBUS_DE_RE conflicts with MODEM_PWR; assign a board-specific RS485 direction pin."
+#if MODBUS_RX == MODBUS_TX || MODBUS_RX == MODBUS_DE_RE || MODBUS_TX == MODBUS_DE_RE
+#error "MODBUS_RX, MODBUS_TX and MODBUS_DE_RE must use distinct GPIOs."
+#endif
+#if USE_LTE && \
+    (MODBUS_RX == MODEM_RX || MODBUS_RX == MODEM_TX || MODBUS_RX == MODEM_PWR || \
+     MODBUS_TX == MODEM_RX || MODBUS_TX == MODEM_TX || MODBUS_TX == MODEM_PWR || \
+     MODBUS_DE_RE == MODEM_RX || MODBUS_DE_RE == MODEM_TX || MODBUS_DE_RE == MODEM_PWR)
+#error "RS485 GPIO conflicts with an LTE modem GPIO; use an approved board-specific pin map."
+#endif
+// ESP32-S3 native USB D-/D+ defaults to GPIO19/20. GPIO0/3/45/46 are
+// strapping pins. Exact development boards can add further restrictions and
+// still require the signed board/revision approval worksheet.
+#if MODBUS_RX == 19 || MODBUS_RX == 20 || MODBUS_TX == 19 || MODBUS_TX == 20 || \
+    MODBUS_DE_RE == 19 || MODBUS_DE_RE == 20
+#error "RS485 GPIO conflicts with ESP32-S3 native USB GPIO19/20."
+#endif
+#if MODBUS_RX == 0 || MODBUS_RX == 3 || MODBUS_RX == 45 || MODBUS_RX == 46 || \
+    MODBUS_TX == 0 || MODBUS_TX == 3 || MODBUS_TX == 45 || MODBUS_TX == 46 || \
+    MODBUS_DE_RE == 0 || MODBUS_DE_RE == 3 || MODBUS_DE_RE == 45 || MODBUS_DE_RE == 46
+#error "RS485 GPIO uses an ESP32-S3 strapping pin."
 #endif
 HardwareSerial ModbusSerial(2);
 #endif

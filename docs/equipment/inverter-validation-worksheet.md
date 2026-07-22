@@ -3,6 +3,16 @@
 Compare inverter screen / calibrated meter vs Modbus raw vs GridFlex engineering value.  
 Agreed default tolerances (override per site): power ±1% or ±2 kW; frequency ±0.02 Hz; energy ±1%.
 
+| Evidence field | Value |
+|----------------|-------|
+| Environment / bench ID | |
+| Commit / firmware SHA | |
+| Inverter manufacturer / model / serial | |
+| SunSpec discovery output path / SHA-256 | |
+| Packet capture path / SHA-256 | |
+| Start / end timestamps (UTC) | |
+| Issue / ticket | #44 |
+
 | Signal | Inverter screen / meter | Modbus raw | GridFlex value | Tolerance | Result | Notes |
 |--------|-------------------------|------------|----------------|-----------|--------|-------|
 | Active power | | | | ±1% / ±2 kW | Pass / Fail | |
@@ -38,3 +48,4 @@ Confirm Modbus capture / code review shows **only FC03** (or FC04 if input regis
 |------|------|------|
 | Test engineer | | |
 | Reviewer | | |
+| Authorized installer / electrical engineer | | |

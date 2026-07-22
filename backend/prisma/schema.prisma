@@ -203,6 +203,12 @@ enum OptimizationRunStatus {
   failed
 }
 
+enum SimulationRunStatus {
+  running
+  stopped
+  failed
+}
+
 enum DispatchScheduleStatus {
   advisory
   expired
@@ -316,6 +322,7 @@ model User {
   optimizationRuns         OptimizationRun[]
   commandRequests          CommandRequest[]          @relation("CommandRequester")
   commandApprovals         CommandApproval[]
+  simulationRuns           SimulationRun[]            @relation("SimulationRunCreator")
   alarmAcknowledgements    AlarmAcknowledgement[]
   incidentsOpened          Incident[]              @relation("IncidentOpenedBy")
   incidentTimelineEntries  IncidentTimeline[]
@@ -354,6 +361,7 @@ model Organisation {
   gridConstraints     GridConstraint[]
   optimizationRuns    OptimizationRun[]
   commandRequests     CommandRequest[]
+  simulationRuns      SimulationRun[]
   alarmRules          AlarmRule[]
   alarmEvents         AlarmEvent[]
   incidents           Incident[]
@@ -432,6 +440,7 @@ model EdgeNode {
   credentials             DeviceCredential[]
   provisioningEvents      DeviceProvisioningEvent[]
   healthHistory           NodeHealthHistory[]
+  simulationRuns          SimulationRun[]
   lastResetReason         String?
   appliedConfigVersion    String?
 
@@ -512,6 +521,7 @@ model SensorReading {
   quality            DataQuality     @default(valid)
   environment        TelemetryEnvironment @default(live)
   simulationRunId    String?
+  simulationRun      SimulationRun?  @relation(fields: [simulationRunId], references: [id], onDelete: SetNull)
   powerUnit          MeasurementUnit @default(kW)
   voltageUnit        MeasurementUnit @default(V)
   currentUnit        MeasurementUnit @default(A)
@@ -658,6 +668,7 @@ model Site {
   gridConstraints     GridConstraint[]
   optimizationRuns    OptimizationRun[]
   commandRequests     CommandRequest[]
+  simulationRuns      SimulationRun[]
   alarmRules          AlarmRule[]
   alarmEvents         AlarmEvent[]
   incidents           Incident[]
@@ -814,6 +825,7 @@ model TelemetryReading {
   sourceType         DataSourceType           @default(measured)
   environment        TelemetryEnvironment     @default(live)
   simulationRunId    String?
+  simulationRun      SimulationRun?           @relation(fields: [simulationRunId], references: [id], onDelete: SetNull)
   deviceTimestamp    DateTime
   ingestedAt         DateTime                 @default(now())
   sequenceNumber     Int?
@@ -1199,6 +1211,32 @@ model OptimizationRun {
   @@index([siteId, createdAt])
   @@index([plantId, createdAt])
   @@index([status])
+  @@index([createdById])
+}
+
+/// Tenant-owned live simulation stream targeting one persisted site node.
+model SimulationRun {
+  id             String              @id @default(cuid())
+  organisationId String
+  organisation   Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId         String
+  site           Site                @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  targetNodeId   String
+  targetNode     EdgeNode            @relation(fields: [targetNodeId], references: [id], onDelete: Cascade)
+  status         SimulationRunStatus @default(running)
+  createdById    String?
+  createdBy      User?               @relation("SimulationRunCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  startedAt      DateTime            @default(now())
+  stoppedAt      DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  sensorReadings SensorReading[]
+  telemetry      TelemetryReading[]
+
+  @@index([organisationId, createdAt])
+  @@index([siteId, createdAt])
+  @@index([targetNodeId, status])
+  @@index([status, startedAt])
   @@index([createdById])
 }
 

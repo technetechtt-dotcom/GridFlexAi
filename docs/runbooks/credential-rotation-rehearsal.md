@@ -11,6 +11,19 @@ Record **evidence without secret values**. Status remains Open until rows are fi
 
 ## Rotation run
 
+For every credential record only provider-safe identifiers such as key ID,
+version, ARN, role name or last four characters. Never record a secret value.
+
+| Credential class | Old key ID / version | New key ID / version | Issued UTC | Revoked UTC | Env | Operator | Evidence URL / SHA-256 | Pass? |
+|------------------|----------------------|----------------------|------------|-------------|-----|----------|-----------------------|-------|
+| Per-device secrets | | | | | | | | |
+| JWT signing keys | | | | | | | | |
+| Database role/password | | | | | | | | |
+| Redis credentials | | | | | | | | |
+| Ed25519 remote-config key | | | | | | | | |
+| KMS/cloud credentials | | | | | | | | |
+| Alert webhook credentials | | | | | | | | |
+
 | Step | Command / action | Env | Operator | Date | Evidence (redacted) | Pass? |
 |------|------------------|-----|----------|------|---------------------|-------|
 | Dry-run all devices | `cd backend && npx tsx scripts/rotate-all-device-credentials.ts --dry-run` | | | | | |
@@ -28,6 +41,9 @@ Record **evidence without secret values**. Status remains Open until rows are fi
 | 2 | Confirm audit log `credential.revoked` | Present | | |
 | 3 | Re-provision new credential | Ingest succeeds | | |
 | 4 | Attempt replay of old signed request | Rejected | | |
+| 5 | Attempt login/token use with retired JWT key | Rejected after overlap window | | |
+| 6 | Attempt database/Redis use with retired credential | Rejected | | |
+| 7 | Verify old remote-config signing key is rejected | Rejected after trust-set transition | | |
 
 ## Approvals
 

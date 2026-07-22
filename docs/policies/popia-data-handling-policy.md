@@ -40,12 +40,12 @@ Avoid collecting ID numbers, biometric data, or children’s data.
 
 Cloud hosting may process data outside RSA. Document countries/providers and ensure adequate protection (contractual clauses + access controls). List providers:
 
-| Provider | Region(s) | Purpose |
-|----------|-----------|---------|
-| | | Database |
-| | | App host |
-| | | Redis |
-| | | AI (if used) |
+| Provider | Region(s) | Purpose | Contract/DPA/SCC reference | Data categories | Retention/deletion |
+|----------|-----------|---------|----------------------------|-----------------|--------------------|
+| | | Database | | | |
+| | | App host | | | |
+| | | Redis | | | |
+| | | AI (if used) | | | |
 
 ## Security measures
 
@@ -54,6 +54,18 @@ Cloud hosting may process data outside RSA. Document countries/providers and ens
 - Role-based access; site-scoped tenancy
 - Logging with redaction (`docs/OBSERVABILITY.md`)
 - Breach readiness: notify Information Officer immediately; assess POPIA s22 notification duties
+
+## Incident and breach contacts
+
+| Role | Name | Contact | Backup / escalation |
+|------|------|---------|---------------------|
+| Information Officer | | | |
+| Security incident lead | | | |
+| Legal/privacy adviser | | | |
+| Regulator/data-subject notification owner | | | |
+
+The incident record must preserve discovery time, containment time, affected
+systems and subjects, risk assessment, notification decision and approval.
 
 ## Data subject rights
 

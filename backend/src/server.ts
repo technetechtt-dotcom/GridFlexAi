@@ -147,7 +147,6 @@ process.on("unhandledRejection", (reason) => {
     const { registerSimulationNamespace } = await import("./simulation/socket-namespace.js");
     const { startSimulationPublisher, stopSimulationPublisher } = await import("./simulation/publisher.js");
     registerSimulationNamespace(io);
-    startSimulationPublisher();
 
     const shutdown = async () => {
       forecastCronTask?.stop();
@@ -168,6 +167,7 @@ process.on("unhandledRejection", (reason) => {
     });
 
     await prisma.$connect();
+    startSimulationPublisher();
     forecastCronTask = startForecastCron();
     telemetryRetentionTask = startTelemetryRetentionCron();
     if (env.NODE_HEALTH_CRON_ENABLED) {

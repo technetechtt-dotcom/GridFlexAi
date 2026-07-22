@@ -4,6 +4,7 @@
  * Usage:
  *   node load/socketio-fanout.mjs --url http://localhost:4000 --clients 50 --duration 30
  *   node load/socketio-fanout.mjs --url https://staging --token JWT --clients 100
+ *   node load/socketio-fanout.mjs --url https://staging --namespace /simulation --output results.json
  *
  * Measures connect success rate and time-to-connect p95. Fan-out delay requires
  * a publishing source (ingest); when --await-event is set, waits for first event.
@@ -23,6 +24,8 @@ const clients = Number.parseInt(get("--clients", process.env.LOAD_SOCKET_CLIENTS
 const durationSec = Number.parseInt(get("--duration", "30"), 10);
 const awaitEvent = args.includes("--await-event");
 const fanoutBudgetMs = Number.parseInt(get("--fanout-budget-ms", "2000"), 10);
+const namespace = get("--namespace", process.env.LOAD_SOCKET_NAMESPACE || "/");
+const outputPath = get("--output", process.env.LOAD_SOCKET_OUTPUT || "");
 
 if (!Number.isFinite(clients) || clients <= 0) {
   console.error("--clients must be positive");
@@ -47,7 +50,7 @@ await Promise.all(
   Array.from({ length: clients }, (_, idx) => {
     return new Promise((resolve) => {
       const t0 = Date.now();
-      const socket = io(url, {
+      const socket = io(new URL(namespace, url).toString(), {
         transports: ["websocket", "polling"],
         auth: token ? { token } : undefined,
         extraHeaders: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -90,12 +93,16 @@ console.log(`Connect p50=${percentile(connectTimes, 50)}ms p95=${percentile(conn
 
 await new Promise((r) => setTimeout(r, durationSec * 1000));
 
+let fanoutPassed = !awaitEvent;
 if (awaitEvent && eventTimes.length) {
   const p95 = percentile(eventTimes, 95);
   console.log(`Fan-out sample n=${eventTimes.length} p95=${p95}ms budget=${fanoutBudgetMs}ms → ${p95 <= fanoutBudgetMs ? "PASS" : "FAIL"}`);
-  if (p95 > fanoutBudgetMs) process.exitCode = 1;
+  fanoutPassed = p95 <= fanoutBudgetMs;
+  if (!fanoutPassed) process.exitCode = 1;
 } else if (awaitEvent) {
-  console.log("No events received during await window (ensure ingest publishers running).");
+  console.error("No events received during await window.");
+  fanoutPassed = false;
+  process.exitCode = 1;
 }
 
 for (const s of sockets) {
@@ -108,6 +115,37 @@ for (const s of sockets) {
 
 const availability = connected / clients;
 console.log(`Availability ${(availability * 100).toFixed(2)}% elapsed=${Date.now() - started}ms`);
-if (availability < 0.995 || failed > clients * 0.01) {
+const availabilityPassed = availability >= 0.995 && failed <= clients * 0.01;
+if (!availabilityPassed) {
   process.exitCode = 1;
+}
+
+const result = {
+  schemaVersion: 1,
+  generatedAt: new Date().toISOString(),
+  target: { url, namespace },
+  config: { clients, durationSec, awaitEvent, fanoutBudgetMs },
+  connections: {
+    connected,
+    failed,
+    availability,
+    p50Ms: percentile(connectTimes, 50),
+    p95Ms: percentile(connectTimes, 95),
+    passed: availabilityPassed
+  },
+  fanout: {
+    samples: eventTimes.length,
+    p50Ms: percentile(eventTimes, 50),
+    p95Ms: percentile(eventTimes, 95),
+    passed: fanoutPassed
+  },
+  passed: availabilityPassed && fanoutPassed
+};
+
+if (outputPath) {
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  const { dirname } = await import("node:path");
+  await mkdir(dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  console.log(`Wrote machine-readable result to ${outputPath}`);
 }

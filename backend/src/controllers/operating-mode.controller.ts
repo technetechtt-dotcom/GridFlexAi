@@ -4,7 +4,7 @@ import { env, defaultTelemetryEnvironmentFilter, getOperatingMode } from "../con
 import { OPERATING_MODE_LABELS } from "../domain/operating-mode.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { AppError } from "../utils/AppError.js";
-import { getActiveSimulationRunId, publishSimulationTick } from "../simulation/publisher.js";
+import { publishSimulationTick } from "../simulation/publisher.js";
 
 export const getOperatingModeHandler = asyncHandler(async (_req: Request, res: Response) => {
   const mode = getOperatingMode();
@@ -17,7 +17,6 @@ export const getOperatingModeHandler = asyncHandler(async (_req: Request, res: R
       simulationNamespace: "/simulation",
       liveTelemetryPath: "/api/v2/telemetry",
       simulationTelemetryPath: "/api/simulation/telemetry",
-      simulationRunId: mode === "SIMULATION" ? getActiveSimulationRunId() : null,
       bannerTone:
         mode === "SIMULATION"
           ? "blue"
@@ -46,15 +45,13 @@ export const postSimulationTelemetryHandler = asyncHandler(async (req: Request, 
   if (!req.body || Object.keys(req.body as object).length === 0) {
     await publishSimulationTick();
     res.status(202).json({
-      message: "Simulation tick published.",
-      data: { simulationRunId: getActiveSimulationRunId() }
+      message: "Simulation tick published."
     });
     return;
   }
 
   await publishSimulationTick();
   res.status(202).json({
-    message: "Simulation telemetry accepted.",
-    data: { simulationRunId: getActiveSimulationRunId() }
+    message: "Simulation telemetry accepted."
   });
 });

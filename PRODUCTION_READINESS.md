@@ -15,7 +15,11 @@ Do **not** mark ops / plant / POPIA items complete without dated evidence artifa
 ## P0 - Go-Live Blockers (live hardware pilot)
 
 - [ ] **Required jobs green for the release commit**
-  - Historical evidence exists, but the final release commit must have its own green run.
+  - `bf3ae42` run `29823805508` failed on migration drift and a fixed CRITICAL image finding.
+  - Required `main` checks are now configured; the uncommitted fixes need a new SHA-bound green run and evidence manifest.
+- [x] **Simulation WebSocket tenant isolation implemented and tested**
+  - Persisted organisation/site-owned runs, authorized room joins, scoped emits and cross-tenant tests.
+  - Database migration deployment remains part of the release CI/restore gates.
 - [x] **Physical execution disabled (backend + deploy + firmware telemetry-only)**
   - Evidence: `PILOT_LOCK_PHYSICAL_EXECUTION`, dual arming flags, `docker-compose.yml`, read-only gateway maps.
   - **Initial pilot: keep locked** — see evidence-completion-board.
@@ -37,7 +41,7 @@ Do **not** mark ops / plant / POPIA items complete without dated evidence artifa
 - [ ] Central log drain + alert fire-drill *(ops)*
 - [ ] Staging→prod digest promotion evidence *(ops)*
 - [ ] External pen-test engagement closed *(external)*
-- [ ] Actions SHA pins + image signing *(eng)*
+- [x] Actions SHA pins + image signing workflow *(code)* — immutable Action pins, SBOM, CodeQL/dependency review, GHCR provenance and keyless Cosign are implemented; first signed release evidence remains open.
 - [ ] Load soak evidence worksheet *(ops)*
 - [ ] POPIA IO review *(governance)*
 

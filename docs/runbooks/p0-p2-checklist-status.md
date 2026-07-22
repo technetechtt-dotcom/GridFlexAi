@@ -6,6 +6,9 @@ Honest status against the release checklist. **Done** = code/docs in repo. **Ope
 
 | Item | Status | Notes |
 |------|--------|-------|
+| Simulation WebSocket tenant isolation | Done (code/test) | Persisted organisation/site runs, scoped rooms/emits, cross-tenant tests; migration deployment Open |
+| Release CI evidence | Open | `bf3ae42` run `29823805508` failed; fixes require a new committed SHA and successful run |
+| Required checks on `main` | Done (GitHub config) | Strict `security`, `supply-chain`, `frontend`, `firmware`, `backend`, `evidence-manifest`; force-push/delete disabled |
 | Physical execution disabled (backend/firmware/deploy) | Done | Dual flags + `PILOT_LOCK` + compose |
 | Hardware-level execution interlock | Partial | Software interlocks only; plant PPC/relay Open |
 | Remote config cannot enable physical execution | Done | Server + firmware reject control fields |

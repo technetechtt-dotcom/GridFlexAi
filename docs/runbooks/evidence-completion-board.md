@@ -1,23 +1,36 @@
 # Evidence completion board (pilot)
 
-All items below stay **Open** until dated artifacts and signatures exist. Physical execution remains **disabled** for the initial pilot (`PILOT_LOCK_PHYSICAL_EXECUTION=true`).
+This is the canonical release-gate ledger. Other readiness trackers summarize
+this board and must not mark a gate complete independently.
 
-| Gate | Status | Artifact |
-|------|--------|----------|
-| Physical execution disabled | **Enforced in code/config** | `env.ts`, `render.yaml`, `docker-compose.yml`, boot attestation |
-| Ed25519 device verify + KAT | **Code Done** — flash/bench Open | `ed25519_verify.cpp`, `ed25519_kat.h`, `backend/tests/fixtures/ed25519-remote-config-kat.json` |
-| SunSpec map on ESP32 Modbus | **Code Done** — HW enable Open | `sunspec_model103_map.h`, `USE_RS485_MODBUS=1` |
-| LTE TLS compile + bench | **Open** | `docs/equipment/lte-tls-bench-worksheet.md` |
-| Queue power-loss journal | **Code Done** — device stage tests Open | `persistent_queue.h`, `journaled-queue.ts` CI |
-| HIL CRC / length / disconnect / reset | **CI partial** — bench Open | `ed25519-kat-and-modbus-hil.test.ts`, `hil-evidence-worksheet.md` |
-| Physical inverter validation + EE sign-off | **Open** | `pilot-inverter-dossier.md`, issue #44 |
-| Credential rotation + revocation rehearsal | **Open** | `credential-rotation-rehearsal.md`, issue #45 |
-| DB restore approver + HTTP smoke | **Open** | `backup-restore-evidence.md` |
-| Observability fire-drill | **Open** | `docs/observability/alert-review.md` |
-| Staging/prod parity promotion | **Open** | `parity-promotion-evidence.md` |
-| Load soak evidence | **Open** | `docs/load/evidence-worksheet.md` |
-| External pen-test | **Open** | issue #47 |
-| POPIA IO | **Open** | issue #48 |
+All items below stay **Open** until the raw artifact URL/path, SHA-256, target
+environment, release commit/image digest, timestamps, owner, reviewer and
+approval are recorded. Physical execution remains **disabled** for the initial
+pilot (`PILOT_LOCK_PHYSICAL_EXECUTION=true`).
+
+| Gate / issue | Type | Status | Owner / due | Required artifact | Evidence URL + SHA-256 | Reviewer / completed |
+|--------------|------|--------|-------------|-------------------|-----------------------|----------------------|
+| Simulation tenant isolation | Code P0 | **In progress** | Engineering / before staging | Cross-tenant API + Socket.IO test report bound to commit | | |
+| Release CI evidence for `bf3ae42` | CI P0 | **Failed; replacement run required** | Engineering / before staging | Run `29823805508` failed on schema drift and CRITICAL `CVE-2026-59873`; fixes are uncommitted, so a new SHA-bound run is required | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29823805508 | |
+| Main required checks | CI P0 | **Configured 2026-07-21** | Repository admin | `security`, `supply-chain`, `frontend`, `firmware`, `backend`, `evidence-manifest`; strict; force-push/delete disabled | GitHub branch protection API | Engineering / 2026-07-21 |
+| Physical execution disabled | Safety P0 | **Enforced in code/config; runtime attestation Open** | Ops / every deploy | Flag dump + boot attestation | | |
+| ESP32-S3 GPIO 25 pin-map approval | Hardware P0 | **Open** | Hardware / before wiring | `esp32s3-pin-map-approval.md`, schematic and photos | | |
+| Ed25519 device verify + KAT | Hardware P0 | **Code done; flash/bench Open** | Firmware / before HIL | Device KAT log | | |
+| SunSpec map on ESP32 Modbus | Hardware P0 | **Code done; hardware Open** | Firmware / issue #44 | Read-only discovery and raw-register comparison | | |
+| LTE TLS compile + bench | Hardware P0 | **Open** | Firmware / issue #43 | `lte-tls-bench-worksheet.md` | | |
+| Queue power-loss journal | Hardware P0 | **Code done; destructive test Open** | Firmware / issue #43 | Stage-by-stage power-cycle log | | |
+| HIL matrix / issue #43 | Hardware P0 | **CI partial; bench Open** | Engineering + plant / before pilot | `hil-evidence-worksheet.md` and raw captures | | |
+| Physical inverter / issue #44 | Hardware P0 | **Open** | Installer + EE / before pilot | Dossier, discovery, comparison and sign-off | | |
+| Hardware interlock / issue #46 | Plant P0 | **Open** | Plant / before any control consideration | Signed PPC/relay/BMS attestation | | |
+| Credential rotation / issue #45 | Provider P0 | **Open** | Security + ops / before staging | Rotation IDs/dates and old-credential rejection | | |
+| DB restore approver + HTTP smoke | Recovery P0 | **Partial; HTTP smoke and approval Open** | DBA + approver / before staging | Restore log, API smoke, RPO/RTO, disposal | | |
+| Observability fire drill / issue #50 | Ops P0 | **Open** | Ops / before staging | Trigger/delivery/ack/clear evidence | | |
+| Staging/prod parity promotion | Release P0 | **Open** | Release manager / every promotion | Same `sha256:` digest, migrations, flags and smoke | | |
+| Load soak / issue #50 | Performance P1 | **Open** | Engineering / before production | k6/socket JSON and resource graphs | | |
+| Supply chain / issue #49 | Security P1 | **Partial** | Security / before production | Immutable pins, scans, signed digest/provenance | | |
+| External pen-test / issue #47 | External P1 | **Open** | Independent tester / before production | Report, remediation and retest | | |
+| POPIA / issue #48 | Governance P1 | **Open** | Information Officer / before production | Signed policy and first access review | | |
+| Controlled staging pilot | Operations P1 | **Open** | Engineering + ops / before scope expansion | `staging-pilot-execution.md` | | |
 
 ## Physical execution lock (initial pilot)
 

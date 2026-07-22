@@ -21,11 +21,22 @@ const commitSha =
     }
   })();
 
-const imageDigest = process.env.IMAGE_DIGEST || "not-set";
-const stagingSmoke = process.env.STAGING_SMOKE_RESULT || "unknown";
-const productionSmoke = process.env.PRODUCTION_SMOKE_RESULT || "unknown";
+const imageDigest = process.env.IMAGE_DIGEST || "";
+const stagingSmoke = process.env.STAGING_SMOKE_RESULT || "";
+const productionSmoke = process.env.PRODUCTION_SMOKE_RESULT || "";
 const stagingVerifier = process.env.STAGING_VERIFIER_RESULT || "unknown";
 const productionVerifier = process.env.PRODUCTION_VERIFIER_RESULT || "unknown";
+const smokeOutcomes = new Set(["pass", "fail"]);
+
+if (!/^[0-9a-f]{40}$/i.test(commitSha)) {
+  throw new Error("GIT_COMMIT_SHA must be a full 40-character commit SHA.");
+}
+if (!/^sha256:[0-9a-f]{64}$/i.test(imageDigest)) {
+  throw new Error("IMAGE_DIGEST must be a registry content digest in the form sha256:<64 hex characters>.");
+}
+if (!smokeOutcomes.has(stagingSmoke) || !smokeOutcomes.has(productionSmoke)) {
+  throw new Error("STAGING_SMOKE_RESULT and PRODUCTION_SMOKE_RESULT must each be explicitly set to pass or fail.");
+}
 
 const readJsonIfExists = async (file) => {
   try {

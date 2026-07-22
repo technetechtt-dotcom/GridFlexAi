@@ -10,7 +10,7 @@ if (missing.length > 0) {
 
 const config = {
   baseUrl: process.env.GO_LIVE_BASE_URL,
-  skipTlsVerify: process.env.GO_LIVE_SKIP_TLS_VERIFY !== "false",
+  skipTlsVerify: process.env.GO_LIVE_SKIP_TLS_VERIFY === "true",
   email: process.env.GO_LIVE_EMAIL,
   password: process.env.GO_LIVE_PASSWORD,
   lat: Number.parseFloat(process.env.GO_LIVE_FORECAST_LAT ?? "-28.4478"),

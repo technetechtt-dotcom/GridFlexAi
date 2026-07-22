@@ -23,31 +23,31 @@ Alarm acknowledgement never equates to control authority.
 
 | Test | Input | Expected result | CI / worksheet |
 |------|-------|-----------------|----------------|
-| Malformed JSON | Invalid body | HTTP 400; no record | App error handler + HIL-01 |
-| Missing field | No frequency/timestamp as required | Validation response | HIL-02 |
-| Invalid signature | Modified payload | HTTP 401 | `edge-data` / V1 tests |
-| Old timestamp (header) | Outside skew | HTTP 401 | Edge auth skew |
-| Duplicate nonce | Reused nonce | Rejected 409 | Replay tests |
-| Duplicate sequence | Same device sequence | Idempotent acknowledgement | V1 idempotent + receipt |
-| Delayed data | Old measurement, valid upload | Stored as delayed/stale | HIL-08 |
-| Future timestamp | Beyond tolerance | Rejected | HIL-07 |
+| Malformed JSON | Invalid body | HTTP 400; no record | HIL-01 |
+| Missing field | Required measurement omitted | Validation response | HIL-02 |
+| NaN/infinity | Invalid numeric | Rejected | HIL-03 |
+| Oversized payload | Above body / batch limit | HTTP 413 | HIL-04 |
 | Excess voltage / range | Outside engineering range | Bad quality / alarm | HIL-05 |
 | Negative PV output | Unexpected negative | Flagged, not normalized | HIL-06 |
-| NaN/infinity | Invalid numeric | Rejected | HIL-03 / HIL-13 |
-| Oversized payload | Above body / batch limit | HTTP 413 | HIL-04 + 1mb JSON limit |
-| Rapid traffic | Over rate limit | HTTP 429 | `edgeIngestLimiter` |
-| Lost LTE | Offline period | Persistent queue grows | HIL-10 |
-| Reconnect | LTE restored | Ordered replay | HIL-10 |
-| Power loss | Queue contains records | Queue survives reboot | HIL-11 |
-| Redis outage | Replay degraded | Safe configured behaviour (`EDGE_ALLOW_MEMORY_REPLAY` / fail-closed) | env safety |
-| Database outage | Ingest unavailable | Device retains queue | firmware behaviour |
-| Clock drift | Incorrect ESP32 clock | Alert + NTP correction | firmware `syncTime` |
-| Wrong register scale | Extreme decoded value | Validation catches | HIL-05 + inverter worksheet |
-| Remote config physical enable | Control fields in bundle | Rejected server + device | HIL-14 |
-| Queue full | Overflow enqueue | Refuse overwrite | HIL-15 + firmware |
-| SunSpec sentinel / SF | −32768 / missing SF | unavailable / uncertain | `sunspec-register-plan.test.ts` |
-| Malformed Modbus / CRC / FC | Wire faults | Bench worksheet | Open — physical HIL |
-| Watchdog reset recovery | TWDT trip | NVS counters + telemetry | Firmware + bench Open |
+| Delayed data | Old measurement, valid upload | Stored as delayed/stale | HIL-07 |
+| Future timestamp | Beyond tolerance | Rejected | HIL-08 |
+| Unsigned/bad remote config | Invalid bundle/signature | Device rejects bundle | HIL-09 |
+| Expired remote config | Expired bundle | Device rejects bundle | HIL-10 |
+| Disconnect queue growth | Network unavailable | Persistent queue grows | HIL-11 |
+| Reconnect replay | Network restored | Ordered replay | HIL-12 |
+| Reboot recovery | Queue contains records | Queue snapshot survives reboot | HIL-13 |
+| Invalid ingest signature | Modified payload | HTTP 401 + alert | HIL-14 |
+| Duplicate nonce | Reused nonce | Rejected 409 | HIL-15 |
+| Duplicate sequence | Same sequence and body | Idempotent acknowledgement | HIL-16 |
+| LTE interruption | Modem detached | Queue grows; reconnects safely | HIL-17 |
+| Power loss during write | Remove power at each queue stage | Journal recovers without corrupt record | HIL-18 |
+| Redis/database outage | Dependency unavailable | Fail-safe ingest; device retains queue | HIL-19 |
+| Wrong register scale | Extreme decoded value | Validation catches | HIL-20 |
+| Malformed Modbus / CRC / FC | Wire faults | Frame rejected; no good-quality reading | HIL-21 |
+| Watchdog reset recovery | TWDT trip | NVS counters + telemetry; queue recovers | HIL-22 |
+| Queue full | Overflow enqueue | Refuse overwrite and expose alarm/metric | HIL-23 |
+| Remote config physical enable | Control fields in bundle | Rejected server + device | HIL-24 |
+| Clock drift | Incorrect ESP32 clock | Alert + NTP correction | HIL-25 |
 
 Automated packet cases: `backend/tests/hil-packet-matrix.test.ts`, `backend/tests/sunspec-register-plan.test.ts`.
 

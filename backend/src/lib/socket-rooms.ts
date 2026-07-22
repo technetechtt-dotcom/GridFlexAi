@@ -44,9 +44,6 @@ export const joinRoomsForScope = async (socket: Socket, scope: AccessScope): Pro
     for (const siteId of scope.siteIds) {
       rooms.push(siteRoom(siteId));
     }
-    for (const organisationId of scope.organisationIds) {
-      rooms.push(organisationRoom(organisationId));
-    }
   }
 
   await Promise.all(rooms.map((room) => socket.join(room)));
@@ -54,7 +51,7 @@ export const joinRoomsForScope = async (socket: Socket, scope: AccessScope): Pro
 };
 
 export const emitToSiteScope = (
-  io: SocketIOServer,
+  io: Pick<SocketIOServer, "to">,
   eventName: string,
   payload: unknown,
   options?: { siteId?: string | null; organisationId?: string | null }

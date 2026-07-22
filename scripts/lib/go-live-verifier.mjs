@@ -92,8 +92,17 @@ const runAuthFlow = async (baseUrl, results, config) => {
 
 export const runGoLiveVerification = async (config) => {
   const results = [];
+  const target = new URL(config.baseUrl);
+
+  if (target.protocol !== "https:") {
+    throw new Error("Go-live verification requires an HTTPS base URL.");
+  }
 
   if (config.skipTlsVerify) {
+    const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+    if (!loopbackHosts.has(target.hostname)) {
+      throw new Error("TLS verification may only be disabled explicitly for a loopback target.");
+    }
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
   }
 

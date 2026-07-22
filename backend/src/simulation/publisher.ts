@@ -1,5 +1,3 @@
-import { randomBytes } from "node:crypto";
-
 import { env } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { logger } from "../utils/logger.js";
@@ -7,14 +5,13 @@ import { buildProvenance } from "../domain/operating-mode.js";
 import { emitSimulationReading } from "./socket-namespace.js";
 
 type SimState = {
-  runId: string;
   powerKw: number;
   voltage: number;
   demandKw: number;
 };
 
 let timer: ReturnType<typeof setInterval> | null = null;
-let state: SimState | null = null;
+const states = new Map<string, SimState>();
 
 const walk = (value: number, amplitude: number, min: number, max: number): number => {
   const next = value + (Math.random() - 0.5) * amplitude;
@@ -31,78 +28,94 @@ export const publishSimulationTick = async (): Promise<void> => {
     return;
   }
 
-  if (!state) {
-    state = {
-      runId: `sim_${randomBytes(8).toString("hex")}`,
-      powerKw: 850,
-      voltage: 132,
-      demandKw: 820
-    };
-  }
-
-  state.powerKw = walk(state.powerKw, 12, 400, 1200);
-  state.voltage = walk(state.voltage, 1.5, 128, 136);
-  state.demandKw = walk(state.demandKw, 15, 350, 1150);
-  const current = state.powerKw / Math.max(state.voltage, 1);
-
-  const node = await prisma.edgeNode.findFirst({
-    where: { isActive: true },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, name: true, location: true, status: true, siteId: true }
-  });
-
-  if (!node) {
-    logger.info("Simulation tick skipped: no edge node available.");
-    return;
-  }
-
-  const now = new Date();
-  const reading = await prisma.sensorReading.create({
-    data: {
-      nodeId: node.id,
-      voltage: Number(state.voltage.toFixed(2)),
-      current: Number(current.toFixed(3)),
-      power: Number(state.powerKw.toFixed(2)),
-      timestamp: now,
-      deviceTimestamp: now,
-      ingestedAt: now,
-      schemaVersion: "sim-1",
-      sourceType: "simulated",
-      quality: "unverified",
-      environment: "simulation",
-      simulationRunId: state.runId,
-      powerUnit: "kW",
-      voltageUnit: "V",
-      currentUnit: "A"
+  const runs = await prisma.simulationRun.findMany({
+    where: {
+      status: "running",
+      targetNode: { isActive: true }
     },
-    include: {
-      node: {
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      organisationId: true,
+      siteId: true,
+      targetNode: {
         select: { id: true, name: true, location: true, status: true }
       }
     }
   });
 
-  const provenance = buildProvenance({
-    sourceType: "simulated",
-    sourceId: state.runId,
-    quality: "unverified",
-    measuredAt: now,
-    receivedAt: now,
-    unit: "kW"
-  });
+  if (runs.length === 0) {
+    return;
+  }
 
-  emitSimulationReading({
-    id: reading.id,
-    nodeId: reading.nodeId,
-    voltage: reading.voltage,
-    current: reading.current,
-    power: reading.power,
-    timestamp: reading.timestamp.toISOString(),
-    environment: "simulation",
-    simulationRunId: state.runId,
-    provenance,
-    node: reading.node
-  });
+  const activeRunIds = new Set(runs.map((run) => run.id));
+  for (const runId of states.keys()) {
+    if (!activeRunIds.has(runId)) states.delete(runId);
+  }
+
+  await Promise.all(runs.map(async (run) => {
+    const state = states.get(run.id) ?? {
+      powerKw: 850,
+      voltage: 132,
+      demandKw: 820
+    };
+    states.set(run.id, state);
+    state.powerKw = walk(state.powerKw, 12, 400, 1200);
+    state.voltage = walk(state.voltage, 1.5, 128, 136);
+    state.demandKw = walk(state.demandKw, 15, 350, 1150);
+    const current = state.powerKw / Math.max(state.voltage, 1);
+    const now = new Date();
+
+    const reading = await prisma.sensorReading.create({
+      data: {
+        nodeId: run.targetNode.id,
+        voltage: Number(state.voltage.toFixed(2)),
+        current: Number(current.toFixed(3)),
+        power: Number(state.powerKw.toFixed(2)),
+        timestamp: now,
+        deviceTimestamp: now,
+        ingestedAt: now,
+        schemaVersion: "sim-1",
+        sourceType: "simulated",
+        quality: "unverified",
+        environment: "simulation",
+        simulationRunId: run.id,
+        powerUnit: "kW",
+        voltageUnit: "V",
+        currentUnit: "A"
+      },
+      include: {
+        node: {
+          select: { id: true, name: true, location: true, status: true }
+        }
+      }
+    });
+
+    const provenance = buildProvenance({
+      sourceType: "simulated",
+      sourceId: run.id,
+      quality: "unverified",
+      measuredAt: now,
+      receivedAt: now,
+      unit: "kW"
+    });
+
+    emitSimulationReading({
+      id: reading.id,
+      nodeId: reading.nodeId,
+      voltage: reading.voltage,
+      current: reading.current,
+      power: reading.power,
+      timestamp: reading.timestamp.toISOString(),
+      environment: "simulation",
+      simulationRunId: run.id,
+      provenance,
+      node: reading.node
+    }, {
+      siteId: run.siteId,
+      organisationId: run.organisationId
+    });
+  }));
 };
 
 export const startSimulationPublisher = (): void => {
@@ -132,6 +145,5 @@ export const stopSimulationPublisher = (): void => {
     clearInterval(timer);
     timer = null;
   }
+  states.clear();
 };
-
-export const getActiveSimulationRunId = (): string | null => state?.runId ?? null;

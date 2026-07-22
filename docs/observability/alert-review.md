@@ -14,9 +14,12 @@ Catalog: [`ALERT_CATALOG.md`](./ALERT_CATALOG.md) · Ops sprint Day 3: [`../runb
    ```bash
    curl -sH "Authorization: Bearer $METRICS_SCRAPE_TOKEN" https://<env>/api/metrics | findstr /i gridflex
    ```
-3. Trigger a **controlled** failure (pick one):
+3. Trigger controlled failures covering every release-critical route:
    - Send one invalid edge signature → expect `edge.auth.signature_failed` + `gridflex_signature_failures_total`
-   - Temporarily break health probe / dependency → expect health alert
+   - Generate an API error-rate/latency breach
+   - Create ingest backlog/rejections and a device-offline condition
+   - Exercise WebSocket connection/fan-out threshold
+   - Exercise isolated database, Redis and KMS dependency failures
 4. Confirm alert fires on the configured channel within the catalog SLA.
 5. On-call acknowledges; capture screenshot or ticket link.
 6. Restore normal config; verify alert clears.
@@ -24,6 +27,6 @@ Catalog: [`ALERT_CATALOG.md`](./ALERT_CATALOG.md) · Ops sprint Day 3: [`../runb
 
 ## Fire-drill log
 
-| Date | Alert ID | Recipient reached? | Channel | Ack time | Evidence link |
-|------|----------|--------------------|---------|----------|---------------|
-| _TBD_ | | | | | |
+| Date / env | Commit / digest | Alert ID | Trigger UTC | Delivered UTC | Ack UTC | Clear UTC | Recipient / escalation | Evidence URL / SHA-256 |
+|------------|-----------------|----------|-------------|---------------|---------|-----------|------------------------|-----------------------|
+| _TBD_ | | | | | | | | |

@@ -33,6 +33,8 @@ Arming requires **all** of:
 | Boot log shows `physicalExecutionArmed: false` | Log line | |
 | `npm test -- production-safety-env` | CI | |
 | `check:env-parity` PASS | Report | |
+| Verified-inverter transport exports FC03 only | Code review + packet capture | |
+| External PPC/relay/BMS interlock | `docs/equipment/plant-interlock-attestation.md` | |
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|

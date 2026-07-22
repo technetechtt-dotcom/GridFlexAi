@@ -8,12 +8,18 @@ Complete one row per matrix case. Sign-off requires engineering + plant represen
 | Test identifier | |
 | Firmware version | 5.1.0-edge-4g-sequenced (or later) |
 | Backend commit | |
+| Environment / bench identifier | |
+| Board manufacturer / model / revision | |
 | Hardware serial number | |
+| Start / end timestamps (UTC) | |
 | Setup | |
 | Expected result | |
 | Actual result | |
 | Log extract | |
 | Screenshot / output ref | |
+| Raw artifact path / URL | |
+| Artifact SHA-256 | |
+| Issue / ticket | #43 |
 | Pass / Fail | |
 | Reviewer (engineering) | |
 | Reviewer (plant) | |
@@ -43,6 +49,11 @@ Complete one row per matrix case. Sign-off requires engineering + plant represen
 | HIL-18 | Power-loss LittleFS survival | Bench | | |
 | HIL-19 | Redis / DB outage behaviour | Bench | | |
 | HIL-20 | Wrong SunSpec register scale | Bench | | worksheet vs meter |
+| HIL-21 | Malformed/short/CRC-invalid Modbus frame and unsupported FC | Bench | | capture raw request/response bytes |
+| HIL-22 | Watchdog reset and recovery | Bench | | record reset reason, NVS counter and queue recovery |
+| HIL-23 | Queue-full refusal without overwrite | Bench | | record alarm/metric and retained sequence range |
+| HIL-24 | Remote configuration attempts to enable physical execution | CI + Bench | | server and device must reject |
+| HIL-25 | Clock drift and NTP correction | Bench | | record pre/post offset and alert |
 
 ## Sign-off
 
