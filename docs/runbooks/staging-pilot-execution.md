@@ -30,9 +30,10 @@ execution remains disabled throughout.
 - [ ] Central logs, metrics, alerts and notification routes are healthy
 - [x] Tenant-isolation tests passed for this release (CI backend tests)
 - [ ] Secrets are redacted from every evidence artifact
-- [x] Redis up on live backend health (2026-07-22)
+- [x] Authenticated HTTP smoke against restore/staging target (2026-07-22 restore-drill SHA-256 `57531f57…d4bb`)
 - [ ] Waveshare/board pin map signed before any RS485 energize
-- [ ] Authenticated HTTP smoke against restore/staging target
+- [ ] Approver sign-off on restore drill
+- [ ] Alert webhook delivery/ack fire-drill with `METRICS_SCRAPE_TOKEN` + `ALERT_WEBHOOK_*`
 
 ## Execution sequence
 

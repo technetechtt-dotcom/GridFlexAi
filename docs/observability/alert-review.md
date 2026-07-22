@@ -29,4 +29,5 @@ Catalog: [`ALERT_CATALOG.md`](./ALERT_CATALOG.md) · Ops sprint Day 3: [`../runb
 
 | Date / env | Commit / digest | Alert ID | Trigger UTC | Delivered UTC | Ack UTC | Clear UTC | Recipient / escalation | Evidence URL / SHA-256 |
 |------------|-----------------|----------|-------------|---------------|---------|-----------|------------------------|-----------------------|
+| 2026-07-22 / live Render (probe only) | `d268871` | edge auth reject path | 2026-07-22T12:16:48Z | n/a (no webhook configured in probe) | n/a | n/a | unauth metrics→503; bad edge sig→401 | probe only — full webhook fire-drill still Open |
 | _TBD_ | | | | | | | | |

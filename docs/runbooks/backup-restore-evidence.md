@@ -16,8 +16,8 @@ One section per drill. **Never** paste connection strings with passwords.
 | Achieved RTO | ~1 min branch ready + migrate deploy ~20s + `restore:verify` ~9s |
 | Record counts (orgs / users / nodes / readings) | orgs 1 / users 5 / edgeNodes 1 / sensorReadings ~30900 / telemetryReadings 0 |
 | Integrity checks | `RESTORE_VERIFY_ALLOW=true npm run restore:verify` → OK after resolving failed drift migration |
-| Application smoke-test results | `restore:verify` OK; authenticated HTTP smoke still pending against a backend pointed at this branch |
-| Authenticated HTTP smoke artifact / SHA-256 | _pending_ |
+| Application smoke-test results | `restore:verify` OK; authenticated HTTP smoke **passed** 2026-07-22 against loopback backend on restore branch |
+| Authenticated HTTP smoke artifact / SHA-256 | `go-live-reports/restore-http-smoke.json` SHA-256 `57531f57502e6cfe0e7e8458fc36eb374ebe7196f631d9e0e8dd1ccf06edd4bb` |
 | Cross-tenant isolation result / artifact | _pending_ |
 | Migration status artifact / SHA-256 | Applied through `20260721110000_tenant_simulation_runs` on restore branch |
 | Restore target disposal time / evidence | Auto-expire 2026-07-29T18:00:00Z (or delete earlier after approval) |

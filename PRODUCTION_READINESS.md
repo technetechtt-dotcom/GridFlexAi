@@ -40,7 +40,7 @@ Do **not** mark ops / plant / POPIA items complete without dated evidence artifa
 - [ ] **Credential rotation + revocation rehearsal documented** *(ops)* — dry-run recorded; no device credentials provisioned yet to execute against.
 ## P1 - Before production
 
-- [ ] Restore drill approver + HTTP smoke *(ops)* — 2026-07-22 verify OK on `restore-drill-20260722`; smoke/approver Open
+- [ ] Restore drill approver + HTTP smoke *(ops)* — 2026-07-22 verify + authenticated HTTP smoke OK on `restore-drill-20260722`; **approver still Open**
 - [ ] Central log drain + alert fire-drill *(ops)*
 - [ ] Staging→prod digest promotion evidence *(ops)*
 - [ ] External pen-test engagement closed *(external)*

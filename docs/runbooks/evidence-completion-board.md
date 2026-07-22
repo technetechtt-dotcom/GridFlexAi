@@ -24,8 +24,8 @@ pilot (`PILOT_LOCK_PHYSICAL_EXECUTION=true`).
 | Physical inverter / issue #44 | Hardware P0 | **Open** | Installer + EE / before pilot | Dossier, discovery, comparison and sign-off | | |
 | Hardware interlock / issue #46 | Plant P0 | **Open** | Plant / before any control consideration | Signed PPC/relay/BMS attestation | | |
 | Credential rotation / issue #45 | Provider P0 | **Partial** | Security + ops / before staging | Dry-run on restore branch 2026-07-22: 0 legacy / 0 vaulted device rows; execute + JWT/DB/Redis rotation still Open | | |
-| DB restore approver + HTTP smoke | Recovery P0 | **Partial; HTTP smoke and approval Open** | DBA + approver / before staging | Neon `restore-drill-20260722` (`br-wandering-darkness-afxi8rj2`); migrate deploy + `restore:verify` OK; expires 2026-07-29T18:00:00Z | | |
-| Observability fire drill / issue #50 | Ops P0 | **Open** | Ops / before staging | Trigger/delivery/ack/clear evidence | | |
+| DB restore approver + HTTP smoke | Recovery P0 | **Partial; approver Open** | DBA + approver / before staging | Neon `restore-drill-20260722`; migrate + verify + authenticated HTTP smoke OK | smoke SHA-256 `57531f57502e6cfe0e7e8458fc36eb374ebe7196f631d9e0e8dd1ccf06edd4bb` | |
+| Observability fire drill / issue #50 | Ops P0 | **Partial** | Ops / before staging | Live probes 2026-07-22: health 200, nodes unauth 401, metrics unauth 503, bad edge sig 401; webhook fire-drill still Open | | |
 | Staging/prod parity promotion | Release P0 | **Open** | Release manager / every promotion | Same `sha256:` digest, migrations, flags and smoke | | |
 | Load soak / issue #50 | Performance P1 | **Open** | Engineering / before production | k6/socket JSON and resource graphs | | |
 | Supply chain / issue #49 | Security P1 | **Partial** | Security / before production | Immutable pins, scans, signed digest/provenance | | |
