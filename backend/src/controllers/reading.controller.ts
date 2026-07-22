@@ -16,7 +16,8 @@ type IngestionResponse = {
   message: string;
   data: Awaited<ReturnType<typeof ingestEdgeDataService>>["data"];
   idempotent?: boolean;
-  acknowledgedSequence?: number;
+  /** Number when ≤ MAX_SAFE_INTEGER; decimal string otherwise (BIGINT). */
+  acknowledgedSequence?: number | string;
 };
 
 type ReadingsSummaryResponse = {

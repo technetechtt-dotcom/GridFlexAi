@@ -565,6 +565,10 @@ export const ingestEdgeData = async (
         deviceId_sequenceNumber: { deviceId: deviceKey, sequenceNumber }
       }
     });
+    const acknowledgedSequence = sequenceToJson(sequenceNumber);
+    if (acknowledgedSequence === null) {
+      throw new Error("Missing acknowledged sequence for idempotent replay.");
+    }
     if (receipt?.readingId) {
       const existing = await prisma.sensorReading.findUnique({ where: { id: receipt.readingId } });
       if (existing) {
@@ -572,7 +576,7 @@ export const ingestEdgeData = async (
           message: "Duplicate sequence acknowledged.",
           data: existing,
           idempotent: true,
-          acknowledgedSequence: sequenceToJson(sequenceNumber) ?? undefined
+          acknowledgedSequence
         };
       }
     }
@@ -588,7 +592,7 @@ export const ingestEdgeData = async (
         sequenceNumber
       } as IngestionResult["reading"],
       idempotent: true,
-      acknowledgedSequence: sequenceToJson(sequenceNumber) ?? undefined
+      acknowledgedSequence
     };
   }
 
@@ -674,12 +678,13 @@ export const ingestEdgeData = async (
     }
   }
 
+  const acknowledgedSequence =
+    sequenceNumber !== undefined ? sequenceToJson(sequenceNumber) : null;
+
   return {
     message: result.idempotent ? "Duplicate sequence acknowledged." : "Reading ingested successfully.",
     data: result.reading as IngestionEnvelope["data"],
     ...(result.idempotent ? { idempotent: true as const } : {}),
-    ...(sequenceNumber !== undefined
-      ? { acknowledgedSequence: sequenceToJson(sequenceNumber) ?? undefined }
-      : {})
-  } as IngestionEnvelope;
+    ...(acknowledgedSequence !== null ? { acknowledgedSequence } : {})
+  };
 };
