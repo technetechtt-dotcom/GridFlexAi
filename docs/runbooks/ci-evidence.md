@@ -2,6 +2,14 @@
 
 ## Latest green evidence
 
+### Docs-only SHA `c29e387` (2026-07-22)
+
+| Field | Value |
+|-------|-------|
+| Commit | `c29e387e2814ec2dad6bc66064f3716843e38b88` |
+| CI run | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29923240808 |
+| Manifest SHA-256 | `4dcc5fc3c071b7b364d254e73a4cc4aa9feac9ce85033b347a368711cb4aee69` |
+
 ### RC freeze `d1a7363` (2026-07-22)
 
 | Field | Value |

@@ -32,7 +32,8 @@ Release candidate: [`docs/releases/RC-2026-07-22.md`](./docs/releases/RC-2026-07
 - [ ] **Physical HIL complete** *(HW)* — Open (#43)
 - [ ] **Hardware-level plant interlock / PPC attestation** *(plant)* — Open (#46)
 - [ ] **Physical inverter validation + engineering sign-off** *(ops)* — Open (#44)
-- [ ] **First device credential provision + rotation evidence** *(ops)* — Open (#45); 0 device rows today.
+- [ ] **First device credential provision + rotation evidence** *(ops)* — restore local-vault rehearsal Done (`a6314a3e…`); **staging/prod aws_kms still Open** (#45).
+- Git tag: `rc-2026-07-22` → `d1a7363`
 
 ## P1 - Before production
 
@@ -41,7 +42,7 @@ Release candidate: [`docs/releases/RC-2026-07-22.md`](./docs/releases/RC-2026-07
 - [ ] Staging→prod digest promotion evidence *(ops)*
 - [ ] External pen-test engagement closed *(external)* — Open (#47)
 - [x] Actions SHA pins + image signing workflow *(code)*; first signed release evidence Open
-- [ ] Load soak evidence *(ops)* — Open (#50)
+- [ ] Load soak evidence *(ops)* — Open (#50) except live health baseline PASS 2026-07-22
 - [ ] POPIA IO approval + access review *(governance)* — Open (#48)
 - [ ] Telemetry-only staging pilot *(ops)* — Open; physical commands remain disabled
 

@@ -24,11 +24,11 @@ pilot (`PILOT_LOCK_PHYSICAL_EXECUTION=true`).
 | HIL matrix / issue #43 | Hardware P0 | **CI partial; bench Open** | Engineering + plant / before pilot | `hil-evidence-worksheet.md` and raw captures | | |
 | Physical inverter / issue #44 | Hardware P0 | **Open** | Installer + EE / before pilot | Dossier, discovery, comparison and sign-off | | |
 | Hardware interlock / issue #46 | Plant P0 | **Open** | Plant / before any control consideration | Signed PPC/relay/BMS attestation | | |
-| Credential rotation / issue #45 | Provider P0 | **Partial** | Security + ops / before staging | Dry-run on restore branch 2026-07-22: 0 legacy / 0 vaulted device rows; execute + JWT/DB/Redis rotation still Open | | |
+| Credential rotation / issue #45 | Provider P0 | **Partial** | Security + ops / before staging | Restore provision+rotate Done (local vault); staging/prod aws_kms Open | SHA-256 `a6314a3ebfacf1c1d9d3014692d0a04f13e791dd418079b5e06c84b14d8eab9e` | |
 | DB restore approver + HTTP smoke | Recovery P0 | **Partial; approver Open** | DBA + approver / before staging | Neon `restore-drill-20260722`; migrate + verify + authenticated HTTP smoke OK | smoke SHA-256 `57531f57502e6cfe0e7e8458fc36eb374ebe7196f631d9e0e8dd1ccf06edd4bb` | |
 | Observability fire drill / issue #50 | Ops P0 | **Partial** | Ops / before staging | Live probes 2026-07-22: health 200, nodes unauth 401, metrics unauth 503, bad edge sig 401; webhook fire-drill still Open | | |
 | Staging/prod parity promotion | Release P0 | **Open** | Release manager / every promotion | Same `sha256:` digest, migrations, flags and smoke | | |
-| Load soak / issue #50 | Performance P1 | **Open** | Engineering / before production | k6/socket JSON and resource graphs | | |
+| Load soak / issue #50 | Performance P1 | **Partial** | Engineering / before production | Live health baseline 200/20 → 200 ok, p95 1250 ms PASS; k6 ingest/socket Open | SHA-256 `c03f2c9dfffb39ca38f7327e452f5268ab0d82d72b77c52c312bb1457d326055` | |
 | Supply chain / issue #49 | Security P1 | **Partial** | Security / before production | Immutable pins, scans, signed digest/provenance | | |
 | External pen-test / issue #47 | External P1 | **Open** | Independent tester / before production | Report, remediation and retest | | |
 | POPIA / issue #48 | Governance P1 | **Open** | Information Officer / before production | Signed policy and first access review | | |
