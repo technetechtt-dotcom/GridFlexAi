@@ -2,6 +2,15 @@
 
 ## Latest green evidence
 
+### RC freeze `d1a7363` (2026-07-22)
+
+| Field | Value |
+|-------|-------|
+| Commit | `d1a7363166e13789c08955270d2e7f8f1b445e35` |
+| CI run | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29922993173 |
+| Required jobs | all success |
+| Manifest SHA-256 | `0f7bc5e9a70f35e62ed19e4313b5298731ee8d0bf7a7da587f9ac4488c7f0651` |
+
 ### Floor SHA `b07b817` (2026-07-22)
 
 | Field | Value |

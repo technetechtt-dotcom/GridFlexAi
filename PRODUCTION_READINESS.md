@@ -9,15 +9,16 @@ Release candidate: [`docs/releases/RC-2026-07-22.md`](./docs/releases/RC-2026-07
 
 - Estimated readiness: **~87% code frameworks**; **ops / plant / external evidence still open**.
 - Last updated: **2026-07-22**.
-- Release candidate: **`RC-2026-07-22`** (floor `b07b817`; freeze SHA = latest `main` after Socket.IO Redis prod fail-closed).
-- Prior green CI: `b07b817` run `29919025247`, manifest SHA-256 `2b22a9605c44f6ece831b53904d8779eb578cc81529b54d1888f2df9a2cc6707`.
+- Release candidate: **`RC-2026-07-22`** at `d1a7363` (floor `b07b817`).
+- RC CI: [`29922993173`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29922993173); manifest SHA-256 `0f7bc5e9a70f35e62ed19e4313b5298731ee8d0bf7a7da587f9ac4488c7f0651`.
+- Prior floor CI: `b07b817` run `29919025247`, manifest `2b22a9605c44f6ece831b53904d8779eb578cc81529b54d1888f2df9a2cc6707`.
 - Canonical layout: frontend `src/`, backend `backend/`, firmware `firmware/GridFlexEdge/`.
 
 ## P0 - Go-Live Blockers (live hardware pilot)
 
 - [x] **Required jobs green for a release SHA ≥ `b07b817`**
-  - Baseline green: [`b07b817` run `29919025247`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29919025247).
-  - RC freeze commit must also be green + manifest recorded in `docs/releases/RC-2026-07-22.md`.
+  - RC freeze: [`d1a7363` run `29922993173`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29922993173); manifest `0f7bc5e9a70f35e62ed19e4313b5298731ee8d0bf7a7da587f9ac4488c7f0651`.
+  - Floor: [`b07b817` run `29919025247`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29919025247).
 - [x] **Simulation WebSocket tenant isolation implemented and tested**
 - [x] **Physical execution disabled (backend + deploy + firmware telemetry-only)** — keep locked for initial pilot.
 - [x] **Redis-backed edge replay mandatory in production**

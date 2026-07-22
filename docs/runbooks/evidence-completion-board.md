@@ -11,7 +11,7 @@ pilot (`PILOT_LOCK_PHYSICAL_EXECUTION=true`).
 | Gate / issue | Type | Status | Owner / due | Required artifact | Evidence URL + SHA-256 | Reviewer / completed |
 |--------------|------|--------|-------------|-------------------|-----------------------|----------------------|
 | Simulation tenant isolation | Code P0 | **Done (code/test)** | Engineering | Cross-tenant API + Socket.IO tests | | |
-| Release CI evidence for RC | CI P0 | **Partial → complete after freeze SHA green** | Engineering | Floor `b07b817` green; RC freeze SHA + manifest in `docs/releases/RC-2026-07-22.md` | `b07b817` https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29919025247 · manifest `2b22a9605c44f6ece831b53904d8779eb578cc81529b54d1888f2df9a2cc6707` | Engineering / 2026-07-22 |
+| Release CI evidence for RC | CI P0 | **Done 2026-07-22** | Engineering | `RC-2026-07-22` @ `d1a7363` + floor `b07b817` | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29922993173 · manifest `0f7bc5e9a70f35e62ed19e4313b5298731ee8d0bf7a7da587f9ac4488c7f0651` | Engineering / 2026-07-22 |
 | Main required checks | CI P0 | **Configured 2026-07-21** | Repository admin | `security`, `supply-chain`, `frontend`, `firmware`, `backend`, `evidence-manifest`; strict; force-push/delete disabled | GitHub branch protection API | Engineering / 2026-07-21 |
 | Physical execution disabled | Safety P0 | **Enforced in code/config; runtime attestation Open** | Ops / every deploy | Flag dump + boot attestation | Live `/api/health` redis+db up 2026-07-22 | |
 | Redis replay mandatory (prod) | Security P0 | **Done (code + Render blueprint)** | Engineering | `REDIS_URL` + `EDGE_REPLAY_REQUIRE_REDIS=true` + `EDGE_ALLOW_MEMORY_REPLAY=false` | `render.yaml` | |

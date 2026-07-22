@@ -8,7 +8,7 @@ Canonical RC: [`../releases/RC-2026-07-22.md`](../releases/RC-2026-07-22.md). Ev
 | Item | Status | Notes |
 |------|--------|-------|
 | Simulation WebSocket tenant isolation | Done (code/test) | Persisted organisation/site runs, scoped rooms/emits, cross-tenant tests |
-| Release CI evidence | Partial | Floor `b07b817` green (`29919025247`); RC freeze SHA must also be green + manifest |
+| Release CI evidence | Done | `RC-2026-07-22` @ `d1a7363` run `29922993173`; manifest `0f7bc5e9…0651` (floor `b07b817`) |
 | Required checks on `main` | Done (GitHub config) | Strict `security`, `supply-chain`, `frontend`, `firmware`, `backend`, `evidence-manifest` |
 | Physical execution disabled | Done | Dual flags + `PILOT_LOCK` + compose — **keep locked** |
 | Hardware-level execution interlock | Partial | Software only; plant PPC/relay Open (#46) |

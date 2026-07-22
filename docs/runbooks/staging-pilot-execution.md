@@ -10,10 +10,10 @@ execution remains disabled throughout.
 |-------|-------|
 | Pilot start / end (UTC) | |
 | Environment | staging |
-| Git commit SHA | `b07b817` floor; RC freeze = `RC-2026-07-22` (see `docs/releases/RC-2026-07-22.md`) |
+| Git commit SHA | `d1a7363166e13789c08955270d2e7f8f1b445e35` (`RC-2026-07-22`) |
 | Backend image digest (`sha256:`) | |
-| CI run URL / run ID | Floor: https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29919025247 |
-| Evidence manifest path / SHA-256 | Floor manifest `2b22a9605c44f6ece831b53904d8779eb578cc81529b54d1888f2df9a2cc6707` |
+| CI run URL / run ID | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29922993173 |
+| Evidence manifest path / SHA-256 | `0f7bc5e9a70f35e62ed19e4313b5298731ee8d0bf7a7da587f9ac4488c7f0651` |
 | Frontend release identifier | |
 | Firmware version / binary SHA-256 | see CI firmware-evidence artifact |
 | Participants and roles | |
