@@ -10,11 +10,12 @@ pilot (`PILOT_LOCK_PHYSICAL_EXECUTION=true`).
 
 | Gate / issue | Type | Status | Owner / due | Required artifact | Evidence URL + SHA-256 | Reviewer / completed |
 |--------------|------|--------|-------------|-------------------|-----------------------|----------------------|
-| Simulation tenant isolation | Code P0 | **In progress** | Engineering / before staging | Cross-tenant API + Socket.IO test report bound to commit | | |
-| Release CI evidence for `bf3ae42` | CI P0 | **Failed; replacement run required** | Engineering / before staging | Run `29823805508` failed on schema drift and CRITICAL `CVE-2026-59873`; fixes are uncommitted, so a new SHA-bound run is required | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29823805508 | |
+| Simulation tenant isolation | Code P0 | **Done (code/test)** | Engineering | Cross-tenant API + Socket.IO tests on `b512ab5`+ | | |
+| Release CI evidence for release SHA | CI P0 | **Open** | Engineering / before staging | SHA-bound green run + evidence manifest; `b512ab5` failed actionlint SC2016 in `release.yml` | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29915276098 | |
 | Main required checks | CI P0 | **Configured 2026-07-21** | Repository admin | `security`, `supply-chain`, `frontend`, `firmware`, `backend`, `evidence-manifest`; strict; force-push/delete disabled | GitHub branch protection API | Engineering / 2026-07-21 |
 | Physical execution disabled | Safety P0 | **Enforced in code/config; runtime attestation Open** | Ops / every deploy | Flag dump + boot attestation | | |
-| ESP32-S3 GPIO 25 pin-map approval | Hardware P0 | **Open** | Hardware / before wiring | `esp32s3-pin-map-approval.md`, schematic and photos | | |
+| Redis replay mandatory (prod) | Security P0 | **Done (code/config)** | Engineering | `REDIS_URL` + `EDGE_REPLAY_REQUIRE_REDIS=true` + `EDGE_ALLOW_MEMORY_REPLAY=false` | | |
+| ESP32-S3 / Waveshare GPIO map approval | Hardware P0 | **Open (desk mismatch recorded)** | Hardware / before wiring | `esp32s3-pin-map-approval.md`, schematic and photos | | |
 | Ed25519 device verify + KAT | Hardware P0 | **Code done; flash/bench Open** | Firmware / before HIL | Device KAT log | | |
 | SunSpec map on ESP32 Modbus | Hardware P0 | **Code done; hardware Open** | Firmware / issue #44 | Read-only discovery and raw-register comparison | | |
 | LTE TLS compile + bench | Hardware P0 | **Open** | Firmware / issue #43 | `lte-tls-bench-worksheet.md` | | |

@@ -1,4 +1,4 @@
-# P0–P2 checklist status (2026-07-21)
+# P0–P2 checklist status (2026-07-22)
 
 Honest status against the release checklist. **Done** = code/docs in repo. **Open** = needs plant, ops, or external party.
 
@@ -7,7 +7,7 @@ Honest status against the release checklist. **Done** = code/docs in repo. **Ope
 | Item | Status | Notes |
 |------|--------|-------|
 | Simulation WebSocket tenant isolation | Done (code/test) | Persisted organisation/site runs, scoped rooms/emits, cross-tenant tests; migration deployment Open |
-| Release CI evidence | Open | `bf3ae42` run `29823805508` failed; fixes require a new committed SHA and successful run |
+| Release CI evidence | Open | `b512ab5` failed `security` (actionlint SC2016 in `release.yml`); follow-up fix required for SHA-bound green run |
 | Required checks on `main` | Done (GitHub config) | Strict `security`, `supply-chain`, `frontend`, `firmware`, `backend`, `evidence-manifest`; force-push/delete disabled |
 | Physical execution disabled (backend/firmware/deploy) | Done | Dual flags + `PILOT_LOCK` + compose |
 | Hardware-level execution interlock | Partial | Software interlocks only; plant PPC/relay Open |
@@ -18,6 +18,7 @@ Honest status against the release checklist. **Done** = code/docs in repo. **Ope
 | Cert-validated TLS over LTE | Done (code) | Needs bench validate with SSLClient lib |
 | Wi-Fi↔LTE failover | Done (code) | Bench HIL-17 Open |
 | Real RS485/Modbus (no random) | Done (code) | `USE_RS485_MODBUS=1` on hardware; fail-closed when 0 |
+| Exact Waveshare GPIO map | Open | Desk review: firmware LILYGO 26/27/4 ≠ Waveshare community 17/18; GPIO 25 RS485 candidate only |
 | LittleFS/queue fail-safe | Done | Skip enqueue on mount fail |
 | Power-loss safe queue writes | Done (code) | Journal + dual metadata slots; destructive power-cycle bench remains Open |
 | Queue recovery after resets | Done (code) | Rebuild restores head/tail; stage-by-stage physical bench remains Open |
@@ -35,7 +36,7 @@ Honest status against the release checklist. **Done** = code/docs in repo. **Ope
 | Managed secret store + per-device keys | Done (code) | KMS vault + GRIDFLEX-V1 |
 | KMS-backed **signing** (SignCommand) | Open / deferred | Design: HMAC on device secret; KMS encrypts secret at rest |
 | Canonical serialize + body hash + seq | Done | |
-| Multi-instance replay | Partial | Redis required in prod |
+| Multi-instance replay | Done (prod fail-closed) | `REDIS_URL` + `EDGE_REPLAY_REQUIRE_REDIS` mandatory; memory replay forbidden in production |
 | Revocation + rotation evidence | Partial | Code Done; rotation log Open |
 | HIL automated matrix | Partial | Host CI expanded; Modbus CRC/wire + bench Open |
 
@@ -50,6 +51,7 @@ Honest status against the release checklist. **Done** = code/docs in repo. **Ope
 | Supply-chain SHA pins / cosign / HIGH fail | Partial (CycloneDX pinned; Trivy CRITICAL fail) |
 | Performance soak evidence | Open |
 | POPIA IO approval | Open |
+| Telemetry-only staging pilot | Open (`staging-pilot-execution.md`; physical commands locked) |
 
 ## P2 — Cleanup
 

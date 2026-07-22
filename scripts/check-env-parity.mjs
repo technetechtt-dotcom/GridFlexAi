@@ -99,6 +99,14 @@ const main = async () => {
   if (prodLegacy && prodLegacy.toLowerCase() !== "false") {
     unsafe.push("EDGE_ALLOW_LEGACY_SHARED_SECRET should be false in production");
   }
+  const prodMemoryReplay = production.values.get("EDGE_ALLOW_MEMORY_REPLAY");
+  if (prodMemoryReplay && prodMemoryReplay.toLowerCase() !== "false") {
+    unsafe.push("EDGE_ALLOW_MEMORY_REPLAY must be false in production key template");
+  }
+  const prodReplayRedis = production.values.get("EDGE_REPLAY_REQUIRE_REDIS");
+  if (prodReplayRedis && prodReplayRedis.toLowerCase() !== "true") {
+    unsafe.push("EDGE_REPLAY_REQUIRE_REDIS must be true in production key template");
+  }
   if (prodVault && prodVault === "local") {
     unsafe.push("DEVICE_SECRET_VAULT_PROVIDER=local is forbidden in production — use aws_kms");
   }
