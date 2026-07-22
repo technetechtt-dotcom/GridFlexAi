@@ -52,7 +52,7 @@ One section per drill. **Never** paste connection strings with passwords.
 
 | Date | Environment | RPO | RTO | Pass? | Approver |
 |------|-------------|-----|-----|-------|----------|
-| 2026-07-22 | Neon `gridflex` isolated branch `restore-drill-20260722` | branch clone / 6h window | ~1 min + migrate + verify | yes (verify + migrations); HTTP smoke Open | _pending_ |
+| 2026-07-22 | Neon `gridflex` isolated branch `restore-drill-20260722` | branch clone / 6h window | ~1 min + migrate + verify | yes (verify + migrations + HTTP smoke); **approver Open** | _pending_ |
 | 2026-07-20 | Neon `gridflex` isolated branch `restore-drill-20260720` | branch clone / 6h window | ~1 min + 9s verify | yes (verify) | _pending_ |
 
 ## Quarterly schedule

@@ -1,6 +1,8 @@
 # ESP32-S3 pilot pin-map approval
 
-Status: **OPEN — do not energize RS485 until electrical verification is signed.**
+Status: **OPEN — exact commercial board model/revision and electrical verification are not complete.**
+
+Do **not** treat desk review, CI `esp32-s3-devkitc-1` builds, or community pin sketches as confirmation.
 
 The CI target `esp32-s3-devkitc-1` is a **build** target only. It does not prove that
 GPIO 25 (or any other RS485 pin) is free on the purchased board.

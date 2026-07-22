@@ -1,14 +1,25 @@
 # CI and release evidence
 
-## Latest green evidence (2026-07-22)
+## Latest green evidence
+
+### Floor SHA `b07b817` (2026-07-22)
+
+| Field | Value |
+|-------|-------|
+| Commit | `b07b817ea0f749f154b1ed68249183ac07b15fe5` |
+| CI run | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29919025247 |
+| Required jobs | all success |
+| Manifest SHA-256 | `2b22a9605c44f6ece831b53904d8779eb578cc81529b54d1888f2df9a2cc6707` |
+
+### Prior `d68ac65`
 
 | Field | Value |
 |-------|-------|
 | Commit | `d68ac65af239d9124941197c63dae1e9207f8a65` |
 | CI run | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29916761891 |
-| Required jobs | `frontend`, `backend`, `security`, `supply-chain`, `firmware`, `evidence-manifest` — all success |
-| Manifest artifact | `release-evidence-manifest-d68ac65…` |
 | Manifest SHA-256 | `577a6212936c42fde5786fea729fadc1be8d0651b9c12c1edf3988ec7aba575a` |
+
+RC freeze record: [`../releases/RC-2026-07-22.md`](../releases/RC-2026-07-22.md).
 
 CI uploads evidence with explicit retention:
 
