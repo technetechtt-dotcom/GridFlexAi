@@ -44,7 +44,7 @@ Release candidate: [`docs/releases/RC-2026-07-22.md`](./docs/releases/RC-2026-07
 - [ ] Staging→prod digest promotion evidence *(ops)* — first signed digest exists; parity promotion Open
 - [ ] External pen-test engagement closed *(external)* — Open (#47)
 - [x] Actions SHA pins + image signing workflow *(code)*; **first signed release image Done** @ `7fd0ba3`
-- [ ] Load soak evidence *(ops)* — health + simulation fan-out + reconnect PASS; k6 ingest / Redis chaos Open (#50)
+- [ ] Load soak evidence *(ops)* — k6 live health + restore signed ingest (1 VU) PASS; Redis chaos / staging RPS Open (#50)
 - [ ] POPIA IO approval + access review *(governance)* — Open (#48)
 - [ ] Telemetry-only staging pilot *(ops)* — Open; physical commands remain disabled
 

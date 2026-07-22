@@ -48,7 +48,7 @@ const scenario =
       rate: Number(__ENV.INGEST_RPS || 60),
       timeUnit: "1s",
       duration: __ENV.DURATION || "5m",
-      preAllocatedVUs: 50,
+      preAllocatedVUs: Number(__ENV.PREALLOCATED_VUS || 50),
       maxVUs: Number(__ENV.MAX_VUS || 200)
     };
 
@@ -57,8 +57,8 @@ export const options = {
     ingest: scenario
   },
   thresholds: {
-    ingest_latency: [`p(95)<${slo.ingestP95}`],
-    errors: [`rate<${slo.errorRate}`]
+    ingest_latency: [`p(95)<${__ENV.INGEST_P95_MS || slo.ingestP95}`],
+    errors: [`rate<${__ENV.INGEST_ERROR_RATE || slo.errorRate}`]
   }
 };
 
@@ -73,7 +73,9 @@ export default function () {
   });
   const timestamp = String(Date.now());
   const nonce = `${__VU}-${__ITER}-${timestamp}`;
-  const sequenceNumber = Number(__ENV.SEQUENCE_BASE || "1000000") + __VU * 1000000000 + __ITER;
+  // lastSequenceNumber is INT4 — keep values < 2^31-1 and unique per VU/iter.
+  const sequenceNumber =
+    Number(__ENV.SEQUENCE_BASE || "100000") + __VU * 100000 + __ITER;
   const bodyHash = crypto.sha256(body, "hex");
   const canonical = [
     "GRIDFLEX-V1",
