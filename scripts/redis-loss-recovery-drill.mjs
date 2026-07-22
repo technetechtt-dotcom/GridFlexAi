@@ -74,7 +74,11 @@ const signedIngest = async () => {
   const body = JSON.stringify(bodyObj);
   const timestamp = String(Date.now());
   const nonce = randomBytes(12).toString("hex");
-  const sequenceNumber = Date.now();
+  // Monotonic counter — Date.now() must never be used as sequence watermark.
+  if (!globalThis.__gridflexChaosSeq) {
+    globalThis.__gridflexChaosSeq = Number(process.env.DEVICE_SEQUENCE_BASE || "1");
+  }
+  const sequenceNumber = globalThis.__gridflexChaosSeq++;
   const bodyHash = createHash("sha256").update(body).digest("hex");
   const canonical = [
     "GRIDFLEX-V1",
