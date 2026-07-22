@@ -2,6 +2,15 @@
 
 ## Latest green evidence
 
+### Post-RC SHA `b12b007` (2026-07-22)
+
+| Field | Value |
+|-------|-------|
+| Commit | `b12b007ce5d303e2ecae40ab8a29b49d3cc8c327` |
+| CI run | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29924931246 |
+| Required jobs | all success |
+| Manifest SHA-256 | `d6e215fe85b65154fc76077706e9ccacf9288f5fd2e3457ad3398eacb9e0db6a` |
+
 ### Docs-only SHA `c29e387` (2026-07-22)
 
 | Field | Value |

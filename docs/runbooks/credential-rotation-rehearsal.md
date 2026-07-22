@@ -22,6 +22,7 @@ Dry-run against isolated Neon restore branch `restore-drill-20260722` on 2026-07
 - Checks: single active, previous revoked, keyVersion incremented
 - Evidence (gitignored): `go-live-reports/restore-credential-rehearsal.json` SHA-256 `a6314a3ebfacf1c1d9d3014692d0a04f13e791dd418079b5e06c84b14d8eab9e`
 - **Not** a production/staging KMS rotation — production still has 0 device credentials and needs aws_kms execute
+- **Blocked on workstation 2026-07-22:** AWS CLI not installed; `AWS_ACCESS_KEY_ID` / `AWS_PROFILE` unset. Follow [`aws-kms-setup.md`](./aws-kms-setup.md) once IAM + Render env exist.
 
 For every credential record only provider-safe identifiers such as key ID,
 version, ARN, role name or last four characters. Never record a secret value.

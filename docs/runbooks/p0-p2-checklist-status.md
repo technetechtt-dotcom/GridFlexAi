@@ -18,7 +18,7 @@ Canonical RC: [`../releases/RC-2026-07-22.md`](../releases/RC-2026-07-22.md). Ev
 | LTE AT / TLS flash + bench | Open | Hardware (#43) |
 | Physical HIL complete | Open | Bench (#43) |
 | Physical inverter E2E | Open | (#44) |
-| First device credential + rotation | Partial | Restore local-vault rehearsal Done; prod/staging aws_kms Open (#45) |
+| First device credential + rotation | Partial | Restore local-vault rehearsal Done; prod/staging aws_kms blocked (no AWS CLI/keys) (#45) |
 | HIL host automated matrix | Partial | CI expanded; physical Open |
 | Multi-instance edge replay | Done | Redis mandatory in prod |
 
@@ -27,9 +27,9 @@ Canonical RC: [`../releases/RC-2026-07-22.md`](../releases/RC-2026-07-22.md). Ev
 | Area | Status |
 |------|--------|
 | DB restore drill | Partial — verify + HTTP smoke Done 2026-07-22; **approver Open** |
-| Logs/metrics/alerting | Partial — unauth probes Done; webhook deliver/ack Open |
-| Load soak | Partial — live health baseline PASS; k6 ingest/socket Open (#50) |
-| First device credential + rotation | Partial — restore local-vault rehearsal Done; prod aws_kms Open (#45) |
+| Logs/metrics/alerting | Partial — probes + local dispatcher PASS; Render webhook deliver/ack Open |
+| Load soak | Partial — health + restore Socket.IO connect PASS; k6 ingest / event fan-out Open (#50) |
+| First device credential + rotation | Partial — restore local-vault rehearsal Done; prod aws_kms blocked (#45) |
 | External pen-test | Open (#47) |
 | POPIA IO + access review | Open (#48) |
 | Staging/prod parity promotion | Open |

@@ -11,6 +11,7 @@ Release candidate: [`docs/releases/RC-2026-07-22.md`](./docs/releases/RC-2026-07
 - Last updated: **2026-07-22**.
 - Release candidate: **`RC-2026-07-22`** at `d1a7363` (floor `b07b817`).
 - RC CI: [`29922993173`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29922993173); manifest SHA-256 `0f7bc5e9a70f35e62ed19e4313b5298731ee8d0bf7a7da587f9ac4488c7f0651`.
+- Post-RC green: [`b12b007` run `29924931246`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29924931246); manifest `d6e215fe85b65154fc76077706e9ccacf9288f5fd2e3457ad3398eacb9e0db6a`.
 - Prior floor CI: `b07b817` run `29919025247`, manifest `2b22a9605c44f6ece831b53904d8779eb578cc81529b54d1888f2df9a2cc6707`.
 - Canonical layout: frontend `src/`, backend `backend/`, firmware `firmware/GridFlexEdge/`.
 
@@ -32,17 +33,18 @@ Release candidate: [`docs/releases/RC-2026-07-22.md`](./docs/releases/RC-2026-07
 - [ ] **Physical HIL complete** *(HW)* — Open (#43)
 - [ ] **Hardware-level plant interlock / PPC attestation** *(plant)* — Open (#46)
 - [ ] **Physical inverter validation + engineering sign-off** *(ops)* — Open (#44)
-- [ ] **First device credential provision + rotation evidence** *(ops)* — restore local-vault rehearsal Done (`a6314a3e…`); **staging/prod aws_kms still Open** (#45).
+- [ ] **First device credential provision + rotation evidence** *(ops)* — restore local-vault rehearsal Done (`a6314a3e…`); **staging/prod aws_kms blocked** (no AWS CLI/keys on workstation) (#45).
 - Git tag: `rc-2026-07-22` → `d1a7363`
+- Post-RC green: [`b12b007` run `29924931246`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29924931246); manifest `d6e215fe…db6a`.
 
 ## P1 - Before production
 
 - [ ] Restore drill **approver** *(ops)* — verify + HTTP smoke Done 2026-07-22; approver Open
-- [ ] Central log drain + alert webhook fire-drill *(ops)* — unauth probes only
+- [ ] Central log drain + alert webhook fire-drill *(ops)* — local dispatcher PASS (`c50405a5…`); Render `ALERT_WEBHOOK_*` deliver/ack Open
 - [ ] Staging→prod digest promotion evidence *(ops)*
 - [ ] External pen-test engagement closed *(external)* — Open (#47)
 - [x] Actions SHA pins + image signing workflow *(code)*; first signed release evidence Open
-- [ ] Load soak evidence *(ops)* — Open (#50) except live health baseline PASS 2026-07-22
+- [ ] Load soak evidence *(ops)* — health baseline + restore Socket.IO connect PASS; k6 ingest / event fan-out Open (#50)
 - [ ] POPIA IO approval + access review *(governance)* — Open (#48)
 - [ ] Telemetry-only staging pilot *(ops)* — Open; physical commands remain disabled
 
