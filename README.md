@@ -146,12 +146,14 @@ The suite covers login, dashboard, forecast navigation, dispatch flow, and retry
 
 `backend/prisma/seed.ts` creates:
 
-- Default admin user:
-  - email: `admin@gridflex.ai`
-  - password: `Admin@12345`
-- Sample edge node:
-  - `Upington Solar Farm Node` with realistic coordinates
-- One sample sensor reading
+- Admin and developer users from `SEED_ADMIN_EMAIL` / `SEED_DEVELOPER_EMAIL`
+  - Passwords come from `SEED_ADMIN_PASSWORD` / `SEED_DEVELOPER_PASSWORD` (required in production)
+  - Local defaults are random if env passwords are omitted — check the seed console output
+- Demo plant/site assets for Upington Solar Hub (including optimisation demo IDs)
+- Sample edge node `upington-solar-farm-node` when seeded
+- Inverter telemetry point definitions from the shared telemetry-key catalog
+
+Do **not** commit or document fixed production passwords in this README.
 
 ---
 
@@ -219,7 +221,9 @@ See `backend/.env.example` for all values. Important keys:
 - `CORS_ORIGIN`
 - `EDGE_INGEST_SHARED_SECRET`
 - `EDGE_INGEST_MAX_SKEW_SECONDS`
-- `REDIS_URL`
+- `REDIS_URL` (**required in production** — edge replay + Socket.IO fan-out)
+- `EDGE_REPLAY_REQUIRE_REDIS` (must be `true` in production)
+- `EDGE_ALLOW_MEMORY_REPLAY` (must be `false` in production)
 - `OPENWEATHER_API_KEY`
 - `ACCUWEATHER_API_KEY`
 - `FORECAST_CIRCUIT_FAILURE_THRESHOLD`

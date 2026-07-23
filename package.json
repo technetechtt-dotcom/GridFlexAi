@@ -10,6 +10,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "preview": "npx vite preview",
     "smoke:api": "node scripts/smoke-api.mjs",
+    "smoke:restore-http": "node scripts/restore-http-smoke.mjs",
     "baseline:load": "node scripts/load-baseline.mjs",
     "load:k6:smoke": "k6 run load/k6/http-health-slo.js",
     "load:socketio": "node load/socketio-fanout.mjs",
