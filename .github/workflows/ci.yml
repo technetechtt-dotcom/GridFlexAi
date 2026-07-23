@@ -232,7 +232,7 @@ jobs:
       - name: Install PlatformIO
         run: python -m pip install platformio==6.1.19
 
-      - name: Compile both ESP32-S3 firmware targets
+      - name: Compile ESP32-S3 firmware targets
         run: |
           mkdir -p ci-evidence/firmware
           set -o pipefail
@@ -240,6 +240,10 @@ jobs:
             2>&1 | tee ci-evidence/firmware/esp32s3-wifi-ci-build.log
           pio run --project-dir firmware -e esp32s3-lte-ci \
             2>&1 | tee ci-evidence/firmware/esp32s3-lte-ci-build.log
+          pio run --project-dir firmware -e esp32s3-waveshare-sim7670g-candidate \
+            2>&1 | tee ci-evidence/firmware/esp32s3-waveshare-sim7670g-candidate-build.log
+          echo "NOTE: waveshare candidate env is compile-only and does not approve the pin map." \
+            | tee -a ci-evidence/firmware/esp32s3-waveshare-sim7670g-candidate-build.log
 
       - name: Collect firmware outputs and metadata
         env:
