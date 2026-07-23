@@ -3,15 +3,14 @@
 Use this tracker to move from pilot-ready to production-ready with explicit ownership and evidence.
 Do **not** mark ops / plant / POPIA items complete without dated evidence artifacts.
 Canonical ledger: [`docs/runbooks/evidence-completion-board.md`](./docs/runbooks/evidence-completion-board.md).
-Release candidate: [`docs/releases/RC-2026-07-22.md`](./docs/releases/RC-2026-07-22.md).
+Active release candidate: [`docs/releases/RC-2026-07-22B.md`](./docs/releases/RC-2026-07-22B.md) (supersedes [`RC-2026-07-22`](./docs/releases/RC-2026-07-22.md)).
 
 ## Current Snapshot
 
 - Estimated readiness: **~87% code frameworks**; **ops / plant / external evidence still open**.
 - Last updated: **2026-07-22**.
-- Release candidate: **`RC-2026-07-22`** at `d1a7363` (floor `b07b817`).
-- RC CI: [`29922993173`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29922993173); manifest SHA-256 `0f7bc5e9a70f35e62ed19e4313b5298731ee8d0bf7a7da587f9ac4488c7f0651`.
-- Post-RC green: [`7fd0ba3` CI `29925588915`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29925588915); signed image [`29929170597`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29929170597) digest `sha256:1a0f0aa1…4928`.
+- Active release candidate: **`RC-2026-07-22B`** (sequence BIGINT) — see [`docs/releases/RC-2026-07-22B.md`](./docs/releases/RC-2026-07-22B.md).
+- **Superseded:** `RC-2026-07-22` @ `d1a7363` is **not deployable** (INT4 sequence overflow).
 - Prior floor CI: `b07b817` run `29919025247`, manifest `2b22a9605c44f6ece831b53904d8779eb578cc81529b54d1888f2df9a2cc6707`.
 - Canonical layout: frontend `src/`, backend `backend/`, firmware `firmware/GridFlexEdge/`.
 

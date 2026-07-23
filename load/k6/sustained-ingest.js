@@ -73,7 +73,7 @@ export default function () {
   });
   const timestamp = String(Date.now());
   const nonce = `${__VU}-${__ITER}-${timestamp}`;
-  // lastSequenceNumber is INT4 — keep values < 2^31-1 and unique per VU/iter.
+  // Watermark is BIGINT — values may exceed INT4 (2^31-1); keep monotonic per VU.
   const sequenceNumber =
     Number(__ENV.SEQUENCE_BASE || "100000") + __VU * 100000 + __ITER;
   const bodyHash = crypto.sha256(body, "hex");

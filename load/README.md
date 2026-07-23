@@ -11,10 +11,10 @@ LOAD_SOCKET_OUTPUT=go-live-reports/socket-fanout.json \
 node load/socketio-reconnect-storm.mjs --url http://localhost:4000 --token "$JWT" \
   --clients 15 --cycles 4 --output go-live-reports/socket-reconnect-storm.json
 
-# Signed ingest (sequence must fit INT4; prefer 1 VU per credential):
+# Signed ingest (sequence is BIGINT; prefer 1 VU per credential for monotonicity):
 BASE_URL=http://127.0.0.1:4010 \
 DEVICE_ID=... DEVICE_CREDENTIAL_ID=... DEVICE_KEY_VERSION=... DEVICE_SECRET_B64URL=... \
-INGEST_RPS=2 DURATION=40s PREALLOCATED_VUS=1 MAX_VUS=1 INGEST_P95_MS=15000 SEQUENCE_BASE=1000 \
+INGEST_RPS=2 DURATION=40s PREALLOCATED_VUS=1 MAX_VUS=1 INGEST_P95_MS=1000 SEQUENCE_BASE=1000 \
   k6 run --summary-export go-live-reports/k6-sustained-ingest.json load/k6/sustained-ingest.js
 
 # Redis loss/recovery (requires healthy Docker Redis):

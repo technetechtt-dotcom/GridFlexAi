@@ -1,5 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
+import { sequenceToCanonicalString } from "./sequence-number.js";
+
 export const GRIDFLEX_SIGNING_VERSION = "GRIDFLEX-V1" as const;
 
 export type GridFlexV1SignInput = {
@@ -8,8 +10,9 @@ export type GridFlexV1SignInput = {
   keyVersion: number;
   timestamp: string;
   nonce: string;
-  sequenceNumber: number;
-  /** Exact raw HTTP body bytes (UTF-8). Do not re-serialize JSON. */
+  /** Decimal string or bigint — never float. */
+  sequenceNumber: number | bigint | string;
+  /** Exact raw HTTP body bytes (UTF-8). Do not re-serialize JSON objects. */
   rawBody: Buffer | string;
 };
 
@@ -58,7 +61,7 @@ export const buildGridFlexV1Canonical = (input: GridFlexV1SignInput): string => 
     String(input.keyVersion),
     input.timestamp,
     input.nonce,
-    String(input.sequenceNumber),
+    sequenceToCanonicalString(input.sequenceNumber),
     bodyHash
   ].join("\n");
 };
