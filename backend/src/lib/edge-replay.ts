@@ -60,7 +60,11 @@ export const assertAndStoreEdgeNonce = async (
       }
       // Fall through to memory in non-production when Redis is optional.
     }
-  } else if (env.EDGE_REPLAY_REQUIRE_REDIS || (env.NODE_ENV === "production" && !env.EDGE_ALLOW_MEMORY_REPLAY)) {
+  } else if (
+    env.EDGE_REPLAY_REQUIRE_REDIS ||
+    env.NODE_ENV === "production" ||
+    !env.EDGE_ALLOW_MEMORY_REPLAY
+  ) {
     platformMetrics.setRedisAvailable(false);
     throw new AppError("Replay protection unavailable. Configure REDIS_URL for edge ingest.", 503);
   }

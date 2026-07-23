@@ -56,7 +56,9 @@ CI compiles `firmware/GridFlexEdge` twice for ESP32-S3 with PlatformIO:
 Modbus). This catches ESP32, queue, SunSpec/Modbus, crypto, storage, and LTE
 transport build regressions. Compilation is **not** modem or physical bus
 evidence; those rows remain open until run on the isolated bench.
-The LTE compile profile assigns RS485 DE/RE to GPIO 25; confirm that pin against
+The LTE compile profile assigns RS485 DE/RE to GPIO 25 as a **candidate only**.
+Desk review found firmware modem pins (26/27/4) do **not** match Waveshare
+community SIM7670G examples (17/18). Confirm the exact board map against
 the approved board/BOM before wiring. Firmware now rejects builds where RS485
 DE/RE conflicts with the modem power pin.
 
