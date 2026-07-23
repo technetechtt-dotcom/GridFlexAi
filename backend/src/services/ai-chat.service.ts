@@ -81,7 +81,7 @@ const toolSchemas = {
 };
 
 const scopedProfilePattern =
-  /(?<name>.+?)(?:\s+\[id:\s*(?<id>[^\]]+)\])?\s+\((?<lat>-?\d+(?:\.\d+)?),\s*(?<lon>-?\d+(?:\.\d+)?)\)\s+capacity\s+(?<capacity>\d+(?:\.\d+)?)kW/gi;
+  /([^\n(]{1,120}?)\s+(?:\[id:\s*([^\]]{1,64})\]\s+)?\((-?\d{1,3}(?:\.\d{1,8})?),\s*(-?\d{1,3}(?:\.\d{1,8})?)\)\s+capacity\s+(\d{1,8}(?:\.\d{1,4})?)kW/gi;
 
 const parseScopedNodeTargets = (context: string | undefined): ScopedNodeTarget[] => {
   if (!context) {
@@ -90,23 +90,22 @@ const parseScopedNodeTargets = (context: string | undefined): ScopedNodeTarget[]
 
   const scopedTargets: ScopedNodeTarget[] = [];
   for (const match of context.matchAll(scopedProfilePattern)) {
-    const groups = match.groups;
-    if (!groups?.name) continue;
+    const name = match[1]?.trim();
+    if (!name) continue;
 
-    const nextTarget: ScopedNodeTarget = {
-      name: groups.name.trim()
-    };
-    if (groups.id?.trim()) {
-      nextTarget.id = groups.id.trim();
+    const nextTarget: ScopedNodeTarget = { name };
+    const id = match[2]?.trim();
+    if (id) {
+      nextTarget.id = id;
     }
-    if (groups.lat) {
-      nextTarget.lat = Number.parseFloat(groups.lat);
+    if (match[3]) {
+      nextTarget.lat = Number.parseFloat(match[3]);
     }
-    if (groups.lon) {
-      nextTarget.lon = Number.parseFloat(groups.lon);
+    if (match[4]) {
+      nextTarget.lon = Number.parseFloat(match[4]);
     }
-    if (groups.capacity) {
-      nextTarget.capacity = Number.parseFloat(groups.capacity);
+    if (match[5]) {
+      nextTarget.capacity = Number.parseFloat(match[5]);
     }
     scopedTargets.push(nextTarget);
   }

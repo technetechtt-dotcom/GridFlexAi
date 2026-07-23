@@ -99,11 +99,11 @@ export const runGoLiveVerification = async (config) => {
   }
 
   if (config.skipTlsVerify) {
-    const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
-    if (!loopbackHosts.has(target.hostname)) {
-      throw new Error("TLS verification may only be disabled explicitly for a loopback target.");
-    }
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    // Never disable TLS certificate validation (even on loopback).
+    // GO_LIVE_SKIP_TLS_VERIFY is accepted for compatibility but ignored.
+    console.warn(
+      "GO_LIVE_SKIP_TLS_VERIFY is ignored; TLS certificate validation remains enforced."
+    );
   }
 
   await assertStatus(config.baseUrl, results, "liveness", "/api/health/live", 200);

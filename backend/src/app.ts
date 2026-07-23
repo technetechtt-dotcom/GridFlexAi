@@ -8,6 +8,7 @@ import path from "node:path";
 
 import { API_PREFIX } from "./config/constants.js";
 import { env } from "./config/env.js";
+import { csrfCookieProtection } from "./middleware/csrf.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { metricsMiddleware } from "./middleware/metrics.js";
 import { requestIdMiddleware } from "./middleware/requestId.js";
@@ -86,6 +87,7 @@ export const createApp = () => {
   app.use(metricsMiddleware);
 
   app.use(cookieParser());
+  app.use(csrfCookieProtection);
   app.use(
     express.json({
       limit: "1mb",

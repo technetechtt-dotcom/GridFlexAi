@@ -11,7 +11,9 @@ const check = async (name, path, expectedStatus, options = {}) => {
 
 const main = async () => {
   if (process.env.SMOKE_SKIP_TLS_VERIFY === "true") {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    console.warn(
+      "SMOKE_SKIP_TLS_VERIFY is ignored; TLS certificate validation remains enforced."
+    );
   }
   await check("liveness", "/api/health/live", 200);
   const healthRaw = await check("health", "/api/health", 200);

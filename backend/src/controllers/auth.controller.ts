@@ -14,7 +14,7 @@ const useSecureAuthCookies =
 const buildRefreshCookieOptions = () => ({
   httpOnly: true,
   secure: useSecureAuthCookies,
-  sameSite: "lax" as const,
+  sameSite: "strict" as const,
   maxAge: durationToMs(env.JWT_REFRESH_EXPIRES_IN),
   path: "/api/auth"
 });
