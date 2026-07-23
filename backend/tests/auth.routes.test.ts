@@ -97,6 +97,7 @@ describe("Auth routes", () => {
 
     const res = await request(app)
       .post("/api/auth/refresh")
+      .set("Origin", "http://localhost:5173")
       .set("Cookie", "gridflex_refresh_token=old-refresh-token")
       .send({});
 

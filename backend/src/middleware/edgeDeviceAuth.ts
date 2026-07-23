@@ -97,6 +97,9 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
     }
 
     // Preferred path: vaulted per-device credential + GRIDFLEX-V1.
+    // Both branches verify cryptographic signatures before accepting; credentialId
+    // only selects which key material is used (not whether auth is enforced).
+    // codeql[js/user-controlled-bypass]: auth scheme selection; HMAC verified on every path
     if (credentialId) {
       if (!sequenceHeader) {
         next(new AppError("Missing x-gridflex-sequence-number header.", 401));

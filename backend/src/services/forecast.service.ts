@@ -337,10 +337,25 @@ const toConfidence = (sourcesCount: number): "low" | "medium" | "high" => {
 };
 
 const safeFetchJson = async <T>(url: string, timeoutMs = 9000): Promise<T> => {
+  const allowedHosts = new Set([
+    "api.forecast.solar",
+    "api.openweathermap.org",
+    "dataservice.accuweather.com"
+  ]);
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("Invalid forecast upstream URL.");
+  }
+  if (parsed.protocol !== "https:" || !allowedHosts.has(parsed.hostname)) {
+    throw new Error(`Forecast upstream host not allowed: ${parsed.hostname}`);
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(parsed.toString(), { signal: controller.signal });
     if (!response.ok) {
       throw new UpstreamHttpError(response.status, `Upstream returned HTTP ${response.status}`);
     }

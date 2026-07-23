@@ -488,15 +488,9 @@ const run = async () => {
   console.log(`Seed complete.`);
   console.log(`Demo organisation: ${organisation.slug}`);
   console.log(`Demo plant: ${plant.code} (status=simulated)`);
-  if (process.env.NODE_ENV === "production") {
-    console.log(`Admin user: ${admin.email}`);
-    console.log(`Developer user: ${developer.email}`);
-    console.log("Passwords were supplied via SEED_*_PASSWORD and are not printed.");
-    return;
-  }
-
-  console.log(`Admin user: ${admin.email} | password: ${adminPassword}`);
-  console.log(`Developer user: ${developer.email} | password: ${developerPassword}`);
+  console.log(`Admin user: ${admin.email}`);
+  console.log(`Developer user: ${developer.email}`);
+  console.log("Passwords were supplied via SEED_*_PASSWORD (or defaults) and are not printed.");
 };
 
 run()

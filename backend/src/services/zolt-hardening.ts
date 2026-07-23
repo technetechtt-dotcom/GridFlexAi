@@ -21,12 +21,38 @@ export const ZOLT_SYSTEM_SAFETY =
 const SECRET_PATTERNS: RegExp[] = [
   /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi,
   /\bsk-[A-Za-z0-9]{20,}\b/g,
-  /(?:api[_-]?key|password|secret|token|authorization)\s*[:=]\s*\S+/gi,
-  /-----BEGIN [A-Z ]+-----[\s\S]*?-----END [A-Z ]+-----/g
+  /(?:api[_-]?key|password|secret|token|authorization)\s*[:=]\s*\S+/gi
 ];
 
+const redactPemBlocks = (input: string): string => {
+  let result = "";
+  let cursor = 0;
+  while (cursor < input.length) {
+    const begin = input.indexOf("-----BEGIN ", cursor);
+    if (begin === -1) {
+      result += input.slice(cursor);
+      break;
+    }
+    result += input.slice(cursor, begin);
+    const endMarker = "-----END ";
+    const end = input.indexOf(endMarker, begin + "-----BEGIN ".length);
+    if (end === -1) {
+      result += "[REDACTED]";
+      break;
+    }
+    const endLine = input.indexOf("-----", end + endMarker.length);
+    if (endLine === -1) {
+      result += "[REDACTED]";
+      break;
+    }
+    result += "[REDACTED]";
+    cursor = endLine + "-----".length;
+  }
+  return result;
+};
+
 export const redactSecrets = (input: string): string => {
-  let redacted = input;
+  let redacted = redactPemBlocks(input);
   for (const pattern of SECRET_PATTERNS) {
     redacted = redacted.replace(pattern, "[REDACTED]");
   }

@@ -16,9 +16,12 @@ const main = async () => {
 
   const port = Number.parseInt(process.env.ALERT_FIRE_DRILL_PORT ?? "9876", 10);
   const token = process.env.ALERT_FIRE_DRILL_TOKEN ?? `drill-${randomBytes(8).toString("hex")}`;
-  const outputFile =
-    process.env.ALERT_FIRE_DRILL_OUTPUT ??
-    path.resolve(process.cwd(), "..", "go-live-reports", "alert-webhook-fire-drill.json");
+  const reportsDir = path.resolve(process.cwd(), "..", "go-live-reports");
+  const requestedName = path.basename(process.env.ALERT_FIRE_DRILL_OUTPUT ?? "alert-webhook-fire-drill.json");
+  if (!requestedName || requestedName.includes("..") || requestedName !== requestedName.replace(/[\\/]/g, "")) {
+    throw new Error("ALERT_FIRE_DRILL_OUTPUT must be a plain filename under go-live-reports/");
+  }
+  const outputFile = path.join(reportsDir, requestedName);
 
   process.env.ALERT_WEBHOOK_ENABLED = "true";
   process.env.ALERT_WEBHOOK_URL = `http://127.0.0.1:${port}/hook`;

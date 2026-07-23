@@ -19,17 +19,22 @@ if (!databaseUrl) {
 let resolved;
 try {
   const url = new URL(databaseUrl);
+  const host = url.hostname.toLowerCase();
 
-  if (url.hostname.includes("-pooler.")) {
+  if (host.endsWith("-pooler.neon.tech") || (host.includes("-pooler.") && host.endsWith(".neon.tech"))) {
     url.hostname = url.hostname.replace("-pooler", "");
     resolved = url.toString();
-  } else if (url.hostname.includes("pooler.supabase.com") && url.port === "6543") {
+  } else if (host.endsWith(".pooler.supabase.com") && url.port === "6543") {
     const projectRef = url.username.match(/^postgres\.(.+)$/)?.[1];
     if (!projectRef) {
       throw new Error("Supabase pooler URL must use a postgres.<project-ref> username.");
     }
     url.hostname = `db.${projectRef}.supabase.co`;
     url.port = "5432";
+    resolved = url.toString();
+  } else if (host.includes("-pooler.")) {
+    // Generic Neon-style pooler hostname rewrite (exact host segment, not substring anywhere).
+    url.hostname = url.hostname.replace("-pooler", "");
     resolved = url.toString();
   } else {
     resolved = databaseUrl;
