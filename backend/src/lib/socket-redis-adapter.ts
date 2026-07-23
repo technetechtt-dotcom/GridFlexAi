@@ -9,13 +9,17 @@ let pubClient: Redis | null = null;
 let subClient: Redis | null = null;
 
 export const attachRedisSocketAdapter = async (io: SocketIOServer): Promise<boolean> => {
-  if (!env.REDIS_URL?.trim()) {
+  const redisUrl = env.REDIS_URL?.trim();
+  if (!redisUrl) {
+    if (env.NODE_ENV === "production") {
+      throw new Error("REDIS_URL is required in production for Socket.IO fan-out.");
+    }
     logger.info("Socket.IO Redis adapter skipped: REDIS_URL not set.");
     return false;
   }
 
   try {
-    pubClient = new Redis(env.REDIS_URL, {
+    pubClient = new Redis(redisUrl, {
       maxRetriesPerRequest: null,
       enableReadyCheck: true,
       lazyConnect: true,
@@ -29,11 +33,15 @@ export const attachRedisSocketAdapter = async (io: SocketIOServer): Promise<bool
     logger.info("Socket.IO Redis adapter attached.");
     return true;
   } catch (error) {
+    await closeRedisSocketAdapter();
+    const detail = error instanceof Error ? error.message : String(error);
+    if (env.NODE_ENV === "production") {
+      throw new Error(`Socket.IO Redis adapter failed in production: ${detail}`);
+    }
     logger.warn("Socket.IO Redis adapter unavailable; continuing with in-memory adapter.", {
       event: "socket.redis_adapter_unavailable",
-      error: error instanceof Error ? error.message : String(error)
+      error: detail
     });
-    await closeRedisSocketAdapter();
     return false;
   }
 };

@@ -18,6 +18,7 @@ import {
   safeSignatureEquals,
   zeroBuffer
 } from "../utils/edgeDeviceAuth.js";
+import { parseSequenceNumber, SequenceNumberError, sequenceLessThan, sequencesEqual } from "../utils/sequence-number.js";
 
 export { clearEdgeReplayCache };
 
@@ -101,9 +102,16 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
         next(new AppError("Missing x-gridflex-sequence-number header.", 401));
         return;
       }
-      const sequenceNumber = Number(sequenceHeader);
-      if (!Number.isSafeInteger(sequenceNumber) || sequenceNumber < 0) {
-        next(new AppError("Invalid sequence number.", 401));
+      let sequenceNumber: bigint;
+      try {
+        sequenceNumber = parseSequenceNumber(sequenceHeader);
+      } catch (error) {
+        next(
+          new AppError(
+            error instanceof SequenceNumberError ? error.message : "Invalid sequence number.",
+            401
+          )
+        );
         return;
       }
 
@@ -176,7 +184,7 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
       if (
         credential.lastSequenceNumber !== null &&
         credential.lastSequenceNumber !== undefined &&
-        sequenceNumber < credential.lastSequenceNumber
+        sequenceLessThan(sequenceNumber, credential.lastSequenceNumber)
       ) {
         await recordAuthFailure(credential.edgeNodeId, deviceId);
         logger.info("Edge auth failed: sequence regression.", {
@@ -278,7 +286,7 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
           next(new AppError("Device credential disappeared during sequence advance.", 409));
           return;
         }
-        if (current.lastSequenceNumber === sequenceNumber) {
+        if (sequencesEqual(current.lastSequenceNumber, sequenceNumber)) {
           if (current.lastAcceptedBodyHash && current.lastAcceptedBodyHash !== bodyHash) {
             await recordAuthFailure(credential.edgeNodeId, deviceId);
             platformMetrics.recordReplayAttempt();
@@ -296,7 +304,7 @@ export const verifyEdgeDeviceAuth: RequestHandler = (req, _res, next) => {
         } else if (
           current.lastSequenceNumber !== null &&
           current.lastSequenceNumber !== undefined &&
-          sequenceNumber < current.lastSequenceNumber
+          sequenceLessThan(sequenceNumber, current.lastSequenceNumber)
         ) {
           await recordAuthFailure(credential.edgeNodeId, deviceId);
           next(new AppError("Replayed or regressed sequence number.", 409));
