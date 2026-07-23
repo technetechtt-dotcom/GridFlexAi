@@ -45,7 +45,13 @@ export const edgeDataBodySchema = z.object({
   /** Original measurement time — preserved across store-and-forward retries. */
   timestamp: z.string().datetime().optional(),
   messageId: z.string().uuid().optional(),
-  sequenceNumber: z.coerce.number().int().min(0).optional(),
+  sequenceNumber: z
+    .union([
+      z.bigint(),
+      z.number().int().nonnegative(),
+      z.string().regex(/^\d+$/)
+    ])
+    .optional(),
   queueDepth: z.coerce.number().int().min(0).optional(),
   watchdogResetCount: z.coerce.number().int().min(0).optional(),
   restartCount: z.coerce.number().int().min(0).optional(),

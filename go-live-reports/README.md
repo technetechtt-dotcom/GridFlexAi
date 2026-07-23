@@ -11,3 +11,7 @@ Generate artifacts with:
 - `npm run verify:go-live:staging`
 - `npm run verify:go-live:production`
 - `npm run verify:go-live:summary`
+- `RESTORE_HTTP_SMOKE_ALLOW=true npm run smoke:restore-http` (isolated restore branch / loopback only)
+
+Reports may contain request metadata; keep them out of git (this directory is gitignored except README).
+Never paste passwords or live tokens into committed evidence docs — record SHA-256 digests only.
