@@ -16,7 +16,8 @@ type IngestionResponse = {
   message: string;
   data: Awaited<ReturnType<typeof ingestEdgeDataService>>["data"];
   idempotent?: boolean;
-  acknowledgedSequence?: number;
+  /** Number when ≤ MAX_SAFE_INTEGER; decimal string otherwise (BIGINT). */
+  acknowledgedSequence?: number | string;
 };
 
 type ReadingsSummaryResponse = {
@@ -66,7 +67,7 @@ export const ingestEdgeData = asyncHandler(async (
     const result = await ingestEdgeDataService(req.body, deviceKey, req.edgeAuth
       ? {
           deviceId: req.edgeAuth.deviceId,
-          ...(typeof req.edgeAuth.sequenceNumber === "number"
+          ...(req.edgeAuth.sequenceNumber !== undefined
             ? { sequenceNumber: req.edgeAuth.sequenceNumber }
             : {}),
           ...(req.edgeAuth.idempotentReplay ? { idempotentReplay: true } : {})
@@ -77,7 +78,7 @@ export const ingestEdgeData = asyncHandler(async (
     logger.event("edge.ingest.accepted", {
       durationMs: Date.now() - started,
       idempotent: Boolean(result.idempotent),
-      ...(typeof result.acknowledgedSequence === "number"
+      ...(result.acknowledgedSequence !== undefined
         ? { sequenceNumber: result.acknowledgedSequence }
         : {})
     });
@@ -86,7 +87,7 @@ export const ingestEdgeData = asyncHandler(async (
       message: result.message,
       data: result.data,
       ...(result.idempotent ? { idempotent: true } : {}),
-      ...(typeof result.acknowledgedSequence === "number"
+      ...(result.acknowledgedSequence !== undefined
         ? { acknowledgedSequence: result.acknowledgedSequence }
         : {})
     });
