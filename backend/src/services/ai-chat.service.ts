@@ -80,33 +80,45 @@ const toolSchemas = {
   proposeCommand: proposeCommandInputSchema
 };
 
-const scopedProfilePattern =
-  /([^\n(]{1,120}?)\s+(?:\[id:\s*([^\]]{1,64})\]\s+)?\((-?\d{1,3}(?:\.\d{1,8})?),\s*(-?\d{1,3}(?:\.\d{1,8})?)\)\s+capacity\s+(\d{1,8}(?:\.\d{1,4})?)kW/gi;
-
 const parseScopedNodeTargets = (context: string | undefined): ScopedNodeTarget[] => {
   if (!context) {
     return [];
   }
 
   const scopedTargets: ScopedNodeTarget[] = [];
-  for (const match of context.matchAll(scopedProfilePattern)) {
-    const name = match[1]?.trim();
-    if (!name) continue;
+  // Linear scan — avoid ReDoS-prone regex on untrusted chat context.
+  for (const line of context.split("\n")) {
+    const capacityIdx = line.toLowerCase().lastIndexOf("capacity ");
+    if (capacityIdx < 0) continue;
+    const afterCapacity = line.slice(capacityIdx + "capacity ".length).trim();
+    if (!afterCapacity.toLowerCase().endsWith("kw")) continue;
+    const capacityRaw = afterCapacity.slice(0, -2).trim();
+    const capacity = Number.parseFloat(capacityRaw);
+    if (!Number.isFinite(capacity)) continue;
 
-    const nextTarget: ScopedNodeTarget = { name };
-    const id = match[2]?.trim();
-    if (id) {
-      nextTarget.id = id;
+    const openParen = line.lastIndexOf("(", capacityIdx);
+    const closeParen = line.indexOf(")", openParen + 1);
+    if (openParen < 0 || closeParen < 0) continue;
+    const coords = line.slice(openParen + 1, closeParen).split(",");
+    if (coords.length !== 2) continue;
+    const lat = Number.parseFloat(coords[0]!.trim());
+    const lon = Number.parseFloat(coords[1]!.trim());
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+    let namePart = line.slice(0, openParen).trim();
+    let id: string | undefined;
+    const idOpen = namePart.lastIndexOf("[id:");
+    if (idOpen >= 0 && namePart.endsWith("]")) {
+      id = namePart.slice(idOpen + 4, -1).trim();
+      namePart = namePart.slice(0, idOpen).trim();
     }
-    if (match[3]) {
-      nextTarget.lat = Number.parseFloat(match[3]);
-    }
-    if (match[4]) {
-      nextTarget.lon = Number.parseFloat(match[4]);
-    }
-    if (match[5]) {
-      nextTarget.capacity = Number.parseFloat(match[5]);
-    }
+    if (!namePart || namePart.length > 120) continue;
+
+    const nextTarget: ScopedNodeTarget = { name: namePart };
+    if (id) nextTarget.id = id.slice(0, 64);
+    nextTarget.lat = lat;
+    nextTarget.lon = lon;
+    nextTarget.capacity = capacity;
     scopedTargets.push(nextTarget);
   }
 
