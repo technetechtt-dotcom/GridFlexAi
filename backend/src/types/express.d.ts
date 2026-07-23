@@ -12,7 +12,7 @@ declare namespace Express {
       deviceId: string;
       credentialId?: string;
       keyVersion?: number;
-      sequenceNumber?: number;
+      sequenceNumber?: bigint;
       /** True when sequenceNumber equals last acknowledged — handler must ACK without duplicating. */
       idempotentReplay?: boolean;
       mode: "legacy_shared_secret" | "device_credential";
