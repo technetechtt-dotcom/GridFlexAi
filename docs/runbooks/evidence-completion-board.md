@@ -12,6 +12,7 @@ pilot (`PILOT_LOCK_PHYSICAL_EXECUTION=true`).
 |--------------|------|--------|-------------|-------------------|-----------------------|----------------------|
 | Simulation tenant isolation | Code P0 | **Done (code/test)** | Engineering | Cross-tenant API + Socket.IO tests | | |
 | Release CI evidence for RC | CI P0 | **Done 2026-07-23 → RC-2026-07-23** | Engineering | `cdcd3e7` required jobs green + manifest | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29988892052 · manifest `37cd37f0…6d72` | Engineering / 2026-07-23 |
+| Signed RC image + SBOM | Supply P0 | **Done 2026-07-23** | Engineering | Cosign + OIDC attestations for `rc-2026-07-23` | digest `sha256:accf07fc…c718` · release https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/30032427639 · release manifest `ac668440…20fb` | Engineering / 2026-07-23 |
 | Main branch protection | CI P0 | **Done 2026-07-22** | Engineering | PRs required, ≥1 approval, CODEOWNERS, required checks, enforce_admins, no force-push/delete | `gh api …/branches/main/protection` | Engineering / 2026-07-22 |
 | Main required checks | CI P0 | **Configured 2026-07-21** | Repository admin | `security`, `supply-chain`, `frontend`, `firmware`, `backend`, `evidence-manifest`; strict; force-push/delete disabled | GitHub branch protection API | Engineering / 2026-07-21 |
 | Physical execution disabled | Safety P0 | **Enforced in code/config; runtime attestation Open** | Ops / every deploy | Flag dump + boot attestation | Live `/api/health` redis+db up 2026-07-22 | |

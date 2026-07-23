@@ -11,8 +11,8 @@ Active release candidate: [`docs/releases/RC-2026-07-23.md`](./docs/releases/RC-
 - Last updated: **2026-07-23**.
 - Active release candidate: **`RC-2026-07-23`** @ `cdcd3e7` — see [`docs/releases/RC-2026-07-23.md`](./docs/releases/RC-2026-07-23.md).
 - CI: [`29988892052`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29988892052) all required jobs green; manifest SHA-256 `37cd37f0b13d39550be465a29c93d34bc0d4cdba5e49274a5a8792e8d8916d72`.
-- **Superseded:** `d1a7363` / `RC-2026-07-22` and interim `RC-2026-07-22B` docs — do not deploy older RCs for new environments.
-- Canonical layout: frontend `src/`, backend `backend/`, firmware `firmware/GridFlexEdge/`.
+- Signed image: `ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:accf07fc8326ffa15dd4df647af3175bb36b2d9b587270234247324c7e57c718` ([release `30032427639`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/30032427639)).
+- **Superseded:** `d1a7363` / `RC-2026-07-22` and interim `RC-2026-07-22B` docs — do not deploy older RCs for new environments.- Canonical layout: frontend `src/`, backend `backend/`, firmware `firmware/GridFlexEdge/`.
 
 ## P0 - Go-Live Blockers (live hardware pilot)
 
