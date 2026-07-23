@@ -25,6 +25,8 @@ const productionBaseline = (): Record<string, string> => ({
   EDGE_ALLOW_LEGACY_SHARED_SECRET: "false",
   EDGE_INGEST_SHARED_SECRET: "production-edge-secret-with-32-characters",
   REDIS_URL: "redis://localhost:6379",
+  EDGE_REPLAY_REQUIRE_REDIS: "true",
+  EDGE_ALLOW_MEMORY_REPLAY: "false",
   PHYSICAL_COMMAND_EXECUTION_ENABLED: "false",
   HIL_PLANT_APPROVAL_CONFIRMED: "false",
   DEVICE_SECRET_VAULT_PROVIDER: "aws_kms",
@@ -53,7 +55,7 @@ describe("production safety env", () => {
 
   it("requires a direct database URL for production migrations", () => {
     Object.assign(process.env, productionBaseline());
-    delete process.env.DIRECT_URL;
+    process.env.DIRECT_URL = "";
 
     expect(() => loadEnvModule()).toThrow(/DIRECT_URL is required/);
   });
@@ -118,5 +120,25 @@ describe("production safety env", () => {
     const mod = loadEnvModule();
     expect(mod.env.DEVICE_SECRET_VAULT_PROVIDER).toBe("aws_kms");
     expect(mod.env.AWS_KMS_KEY_ID).toMatch(/key\//);
+  });
+
+  it("rejects production startup when memory replay is allowed", () => {
+    Object.assign(process.env, productionBaseline(), {
+      EDGE_ALLOW_MEMORY_REPLAY: "true"
+    });
+    expect(() => loadEnvModule()).toThrow(/EDGE_ALLOW_MEMORY_REPLAY must be false/);
+  });
+
+  it("rejects production startup when Redis replay is not required", () => {
+    Object.assign(process.env, productionBaseline(), {
+      EDGE_REPLAY_REQUIRE_REDIS: "false"
+    });
+    expect(() => loadEnvModule()).toThrow(/EDGE_REPLAY_REQUIRE_REDIS must be true/);
+  });
+
+  it("rejects production startup without REDIS_URL", () => {
+    Object.assign(process.env, productionBaseline());
+    process.env.REDIS_URL = "";
+    expect(() => loadEnvModule()).toThrow(/REDIS_URL is required/);
   });
 });

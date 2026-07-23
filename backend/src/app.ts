@@ -57,6 +57,10 @@ export const createApp = () => {
     ':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" req_id=:request_id' :
     ":method :url :status :response-time ms req_id=:request_id";
   app.set("trust proxy", env.TRUST_PROXY ? 1 : 0);
+  // Prisma BIGINT fields serialize as JS bigint — JSON.stringify needs a replacer.
+  app.set("json replacer", (_key: string, value: unknown) =>
+    typeof value === "bigint" ? value.toString(10) : value
+  );
 
   const corsOrigins = env.CORS_ORIGIN.split(",")
     .map((origin) => origin.trim())
