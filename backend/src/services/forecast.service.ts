@@ -348,14 +348,13 @@ const assertFiniteCoord = (value: number, label: string): number => {
   return value;
 };
 
-const safeFetchJson = async <T>(
-  host: ForecastUpstreamHost,
-  pathAndQuery: string,
-  timeoutMs = 9000
-): Promise<T> => {
-  // Host is a fixed allowlisted literal; path/query may include validated numeric coords.
-  const url = new URL(pathAndQuery, `https://${host}`);
-  if (url.protocol !== "https:" || url.hostname !== host) {
+const safeFetchJson = async <T>(url: URL, timeoutMs = 9000): Promise<T> => {
+  const allowedHosts = new Set<ForecastUpstreamHost>([
+    "api.forecast.solar",
+    "api.openweathermap.org",
+    "dataservice.accuweather.com"
+  ]);
+  if (url.protocol !== "https:" || !allowedHosts.has(url.hostname as ForecastUpstreamHost)) {
     throw new Error(`Forecast upstream host not allowed: ${url.hostname}`);
   }
 
@@ -506,10 +505,9 @@ const fetchForecastSolar = async (params: Required<ForecastParams>) => {
   const tilt = assertFiniteCoord(params.tilt, "tilt");
   const azimuth = assertFiniteCoord(params.azimuth, "azimuth");
   const capacity = assertFiniteCoord(params.capacity, "capacity");
-  const payload = await safeFetchJson<ForecastSolarResponse>(
-    "api.forecast.solar",
-    `/estimate/${lat}/${lon}/${tilt}/${azimuth}/${capacity}`
-  );
+  const url = new URL("https://api.forecast.solar/estimate/");
+  url.pathname = `/estimate/${lat}/${lon}/${tilt}/${azimuth}/${capacity}`;
+  const payload = await safeFetchJson<ForecastSolarResponse>(url);
   return payload.result ?? null;
 };
 
@@ -517,16 +515,12 @@ const fetchOpenWeather = async (params: Required<ForecastParams>) => {
   if (!env.OPENWEATHER_API_KEY) return null;
   const lat = assertFiniteCoord(params.lat, "lat");
   const lon = assertFiniteCoord(params.lon, "lon");
-  const query = new URLSearchParams({
-    lat: String(lat),
-    lon: String(lon),
-    units: "metric",
-    appid: env.OPENWEATHER_API_KEY
-  });
-  return safeFetchJson<OpenWeatherResponse>(
-    "api.openweathermap.org",
-    `/data/2.5/forecast?${query.toString()}`
-  );
+  const url = new URL("https://api.openweathermap.org/data/2.5/forecast");
+  url.searchParams.set("lat", String(lat));
+  url.searchParams.set("lon", String(lon));
+  url.searchParams.set("units", "metric");
+  url.searchParams.set("appid", env.OPENWEATHER_API_KEY);
+  return safeFetchJson<OpenWeatherResponse>(url);
 };
 
 const fetchAccuWeather = async (params: Required<ForecastParams>) => {
@@ -535,26 +529,18 @@ const fetchAccuWeather = async (params: Required<ForecastParams>) => {
   // AccuWeather is intentionally backup-only due to tighter free-tier quotas.
   const lat = assertFiniteCoord(params.lat, "lat");
   const lon = assertFiniteCoord(params.lon, "lon");
-  const geoQuery = new URLSearchParams({
-    apikey: env.ACCUWEATHER_API_KEY,
-    q: `${lat},${lon}`
-  });
-  const lookup = await safeFetchJson<AccuGeoLookupResponse>(
-    "dataservice.accuweather.com",
-    `/locations/v1/cities/geoposition/search?${geoQuery.toString()}`
-  );
+  const geoUrl = new URL("https://dataservice.accuweather.com/locations/v1/cities/geoposition/search");
+  geoUrl.searchParams.set("apikey", env.ACCUWEATHER_API_KEY);
+  geoUrl.searchParams.set("q", `${lat},${lon}`);
+  const lookup = await safeFetchJson<AccuGeoLookupResponse>(geoUrl);
   if (!lookup.Key) return null;
   if (!/^[A-Za-z0-9_-]+$/.test(lookup.Key)) {
     throw new Error("Unexpected AccuWeather location key format.");
   }
-  const hourlyQuery = new URLSearchParams({
-    apikey: env.ACCUWEATHER_API_KEY,
-    metric: "true"
-  });
-  return safeFetchJson<AccuHourlyResponse>(
-    "dataservice.accuweather.com",
-    `/forecasts/v1/hourly/12hour/${lookup.Key}?${hourlyQuery.toString()}`
-  );
+  const hourlyUrl = new URL(`https://dataservice.accuweather.com/forecasts/v1/hourly/12hour/${lookup.Key}`);
+  hourlyUrl.searchParams.set("apikey", env.ACCUWEATHER_API_KEY);
+  hourlyUrl.searchParams.set("metric", "true");
+  return safeFetchJson<AccuHourlyResponse>(hourlyUrl);
 };
 
 const buildWeatherOnlyHourly = (
