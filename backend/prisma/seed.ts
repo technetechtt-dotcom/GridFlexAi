@@ -360,7 +360,8 @@ const run = async () => {
 
   const { TELEMETRY_KEYS, TELEMETRY_KEYS_BY_ASSET_TYPE } = await import("../src/domain/telemetry-keys.js");
   for (const key of TELEMETRY_KEYS_BY_ASSET_TYPE.inverter ?? []) {
-    const def = TELEMETRY_KEYS[key];
+    // Narrow the `as const` union so optional min/max fields are readable.
+    const def = TELEMETRY_KEYS[key] as import("../src/domain/telemetry-keys.js").TelemetryKeyDefinition;
     await prisma.telemetryPointDefinition.upsert({
       where: { assetId_key: { assetId: "asset-upington-inverter-sim", key: def.key } },
       update: {

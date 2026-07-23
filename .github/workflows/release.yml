@@ -105,10 +105,11 @@ jobs:
           printf '%s\n' "$IMAGE_DIGEST" > release-evidence/backend-image-digest.txt
           node --input-type=module -e '
             import fs from "node:fs";
+            const image = process.env.IMAGE_NAME + "@" + process.env.IMAGE_DIGEST;
             fs.writeFileSync("release-evidence/release-metadata.json", JSON.stringify({
               schemaVersion: 1,
               commitSha: process.env.GITHUB_SHA,
-              image: `${process.env.IMAGE_NAME}@${process.env.IMAGE_DIGEST}`,
+              image,
               ref: process.env.GITHUB_REF,
               runId: process.env.GITHUB_RUN_ID,
               generatedAt: new Date().toISOString()
