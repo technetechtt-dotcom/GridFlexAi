@@ -5,7 +5,7 @@ import { env } from "../config/env.js";
 let redisClient: Redis | null = null;
 
 export const getRedisClient = (): Redis | null => {
-  if (!env.REDIS_URL) {
+  if (!env.REDIS_URL?.trim()) {
     return null;
   }
 

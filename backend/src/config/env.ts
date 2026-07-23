@@ -108,7 +108,10 @@ const envSchema = z.object({
   FORECAST_RATE_LIMIT_MAX_PER_MINUTE: z.coerce.number().int().min(5).max(1000).default(20),
   FORECAST_CRON_ENABLED: envBoolean.default(true),
   FORECAST_CRON_SCHEDULE: z.string().default("*/30 * * * *"),
-  REDIS_URL: z.string().optional(),
+  REDIS_URL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().optional()
+  ),
   /** Bearer token required to scrape /api/metrics in production. */
   METRICS_SCRAPE_TOKEN: z.string().min(16).optional(),
   /** Optional service name override for structured logs / OTel. */
@@ -215,8 +218,14 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
     );
   }
 
-  if (!config.REDIS_URL && !config.EDGE_ALLOW_MEMORY_REPLAY) {
-    problems.push("REDIS_URL is required when EDGE_ALLOW_MEMORY_REPLAY is false.");
+  if (!config.REDIS_URL?.trim()) {
+    problems.push("REDIS_URL is required in production for multi-instance edge replay protection.");
+  }
+  if (config.EDGE_ALLOW_MEMORY_REPLAY) {
+    problems.push("EDGE_ALLOW_MEMORY_REPLAY must be false in production; use Redis-backed replay only.");
+  }
+  if (!config.EDGE_REPLAY_REQUIRE_REDIS) {
+    problems.push("EDGE_REPLAY_REQUIRE_REDIS must be true in production.");
   }
 
   if (config.DEVICE_SECRET_VAULT_PROVIDER === "local") {

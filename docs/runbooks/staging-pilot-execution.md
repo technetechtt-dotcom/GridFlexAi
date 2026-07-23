@@ -10,26 +10,30 @@ execution remains disabled throughout.
 |-------|-------|
 | Pilot start / end (UTC) | |
 | Environment | staging |
-| Git commit SHA | |
-| Backend image digest (`sha256:`) | |
-| CI run URL / run ID | |
-| Evidence manifest path / SHA-256 | |
+| Git commit SHA | `d1a7363166e13789c08955270d2e7f8f1b445e35` (`RC-2026-07-22`) |
+| Backend image digest (`sha256:`) | `sha256:1a0f0aa1c724c026732951b5868ec9941e3b19638150c01baee6f8a27ed24928` (signed @ `7fd0ba3`; staging deploy still Open) |
+| CI run URL / run ID | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29922993173 |
+| Evidence manifest path / SHA-256 | `0f7bc5e9a70f35e62ed19e4313b5298731ee8d0bf7a7da587f9ac4488c7f0651` |
 | Frontend release identifier | |
-| Firmware version / binary SHA-256 | |
+| Firmware version / binary SHA-256 | see CI firmware-evidence artifact |
 | Participants and roles | |
 | On-call primary / escalation contact | |
 
 ## Mandatory safety preflight
 
-- [ ] `PHYSICAL_COMMAND_EXECUTION_ENABLED=false`
-- [ ] `HIL_PLANT_APPROVAL_CONFIRMED=false`
-- [ ] `PILOT_LOCK_PHYSICAL_EXECUTION=true`
+- [x] `PHYSICAL_COMMAND_EXECUTION_ENABLED=false` (blueprint + code default)
+- [x] `HIL_PLANT_APPROVAL_CONFIRMED=false` (blueprint + code default)
+- [x] `PILOT_LOCK_PHYSICAL_EXECUTION=true` (blueprint + code default)
 - [ ] Only simulation or isolated, read-only RS485 equipment is connected
 - [ ] No FC05/06/0F/10 Modbus traffic is exposed or observed
 - [ ] Restore point and rollback digest are recorded
 - [ ] Central logs, metrics, alerts and notification routes are healthy
-- [ ] Tenant-isolation tests passed for this release
+- [x] Tenant-isolation tests passed for this release (CI backend tests)
 - [ ] Secrets are redacted from every evidence artifact
+- [x] Authenticated HTTP smoke against restore/staging target (2026-07-22 restore-drill SHA-256 `57531f57…d4bb`)
+- [ ] Waveshare/board pin map signed before any RS485 energize
+- [ ] Approver sign-off on restore drill
+- [ ] Alert webhook delivery/ack fire-drill with `METRICS_SCRAPE_TOKEN` + `ALERT_WEBHOOK_*`
 
 ## Execution sequence
 
