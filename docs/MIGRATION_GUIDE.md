@@ -26,8 +26,8 @@ Do not commit these values.
 | Variable | Purpose | Production expectation |
 |----------|---------|------------------------|
 | `EDGE_ALLOW_LEGACY_SHARED_SECRET` | Temporary shared HMAC secret | `false` |
-| `EDGE_REPLAY_REQUIRE_REDIS` | Force Redis for replay protection | `true` recommended |
-| `EDGE_ALLOW_MEMORY_REPLAY` | Allow in-process nonce cache | `false` recommended |
+| `EDGE_REPLAY_REQUIRE_REDIS` | Force Redis for replay protection | **`true` required in production** |
+| `EDGE_ALLOW_MEMORY_REPLAY` | Allow in-process nonce cache | **`false` required in production** |
 | `REDIS_URL` | Shared replay + forecast cache | required for multi-instance |
 | `NODE_HEALTH_CRON_ENABLED` | Background node health evaluator | `true` |
 | `PHYSICAL_COMMAND_EXECUTION_ENABLED` | Plant actuation | must remain `false` |

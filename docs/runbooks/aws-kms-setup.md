@@ -3,6 +3,10 @@
 GridFlex encrypts per-device HMAC secrets at rest with AWS KMS when
 `DEVICE_SECRET_VAULT_PROVIDER=aws_kms`.
 
+**Workstation status 2026-07-22:** AWS CLI not installed; no `AWS_ACCESS_KEY_ID` /
+`AWS_PROFILE`. Cannot create CMK or verify Render vault round-trip from this machine
+until IAM credentials and CLI are provisioned.
+
 ## 1. Create a CMK
 
 ```bash

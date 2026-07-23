@@ -7,6 +7,7 @@ import { emitToSiteScope } from "../lib/socket-rooms.js";
 import { prisma } from "../lib/prisma.js";
 import type { EdgeDataBody } from "../schemas/request.schemas.js";
 import { AppError } from "../utils/AppError.js";
+import { parseSequenceNumber, sequenceToJson } from "../utils/sequence-number.js";
 import { getOptionalSiteAccessScope, type AccessActor } from "./access-scope.service.js";
 import { createStatusLog, resolveNodeForIngestion } from "./node.service.js";
 
@@ -45,7 +46,7 @@ type CreateReadingInput = {
   latitude?: number;
   longitude?: number;
   timestamp?: Date;
-  sequenceNumber?: number;
+  sequenceNumber?: number | bigint | string;
   messageId?: string;
   quality?: "valid" | "invalid" | "uncertain" | "stale";
   qualityFlags?: unknown;
@@ -313,12 +314,12 @@ type IngestionEnvelope = {
   message: string;
   data: IngestionResult["reading"];
   idempotent?: boolean;
-  acknowledgedSequence?: number;
+  acknowledgedSequence?: number | string;
 };
 
 export type EdgeIngestAuthContext = {
   deviceId: string;
-  sequenceNumber?: number;
+  sequenceNumber?: number | bigint | string;
   idempotentReplay?: boolean;
 };
 
@@ -366,8 +367,8 @@ export const createReading = async (payload: CreateReadingInput) => {
   if (node.assetId) {
     readingData.sourceAssetId = node.assetId;
   }
-  if (typeof payload.sequenceNumber === "number") {
-    readingData.sequenceNumber = payload.sequenceNumber;
+  if (payload.sequenceNumber !== undefined && payload.sequenceNumber !== null) {
+    readingData.sequenceNumber = parseSequenceNumber(payload.sequenceNumber);
   }
 
   if (typeof payload.energyToday === "number") {
@@ -402,14 +403,16 @@ export const createReading = async (payload: CreateReadingInput) => {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002" &&
-      typeof payload.sequenceNumber === "number" &&
+      payload.sequenceNumber !== undefined &&
+      payload.sequenceNumber !== null &&
       payload.deviceKey
     ) {
+      const seq = parseSequenceNumber(payload.sequenceNumber);
       const existingReceipt = await prisma.edgeIngestReceipt.findUnique({
         where: {
           deviceId_sequenceNumber: {
             deviceId: payload.deviceKey,
-            sequenceNumber: payload.sequenceNumber
+            sequenceNumber: seq
           }
         }
       });
@@ -440,23 +443,24 @@ export const createReading = async (payload: CreateReadingInput) => {
     throw error;
   }
 
-  if (typeof payload.sequenceNumber === "number" && payload.deviceKey) {
+  if (payload.sequenceNumber !== undefined && payload.sequenceNumber !== null && payload.deviceKey) {
+    const seq = parseSequenceNumber(payload.sequenceNumber);
     await prisma.edgeIngestReceipt.upsert({
       where: {
         deviceId_sequenceNumber: {
           deviceId: payload.deviceKey,
-          sequenceNumber: payload.sequenceNumber
+          sequenceNumber: seq
         }
       },
       create: {
         deviceId: payload.deviceKey,
-        sequenceNumber: payload.sequenceNumber,
+        sequenceNumber: seq,
         readingId: reading.id,
-        ...(payload.messageId ? { messageId: payload.messageId } : {})
+        ...(typeof payload.messageId === "string" ? { messageId: payload.messageId } : {})
       },
       update: {
         readingId: reading.id,
-        ...(payload.messageId ? { messageId: payload.messageId } : {})
+        ...(typeof payload.messageId === "string" ? { messageId: payload.messageId } : {})
       }
     });
   }
@@ -548,19 +552,23 @@ export const ingestEdgeData = async (
   auth?: EdgeIngestAuthContext
 ): Promise<IngestionEnvelope> => {
   const sequenceNumber =
-    typeof auth?.sequenceNumber === "number"
-      ? auth.sequenceNumber
-      : typeof payload.sequenceNumber === "number"
-        ? payload.sequenceNumber
+    auth?.sequenceNumber !== undefined && auth?.sequenceNumber !== null
+      ? parseSequenceNumber(auth.sequenceNumber)
+      : payload.sequenceNumber !== undefined && payload.sequenceNumber !== null
+        ? parseSequenceNumber(payload.sequenceNumber)
         : undefined;
 
   // Idempotent ACK: same deviceId + sequenceNumber already accepted.
-  if (auth?.idempotentReplay && deviceKey && typeof sequenceNumber === "number") {
+  if (auth?.idempotentReplay && deviceKey && sequenceNumber !== undefined) {
     const receipt = await prisma.edgeIngestReceipt.findUnique({
       where: {
         deviceId_sequenceNumber: { deviceId: deviceKey, sequenceNumber }
       }
     });
+    const acknowledgedSequence = sequenceToJson(sequenceNumber);
+    if (acknowledgedSequence === null) {
+      throw new Error("Missing acknowledged sequence for idempotent replay.");
+    }
     if (receipt?.readingId) {
       const existing = await prisma.sensorReading.findUnique({ where: { id: receipt.readingId } });
       if (existing) {
@@ -568,7 +576,7 @@ export const ingestEdgeData = async (
           message: "Duplicate sequence acknowledged.",
           data: existing,
           idempotent: true,
-          acknowledgedSequence: sequenceNumber
+          acknowledgedSequence
         };
       }
     }
@@ -576,7 +584,7 @@ export const ingestEdgeData = async (
     return {
       message: "Duplicate sequence acknowledged.",
       data: {
-        id: receipt?.id ?? `ack-${deviceKey}-${sequenceNumber}`,
+        id: receipt?.id ?? `ack-${deviceKey}-${sequenceNumber.toString()}`,
         nodeId: "",
         voltage: payload.voltage,
         current: payload.current,
@@ -584,7 +592,7 @@ export const ingestEdgeData = async (
         sequenceNumber
       } as IngestionResult["reading"],
       idempotent: true,
-      acknowledgedSequence: sequenceNumber
+      acknowledgedSequence
     };
   }
 
@@ -598,7 +606,7 @@ export const ingestEdgeData = async (
   if (payload.nodeId) {
     readingInput.nodeId = payload.nodeId;
   }
-  if (typeof sequenceNumber === "number") {
+  if (sequenceNumber !== undefined) {
     readingInput.sequenceNumber = sequenceNumber;
   }
   if (typeof payload.messageId === "string") {
@@ -670,10 +678,13 @@ export const ingestEdgeData = async (
     }
   }
 
+  const acknowledgedSequence =
+    sequenceNumber !== undefined ? sequenceToJson(sequenceNumber) : null;
+
   return {
     message: result.idempotent ? "Duplicate sequence acknowledged." : "Reading ingested successfully.",
     data: result.reading as IngestionEnvelope["data"],
     ...(result.idempotent ? { idempotent: true as const } : {}),
-    ...(typeof sequenceNumber === "number" ? { acknowledgedSequence: sequenceNumber } : {})
-  } as IngestionEnvelope;
+    ...(acknowledgedSequence !== null ? { acknowledgedSequence } : {})
+  };
 };
