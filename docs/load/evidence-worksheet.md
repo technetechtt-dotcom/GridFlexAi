@@ -27,10 +27,12 @@
 ## Remaining before closing #50
 
 - [x] k6 installed + live health SLO
-- [x] Signed ingest smoke (restore, 1 VU) — staging multi-device / target RPS still Open
+- [x] Signed ingest smoke (restore, 1 VU) — **not** a capacity proof (p95 10.7 s rejected as operational target)
 - [x] Socket.IO connect soak / event fan-out / reconnect storm (restore)
-- [ ] Redis recovery under load (blocked: local Docker engine unstable)
-- [ ] Resource graphs + approver
+- [ ] Multi-device staging sustained + peak/burst with ingest p95 **&lt; 1 s**
+- [ ] 100 / 500+ WebSocket clients + real telemetry fan-out + reconnect storms
+- [ ] Redis recovery under load (local Docker previously blocked)
+- [ ] Resource graphs + written capacity statement + approver
 
 Attach: k6 summary JSON, Socket.IO JSON output, metrics screenshots, database
 and Redis graphs, alert evidence, and an explicit accepted-capacity statement.
