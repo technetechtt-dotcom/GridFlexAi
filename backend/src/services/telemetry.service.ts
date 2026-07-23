@@ -6,6 +6,7 @@ import { prisma } from "../lib/prisma.js";
 import type { AccessActor } from "./access-scope.service.js";
 import { getOptionalSiteAccessScope } from "./access-scope.service.js";
 import { AppError } from "../utils/AppError.js";
+import { parseSequenceNumber } from "../utils/sequence-number.js";
 
 export type TelemetryBatchItem = {
   assetId: string;
@@ -15,7 +16,7 @@ export type TelemetryBatchItem = {
   booleanValue?: boolean;
   unit: string;
   deviceTimestamp: string;
-  sequenceNumber?: number;
+  sequenceNumber?: number | bigint | string;
   schemaVersion?: string;
   firmwareVersion?: string;
   calibrationVersion?: string;
@@ -131,7 +132,10 @@ export const ingestTelemetryBatch = async (
         sourceType: item.sourceType ?? definition?.sourceType ?? catalog?.sourceType ?? "measured",
         environment: "live",
         deviceTimestamp: new Date(item.deviceTimestamp),
-        sequenceNumber: item.sequenceNumber ?? 0,
+        sequenceNumber:
+          item.sequenceNumber !== undefined && item.sequenceNumber !== null
+            ? parseSequenceNumber(item.sequenceNumber)
+            : 0n,
         schemaVersion: item.schemaVersion ?? "2"
       };
       if (definition?.id) data.pointDefinitionId = definition.id;

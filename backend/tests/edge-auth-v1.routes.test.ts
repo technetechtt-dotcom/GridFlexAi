@@ -117,7 +117,7 @@ describe("verifyEdgeDeviceAuth GRIDFLEX-V1", () => {
     expect(prisma.deviceCredential.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          lastSequenceNumber: 42,
+          lastSequenceNumber: 42n,
           lastAcceptedBodyHash: hashRawBody(rawBody)
         })
       })
