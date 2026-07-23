@@ -511,7 +511,7 @@ model SensorReading {
   ingestedAt         DateTime        @default(now())
   /// Legacy field kept for compatibility; prefer deviceTimestamp/ingestedAt.
   timestamp          DateTime        @default(now())
-  sequenceNumber     Int?
+  sequenceNumber     BigInt?
   schemaVersion      String?         @default("1")
   firmwareVersion    String?
   calibrationVersion String?
@@ -541,7 +541,7 @@ model SensorReading {
 model EdgeIngestReceipt {
   id             String   @id @default(cuid())
   deviceId       String
-  sequenceNumber Int
+  sequenceNumber BigInt
   messageId      String?
   readingId      String?
   payloadHash    String?
@@ -828,7 +828,7 @@ model TelemetryReading {
   simulationRun      SimulationRun?           @relation(fields: [simulationRunId], references: [id], onDelete: SetNull)
   deviceTimestamp    DateTime
   ingestedAt         DateTime                 @default(now())
-  sequenceNumber     Int?
+  sequenceNumber     BigInt?
   schemaVersion      String                   @default("2")
   firmwareVersion    String?
   calibrationVersion String?
@@ -863,7 +863,7 @@ model DeviceCredential {
   encryptionKeyId     String?
   algorithm           String                 @default("HMAC-SHA256")
   status              DeviceCredentialStatus @default(active)
-  lastSequenceNumber  Int?
+  lastSequenceNumber  BigInt?
   /// SHA-256 hex of raw body accepted for lastSequenceNumber — binds idempotent retries to the same payload.
   lastAcceptedBodyHash String?
   createdAt           DateTime               @default(now())

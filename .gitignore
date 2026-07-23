@@ -16,6 +16,7 @@ test-results
 go-live-reports/*
 !go-live-reports/README.md
 ci-evidence/
+tools/
 backend/certs/*.pfx
 
 # TypeScript incremental build info
