@@ -23,6 +23,7 @@
     "ci:validate-vulnerability-exceptions": "node scripts/validate-vulnerability-exceptions.mjs",
     "ci:redis-fail-closed": "node scripts/ci-redis-fail-closed-probe.mjs",
     "ci:npm-audit": "node scripts/npm-audit-ci.mjs",
+    "verify:kms-readiness": "node scripts/verify-kms-readiness.mjs",
     "chaos:redis-loss": "node scripts/redis-loss-recovery-drill.mjs",
     "secrets:jwt-rotation-snippet": "node scripts/generate-jwt-rotation-snippet.mjs",
     "verify:go-live": "node scripts/verify-go-live.mjs",

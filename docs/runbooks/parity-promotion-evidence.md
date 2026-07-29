@@ -36,7 +36,8 @@ One section per promote-to-production. **Never** paste secret values.
 
 | Date | Commit | Digest (short) | Staging | Prod | Approver |
 |------|--------|----------------|---------|------|----------|
-| 2026-07-22 | `7fd0ba3` | `1a0f0aa1…4928` (signed, GHCR) | Open | Open | _pending_ |
+| 2026-07-23 | `cdcd3e7` | `accf07fc…c718` (signed RC-2026-07-23) | Open | Open | _pending_ |
+| 2026-07-22 | `7fd0ba3` | `1a0f0aa1…4928` (signed, superseded for pilot) | Open | Open | _pending_ |
 
 ## Repository key-schema check — 2026-07-21
 
