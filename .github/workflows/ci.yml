@@ -43,13 +43,13 @@ jobs:
         run: |
           set -o pipefail
           npm ci 2>&1 | tee ci-evidence/security/frontend-install.log
-          npm audit --omit=dev --audit-level=high 2>&1 | tee ci-evidence/security/frontend-audit.log
+          node scripts/npm-audit-ci.mjs . 2>&1 | tee ci-evidence/security/frontend-audit.log
 
       - name: Install and audit backend dependencies
         run: |
           set -o pipefail
           npm ci 2>&1 | tee ../ci-evidence/security/backend-install.log
-          npm audit --omit=dev --audit-level=high 2>&1 | tee ../ci-evidence/security/backend-audit.log
+          node ../scripts/npm-audit-ci.mjs . 2>&1 | tee ../ci-evidence/security/backend-audit.log
           npm run check:secrets-hygiene 2>&1 | tee ../ci-evidence/security/secrets-hygiene.log
         working-directory: backend
 
@@ -404,10 +404,9 @@ jobs:
           npx jest tests/edge-replay-fail-closed.test.ts --runInBand \
             2>&1 | tee ../ci-evidence/redis-chaos/fail-closed-jest.log
 
-      - name: Docker-stop Redis fail-closed probe
+      - name: Redis SHUTDOWN fail-closed probe
         env:
           CI_EVIDENCE_OUTPUT: ci-evidence/redis-chaos/probe.json
-          REDIS_CHAOS_USE_DOCKER: "true"
         run: |
           set -o pipefail
           node scripts/ci-redis-fail-closed-probe.mjs 2>&1 | tee ci-evidence/redis-chaos/probe.log

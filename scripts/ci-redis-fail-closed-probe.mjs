@@ -1,15 +1,13 @@
 /**
- * CI probe: Redis up → SET NX OK; stop Redis → subsequent SET fails.
+ * CI probe: Redis up → SET NX OK; SHUTDOWN → subsequent SET fails.
  * Evidence that production EDGE_REPLAY_REQUIRE_REDIS fail-closed depends on Redis.
  *
  * Env:
  *   REDIS_URL (default redis://127.0.0.1:6379)
- *   REDIS_CHAOS_USE_DOCKER (default true)
  *   CI_EVIDENCE_OUTPUT (default ci-evidence/redis-chaos/probe.json)
  */
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -18,90 +16,84 @@ const require = createRequire(path.join(__dirname, "../backend/package.json"));
 const Redis = require("ioredis");
 
 const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
-const useDocker = process.env.REDIS_CHAOS_USE_DOCKER !== "false";
 const outFile =
   process.env.CI_EVIDENCE_OUTPUT ||
   path.resolve("ci-evidence", "redis-chaos", "probe.json");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const docker = (args) => {
-  try {
-    const out = execFileSync("docker", args, { encoding: "utf8" }).trim();
-    return { ok: true, out };
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
-};
+const makeClient = () =>
+  new Redis(redisUrl, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+    connectTimeout: 3000,
+    retryStrategy: () => null
+  });
 
-const stopRedisContainer = () => {
-  for (const ancestor of ["redis:7-alpine", "redis:7", "redis"]) {
-    const listed = docker(["ps", "--filter", `ancestor=${ancestor}`, "--format", "{{.ID}}"]);
-    if (listed.ok && listed.out) {
-      const id = listed.out.split("\n").find(Boolean);
-      if (id) {
-        return { ...docker(["stop", id]), id, ancestor };
-      }
+const safeClose = async (client) => {
+  if (!client) return;
+  try {
+    const result = client.quit();
+    if (result && typeof result.then === "function") {
+      await result.catch(() => undefined);
+    }
+  } catch {
+    try {
+      client.disconnect(false);
+    } catch {
+      // ignore
     }
   }
-  return { ok: false, error: "No redis service container found to stop" };
 };
 
 const main = async () => {
   const evidence = {
     startedAt: new Date().toISOString(),
     redisUrl,
-    useDocker,
+    method: "SHUTDOWN NOSAVE",
     phases: {}
   };
 
-  const client = new Redis(redisUrl, {
-    lazyConnect: true,
-    maxRetriesPerRequest: 1,
-    enableOfflineQueue: false,
-    connectTimeout: 2000
-  });
+  const client = makeClient();
 
   try {
     await client.connect();
     const key = `ci:replay-probe:${Date.now()}`;
     const setOk = await client.set(key, "1", "EX", 30, "NX");
     evidence.phases.beforeOutage = { redisReady: true, setNx: setOk };
-
-    if (useDocker) {
-      const stopped = stopRedisContainer();
-      evidence.phases.stopRedis = stopped;
-      if (!stopped.ok) {
-        throw new Error(`Failed to stop Redis container: ${stopped.error || "unknown"}`);
-      }
-      await sleep(1500);
-    } else {
-      evidence.phases.stopRedis = { skipped: true, reason: "REDIS_CHAOS_USE_DOCKER=false" };
+    if (setOk !== "OK") {
+      throw new Error(`Expected SET NX OK before outage, got ${String(setOk)}`);
     }
 
-    await client.disconnect().catch(() => undefined);
-    const dead = new Redis(redisUrl, {
-      lazyConnect: true,
-      maxRetriesPerRequest: 1,
-      enableOfflineQueue: false,
-      connectTimeout: 1500,
-      retryStrategy: () => null
-    });
+    // Kill the Redis server process (works against GHA service containers).
+    try {
+      await client.shutdown("NOSAVE");
+      evidence.phases.stopRedis = { ok: true, via: "SHUTDOWN NOSAVE" };
+    } catch (error) {
+      // SHUTDOWN often closes the connection abruptly; treat that as success.
+      evidence.phases.stopRedis = {
+        ok: true,
+        via: "SHUTDOWN NOSAVE",
+        note: error instanceof Error ? error.message : String(error)
+      };
+    }
 
+    await safeClose(client);
+    await sleep(1000);
+
+    const dead = makeClient();
     try {
       await dead.connect();
-      await dead.set(`ci:replay-probe:down:${Date.now()}`, "1", "EX", 10, "NX");
-      evidence.phases.duringOutage = { unexpectedSuccess: true };
+      const unexpected = await dead.set(`ci:replay-probe:down:${Date.now()}`, "1", "EX", 10, "NX");
+      evidence.phases.duringOutage = { unexpectedSuccess: true, setNx: unexpected };
     } catch (error) {
       evidence.phases.duringOutage = {
         failClosed: true,
         error: error instanceof Error ? error.message : String(error)
       };
     } finally {
-      await dead.quit().catch(() => dead.disconnect());
+      await safeClose(dead);
     }
 
     if (!evidence.phases.duringOutage?.failClosed) {
@@ -114,8 +106,7 @@ const main = async () => {
     evidence.pass = false;
     evidence.error = error instanceof Error ? error.message : String(error);
     evidence.completedAt = new Date().toISOString();
-  } finally {
-    await client.quit().catch(() => client.disconnect());
+    await safeClose(client);
   }
 
   await fs.mkdir(path.dirname(outFile), { recursive: true });
@@ -126,4 +117,7 @@ const main = async () => {
   }
 };
 
-main();
+main().catch(async (error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});
