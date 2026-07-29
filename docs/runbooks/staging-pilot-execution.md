@@ -10,10 +10,10 @@ execution remains disabled throughout.
 |-------|-------|
 | Pilot start / end (UTC) | |
 | Environment | staging |
-| Git commit SHA | `d1a7363166e13789c08955270d2e7f8f1b445e35` (`RC-2026-07-22`) |
-| Backend image digest (`sha256:`) | `sha256:1a0f0aa1c724c026732951b5868ec9941e3b19638150c01baee6f8a27ed24928` (signed @ `7fd0ba3`; staging deploy still Open) |
-| CI run URL / run ID | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29922993173 |
-| Evidence manifest path / SHA-256 | `0f7bc5e9a70f35e62ed19e4313b5298731ee8d0bf7a7da587f9ac4488c7f0651` |
+| Git commit SHA | `cdcd3e7ae2b5962ba58f990f3249728b164ab560` (`RC-2026-07-23`) |
+| Backend image digest (`sha256:`) | `sha256:accf07fc8326ffa15dd4df647af3175bb36b2d9b587270234247324c7e57c718` (signed; staging deploy still Open) |
+| CI run URL / run ID | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29988892052 |
+| Evidence manifest path / SHA-256 | `37cd37f0b13d39550be465a29c93d34bc0d4cdba5e49274a5a8792e8d8916d72` |
 | Frontend release identifier | |
 | Firmware version / binary SHA-256 | see CI firmware-evidence artifact |
 | Participants and roles | |

@@ -43,7 +43,9 @@ Active release candidate: [`docs/releases/RC-2026-07-23.md`](./docs/releases/RC-
 - [ ] Staging→prod digest promotion evidence *(ops)* — first signed digest exists; parity promotion Open
 - [ ] External pen-test engagement closed *(external)* — Open (#47)
 - [x] Actions SHA pins + image signing workflow *(code)*; **first signed release image Done** @ `7fd0ba3`
-- [ ] Load soak evidence *(ops)* — k6 live health + restore signed ingest (1 VU) PASS; Redis fail-closed CI probe Ready (merge platform-finish-gates); staging multi-device RPS Open (#50)
+- [ ] Load soak evidence *(ops)* — k6 live health + restore signed ingest (1 VU) PASS; Redis fail-closed CI Done (PR #84); staging multi-device RPS Open (#50)
+- [ ] AWS KMS vault + credential rotation *(ops)* — dry-run `npm run verify:kms-readiness`; blocked on AWS CLI/keys (#45)
+- [ ] See `docs/runbooks/platform-unblock-checklist.md` for remaining unlock order
 - [ ] POPIA IO approval + access review *(governance)* — Open (#48)
 - [ ] Telemetry-only staging pilot *(ops)* — Open; physical commands remain disabled
 
