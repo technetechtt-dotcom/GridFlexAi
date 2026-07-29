@@ -31,7 +31,9 @@ const productionBaseline = (): Record<string, string> => ({
   HIL_PLANT_APPROVAL_CONFIRMED: "false",
   DEVICE_SECRET_VAULT_PROVIDER: "aws_kms",
   AWS_KMS_KEY_ID: "arn:aws:kms:eu-west-1:123456789012:key/example",
-  AWS_REGION: "eu-west-1"
+  AWS_REGION: "eu-west-1",
+  GRIDFLEX_OPERATING_MODE: "PILOT_LIVE",
+  ALLOW_SIMULATION_IN_PRODUCTION: "false"
 });
 
 const loadEnvModule = () => {
@@ -140,5 +142,31 @@ describe("production safety env", () => {
     Object.assign(process.env, productionBaseline());
     process.env.REDIS_URL = "";
     expect(() => loadEnvModule()).toThrow(/REDIS_URL is required/);
+  });
+
+  it("rejects SIMULATION operating mode in production by default", () => {
+    Object.assign(process.env, productionBaseline(), {
+      GRIDFLEX_OPERATING_MODE: "SIMULATION",
+      ALLOW_SIMULATION_IN_PRODUCTION: "false"
+    });
+    expect(() => loadEnvModule()).toThrow(/GRIDFLEX_OPERATING_MODE=SIMULATION is forbidden/);
+  });
+
+  it("allows SIMULATION in production only with explicit authorisation flag", () => {
+    Object.assign(process.env, productionBaseline(), {
+      GRIDFLEX_OPERATING_MODE: "SIMULATION",
+      ALLOW_SIMULATION_IN_PRODUCTION: "true"
+    });
+    const mod = loadEnvModule();
+    expect(mod.env.GRIDFLEX_OPERATING_MODE).toBe("SIMULATION");
+  });
+
+  it("allows PILOT_LIVE in production without simulation escape hatch", () => {
+    Object.assign(process.env, productionBaseline(), {
+      GRIDFLEX_OPERATING_MODE: "PILOT_LIVE",
+      ALLOW_SIMULATION_IN_PRODUCTION: "false"
+    });
+    const mod = loadEnvModule();
+    expect(mod.env.GRIDFLEX_OPERATING_MODE).toBe("PILOT_LIVE");
   });
 });

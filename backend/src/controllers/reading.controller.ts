@@ -75,6 +75,15 @@ export const ingestEdgeData = asyncHandler(async (
       : undefined);
 
     platformMetrics.recordIngestAccepted();
+    if (result.idempotent) {
+      platformMetrics.recordIngestDuplicateAck();
+    }
+    if (result.data && "quality" in result.data && result.data.quality === "invalid") {
+      platformMetrics.recordIngestQuarantined();
+    }
+    if (typeof req.body.queueDepth === "number") {
+      platformMetrics.observeEdgeQueueDepth(req.body.queueDepth);
+    }
     logger.event("edge.ingest.accepted", {
       durationMs: Date.now() - started,
       idempotent: Boolean(result.idempotent),

@@ -43,13 +43,13 @@ jobs:
         run: |
           set -o pipefail
           npm ci 2>&1 | tee ci-evidence/security/frontend-install.log
-          npm audit --omit=dev --audit-level=high 2>&1 | tee ci-evidence/security/frontend-audit.log
+          node scripts/npm-audit-ci.mjs . 2>&1 | tee ci-evidence/security/frontend-audit.log
 
       - name: Install and audit backend dependencies
         run: |
           set -o pipefail
           npm ci 2>&1 | tee ../ci-evidence/security/backend-install.log
-          npm audit --omit=dev --audit-level=high 2>&1 | tee ../ci-evidence/security/backend-audit.log
+          node ../scripts/npm-audit-ci.mjs . 2>&1 | tee ../ci-evidence/security/backend-audit.log
           npm run check:secrets-hygiene 2>&1 | tee ../ci-evidence/security/secrets-hygiene.log
         working-directory: backend
 
@@ -353,9 +353,76 @@ jobs:
           if-no-files-found: error
           retention-days: ${{ env.EVIDENCE_RETENTION_DAYS }}
 
+  redis-chaos:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      REDIS_URL: redis://127.0.0.1:6379
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          set -o pipefail
+          mkdir -p ../ci-evidence/redis-chaos
+          npm ci 2>&1 | tee ../ci-evidence/redis-chaos/install.log
+
+      - name: Jest edge-replay fail-closed
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/unused
+          JWT_SECRET: test-secret-with-minimum-length
+          CORS_ORIGIN: http://localhost:5173
+          EDGE_INGEST_SHARED_SECRET: test-edge-secret-with-minimum-length
+          DEVICE_SECRET_VAULT_PROVIDER: local
+          DEVICE_SECRET_VAULT_KEY: dGVzdC1kZXZpY2Utc2VjcmV0LXZhdWx0LWtleS0zMiEh
+          DEVICE_SECRET_VAULT_KEY_ID: local-test
+          PHYSICAL_COMMAND_EXECUTION_ENABLED: false
+          HIL_PLANT_APPROVAL_CONFIRMED: false
+          PILOT_LOCK_PHYSICAL_EXECUTION: true
+        run: |
+          set -o pipefail
+          npx jest tests/edge-replay-fail-closed.test.ts --runInBand \
+            2>&1 | tee ../ci-evidence/redis-chaos/fail-closed-jest.log
+
+      - name: Redis SHUTDOWN fail-closed probe
+        env:
+          CI_EVIDENCE_OUTPUT: ci-evidence/redis-chaos/probe.json
+        run: |
+          set -o pipefail
+          node scripts/ci-redis-fail-closed-probe.mjs 2>&1 | tee ci-evidence/redis-chaos/probe.log
+
+      - name: Upload redis chaos evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: redis-chaos-evidence
+          path: ci-evidence/redis-chaos
+          if-no-files-found: error
+          retention-days: ${{ env.EVIDENCE_RETENTION_DAYS }}
+
   evidence-manifest:
     if: always()
-    needs: [security, supply-chain, frontend, firmware, backend]
+    needs: [security, supply-chain, frontend, firmware, backend, redis-chaos]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

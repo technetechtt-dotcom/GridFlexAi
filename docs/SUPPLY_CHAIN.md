@@ -4,7 +4,7 @@
 
 | Control | Implementation |
 |---------|----------------|
-| npm audit (HIGH/CRITICAL production deps) | `security` job |
+| npm audit (HIGH/CRITICAL production deps) | `security` job via `scripts/npm-audit-ci.mjs` (honours approved HIGH exceptions) |
 | Secrets hygiene (tracked files) | `npm run check:secrets-hygiene` in `security` job |
 | Gitleaks | Docker CLI `zricethezav/gitleaks:v8.24.0` (OSS; no org license secret required) |
 | Container image scan | Trivy — **fail-closed on fixed CRITICAL and HIGH**; SARIF retained and uploaded |

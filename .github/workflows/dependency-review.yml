@@ -21,3 +21,5 @@ jobs:
         with:
           fail-on-severity: high
           deny-licenses: GPL-3.0, AGPL-3.0
+          # Keep in sync with security/vulnerability-exceptions.json (npm advisory range still stale vs GitHub patch 7.18.2).
+          allow-ghsas: GHSA-qwww-vcr4-c8h2

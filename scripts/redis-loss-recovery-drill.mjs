@@ -104,7 +104,7 @@ const signedIngest = async () => {
         "x-gridflex-key-version": String(keyVersion),
         "x-gridflex-timestamp": timestamp,
         "x-gridflex-nonce": nonce,
-        "x-gridflex-sequence": String(sequenceNumber),
+        "x-gridflex-sequence-number": String(sequenceNumber),
         "x-gridflex-signature": signature
       },
       body

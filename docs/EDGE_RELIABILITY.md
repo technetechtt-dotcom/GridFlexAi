@@ -42,6 +42,8 @@ Uniqueness: **`deviceId` + `sequenceNumber`** via `EdgeIngestReceipt`.
 | Same sequence, new nonce (retry) | Idempotent ACK; no duplicate row; HTTP 200 |
 | Lower sequence | HTTP 409 regression |
 
+See also `docs/INGEST_PROCESSING.md` for quarantine metrics and DLQ posture.
+
 ### Watchdog
 
 TWDT reset only when Modbus, network, upload, queue, and time-sync tasks remain healthy. Reset reason reported in edge health fields (`lastResetReason`, `watchdogResetCount`).
