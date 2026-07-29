@@ -7,7 +7,8 @@
  *   ROUND_TRIP=true — also run backend vault round-trip (requires working AWS
  *     credentials and network). Fail closed on encrypt/decrypt errors.
  *
- * Never prints secret values.
+ * Never prints secret values. Console output is presence/blocker only;
+ * the JSON report on disk uses redacted placeholders.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs/promises";
@@ -25,43 +26,31 @@ const requiredForAwsKms = [
 
 const credentialSources = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_PROFILE", "AWS_ROLE_ARN"];
 
-const redact = (key, value) => {
-  if (value == null || value === "") return null;
-  if (/SECRET|KEY|TOKEN|PASSWORD/i.test(key) && !/KEY_ID|KEY_ARN|REGION|PROVIDER/i.test(key)) {
-    return `[set len=${String(value).length}]`;
-  }
-  if (key === "AWS_KMS_KEY_ID") {
-    const s = String(value);
-    return s.length <= 12 ? "[set]" : `${s.slice(0, 8)}…${s.slice(-4)}`;
-  }
-  return String(value);
-};
+const isSet = (value) => typeof value === "string" && value.trim().length > 0;
 
 const main = async () => {
-  const provider = process.env.DEVICE_SECRET_VAULT_PROVIDER || "";
+  const env = process.env;
+  const provider = isSet(env.DEVICE_SECRET_VAULT_PROVIDER) ? env.DEVICE_SECRET_VAULT_PROVIDER.trim() : "";
   const report = {
     startedAt: new Date().toISOString(),
-    target: process.env.KMS_READINESS_TARGET || "unspecified",
-    provider,
+    target: isSet(env.KMS_READINESS_TARGET) ? env.KMS_READINESS_TARGET.trim() : "unspecified",
+    provider: provider || null,
     checks: {},
     blockers: [],
     pass: false
   };
 
   for (const key of requiredForAwsKms) {
-    const value = process.env[key];
-    report.checks[key] = {
-      present: Boolean(value && String(value).trim()),
-      value: redact(key, value)
-    };
-    if (!value || !String(value).trim()) {
+    const present = isSet(env[key]);
+    report.checks[key] = { present };
+    if (!present) {
       report.blockers.push(`Missing required env: ${key}`);
     }
   }
 
   if (provider && provider !== "aws_kms") {
     report.blockers.push(
-      `DEVICE_SECRET_VAULT_PROVIDER must be aws_kms for staging/prod (got '${provider || "empty"}').`
+      `DEVICE_SECRET_VAULT_PROVIDER must be aws_kms for staging/prod (got non-aws_kms value).`
     );
   }
 
@@ -69,12 +58,12 @@ const main = async () => {
     report.blockers.push("local vault does not satisfy issue #45.");
   }
 
-  const hasCred = credentialSources.some((key) => process.env[key]?.trim());
+  const credSourcesPresent = credentialSources.filter((key) => isSet(env[key]));
   report.checks.awsCredentialSource = {
-    present: hasCred,
-    sources: credentialSources.filter((key) => Boolean(process.env[key]?.trim()))
+    present: credSourcesPresent.length > 0,
+    sourceCount: credSourcesPresent.length
   };
-  if (!hasCred) {
+  if (credSourcesPresent.length === 0) {
     report.blockers.push(
       "No AWS credential source found (AWS_ACCESS_KEY_ID/SECRET, AWS_PROFILE, or AWS_ROLE_ARN)."
     );
@@ -82,14 +71,13 @@ const main = async () => {
 
   const awsCli = spawnSync("aws", ["--version"], { encoding: "utf8", shell: true });
   report.checks.awsCli = {
-    present: awsCli.status === 0,
-    version: awsCli.stdout?.trim() || awsCli.stderr?.trim() || null
+    present: awsCli.status === 0
   };
   if (awsCli.status !== 0) {
     report.blockers.push("AWS CLI not available on this workstation.");
   }
 
-  if (process.env.ROUND_TRIP === "true") {
+  if (env.ROUND_TRIP === "true") {
     if (report.blockers.length > 0) {
       report.blockers.push("Skipping ROUND_TRIP because prerequisite blockers remain.");
     } else {
@@ -105,11 +93,10 @@ const main = async () => {
       );
       report.checks.roundTrip = {
         exitCode: round.status,
-        stdoutTail: (round.stdout || "").trim().slice(-500),
-        stderrTail: (round.stderr || "").trim().slice(-500)
+        ok: round.status === 0
       };
       if (round.status !== 0) {
-        report.blockers.push("Vault round-trip script failed (see checks.roundTrip).");
+        report.blockers.push("Vault round-trip script failed (exit non-zero).");
       }
     }
   }
@@ -131,7 +118,23 @@ const main = async () => {
 
   await fs.mkdir(path.dirname(outFile), { recursive: true });
   await fs.writeFile(outFile, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-  console.log(JSON.stringify(report, null, 2));
+
+  // Presence/blocker summary only — no env values.
+  console.log(
+    JSON.stringify(
+      {
+        pass: report.pass,
+        blockerCount: report.blockers.length,
+        blockers: report.blockers,
+        checks: Object.fromEntries(
+          Object.entries(report.checks).map(([k, v]) => [k, { present: Boolean(v.present), ...(v.ok !== undefined ? { ok: v.ok } : {}) }])
+        ),
+        reportPath: outFile
+      },
+      null,
+      2
+    )
+  );
   process.exit(report.pass ? 0 : 2);
 };
 
