@@ -22,6 +22,9 @@ export type PlatformMetricsSnapshot = {
   socketConnections: number;
   ingestAccepted: number;
   ingestRejected: number;
+  ingestDuplicateAck: number;
+  ingestQuarantined: number;
+  edgeQueueDepthMax: number;
   signatureFailures: number;
   replayAttempts: number;
   redisAvailable: boolean | null;
@@ -45,6 +48,9 @@ class PlatformMetrics {
   private latencySamples: number[] = [];
   private ingestAccepted = 0;
   private ingestRejected = 0;
+  private ingestDuplicateAck = 0;
+  private ingestQuarantined = 0;
+  private edgeQueueDepthMax = 0;
   private signatureFailures = 0;
   private replayAttempts = 0;
   private redisAvailable: boolean | null = null;
@@ -124,6 +130,25 @@ class PlatformMetrics {
     this.ingestRejected += 1;
   }
 
+  recordIngestDuplicateAck(): void {
+    this.ingestDuplicateAck += 1;
+  }
+
+  recordIngestQuarantined(): void {
+    this.ingestQuarantined += 1;
+  }
+
+  /**
+   * Track max reported device-side journal depth (low-cardinality gauge).
+   * Devices report queueDepth on ingest; this is not a server DLQ.
+   */
+  observeEdgeQueueDepth(depth: number): void {
+    if (!Number.isFinite(depth) || depth < 0) return;
+    if (depth > this.edgeQueueDepthMax) {
+      this.edgeQueueDepthMax = Math.floor(depth);
+    }
+  }
+
   recordSignatureFailure(): void {
     this.signatureFailures += 1;
   }
@@ -182,6 +207,9 @@ class PlatformMetrics {
       socketConnections: this.socketConnections,
       ingestAccepted: this.ingestAccepted,
       ingestRejected: this.ingestRejected,
+      ingestDuplicateAck: this.ingestDuplicateAck,
+      ingestQuarantined: this.ingestQuarantined,
+      edgeQueueDepthMax: this.edgeQueueDepthMax,
       signatureFailures: this.signatureFailures,
       replayAttempts: this.replayAttempts,
       redisAvailable: this.redisAvailable,
@@ -220,6 +248,15 @@ class PlatformMetrics {
       "# HELP gridflex_ingest_rejected_total Edge ingest rejected",
       "# TYPE gridflex_ingest_rejected_total counter",
       `gridflex_ingest_rejected_total ${s.ingestRejected}`,
+      "# HELP gridflex_ingest_duplicate_ack_total Idempotent duplicate sequence acknowledgements",
+      "# TYPE gridflex_ingest_duplicate_ack_total counter",
+      `gridflex_ingest_duplicate_ack_total ${s.ingestDuplicateAck}`,
+      "# HELP gridflex_ingest_quarantined_total Readings accepted with quality=invalid (excluded from live KPI)",
+      "# TYPE gridflex_ingest_quarantined_total counter",
+      `gridflex_ingest_quarantined_total ${s.ingestQuarantined}`,
+      "# HELP gridflex_edge_queue_depth_max Max device-reported journal depth observed this process",
+      "# TYPE gridflex_edge_queue_depth_max gauge",
+      `gridflex_edge_queue_depth_max ${s.edgeQueueDepthMax}`,
       "# HELP gridflex_signature_failures_total Edge signature failures",
       "# TYPE gridflex_signature_failures_total counter",
       `gridflex_signature_failures_total ${s.signatureFailures}`,

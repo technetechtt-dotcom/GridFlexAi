@@ -80,7 +80,9 @@ services:
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
       - key: GRIDFLEX_OPERATING_MODE
-        value: SIMULATION
+        value: PILOT_LIVE
+      - key: ALLOW_SIMULATION_IN_PRODUCTION
+        value: "false"
       - key: FORECAST_RATE_LIMIT_MAX_PER_MINUTE
         value: "20"
       - key: FORECAST_CRON_ENABLED
@@ -94,6 +96,12 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: METRICS_SCRAPE_TOKEN
+        sync: false
+      - key: ALERT_WEBHOOK_ENABLED
+        value: "false"
+      - key: ALERT_WEBHOOK_URL
+        sync: false
+      - key: ALERT_WEBHOOK_TOKEN
         sync: false
       - key: OTEL_SERVICE_NAME
         value: gridflex-api

@@ -99,6 +99,11 @@ const envSchema = z.object({
   GRIDFLEX_OPERATING_MODE: z
     .enum(["SIMULATION", "HIL", "PILOT_LIVE", "PRODUCTION_ADVISORY"])
     .default("SIMULATION"),
+  /**
+   * Explicit escape hatch for rare demos. Default false — production must not
+   * publish synthetic SIMULATION telemetry without written authorisation.
+   */
+  ALLOW_SIMULATION_IN_PRODUCTION: envBoolean.default(false),
   /** Interval for backend simulation publisher when mode=SIMULATION. */
   SIMULATION_TELEMETRY_INTERVAL_MS: z.coerce.number().int().min(1000).max(120_000).default(5000),
   TELEMETRY_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(365),
@@ -236,6 +241,12 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
 
   if (config.DEVICE_SECRET_VAULT_PROVIDER === "aws_kms" && !config.AWS_KMS_KEY_ID?.trim()) {
     problems.push("AWS_KMS_KEY_ID is required when DEVICE_SECRET_VAULT_PROVIDER=aws_kms.");
+  }
+
+  if (config.GRIDFLEX_OPERATING_MODE === "SIMULATION" && !config.ALLOW_SIMULATION_IN_PRODUCTION) {
+    problems.push(
+      "GRIDFLEX_OPERATING_MODE=SIMULATION is forbidden in production unless ALLOW_SIMULATION_IN_PRODUCTION=true (written authorisation required)."
+    );
   }
 
   if (problems.length > 0) {
