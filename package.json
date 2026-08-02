@@ -24,6 +24,8 @@
     "ci:redis-fail-closed": "node scripts/ci-redis-fail-closed-probe.mjs",
     "ci:npm-audit": "node scripts/npm-audit-ci.mjs",
     "verify:kms-readiness": "node scripts/verify-kms-readiness.mjs",
+    "drill:alert-webhook": "npm --prefix backend run drill:alert-webhook",
+    "export:access-review": "npm --prefix backend run export:access-review",
     "chaos:redis-loss": "node scripts/redis-loss-recovery-drill.mjs",
     "secrets:jwt-rotation-snippet": "node scripts/generate-jwt-rotation-snippet.mjs",
     "verify:go-live": "node scripts/verify-go-live.mjs",
