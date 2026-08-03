@@ -22,8 +22,10 @@ export function authHeaders() {
 }
 
 export const slo = {
-  apiP95: "500",
-  ingestP95: "300",
-  errorRate: "0.01",
-  availability: "0.995"
+  // Override for hosted staging (Render free/starter often >500ms p95):
+  //   API_P95_MS=2000 ERROR_RATE=0.05 AVAILABILITY=0.95
+  apiP95: __ENV.API_P95_MS || "500",
+  ingestP95: __ENV.INGEST_P95_MS || "300",
+  errorRate: __ENV.ERROR_RATE || "0.01",
+  availability: __ENV.AVAILABILITY || "0.995"
 };

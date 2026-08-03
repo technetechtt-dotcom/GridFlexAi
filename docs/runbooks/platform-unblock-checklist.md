@@ -19,13 +19,15 @@ Remaining items need AWS, Render staging, people signatures, or plant hardware.
 
 ## Operator unlock order (still blocked from this workstation)
 
-1. **AWS KMS (#45)** — blocked: no AWS CLI / IAM credentials; `verify-kms-readiness` reports 5 blockers.
+1. **AWS KMS (#45)** — AWS CLI installed; **IAM credentials still missing**.
    - Follow `docs/runbooks/aws-kms-setup.md`
-   - Dry-run: `node scripts/verify-kms-readiness.mjs`
+   - Dry-run: `node scripts/verify-kms-readiness.mjs` (currently 4 blockers)
    - After Render env is set: `ROUND_TRIP=true node scripts/verify-kms-readiness.mjs`
-2. **Staging deploy of signed RC digest** — pin Render to `sha256:accf07fc…c718` (`docs/releases/RC-2026-07-23.md`). No Render CLI/credentials on workstation.
-3. **Alert webhook fire-drill on Render** — set `ALERT_WEBHOOK_*` + `METRICS_SCRAPE_TOKEN`; ack from staging. Local drill already PASS.
-4. **Load soak (#50)** — multi-VU k6 + Redis-under-traffic against staging (needs staging URL + Docker for local Redis chaos).
+2. **Staging deploy of signed RC digest** — Blueprint Node rebuild ≠ Cosign digest.
+   - Follow `docs/runbooks/staging-rc-digest-deploy.md`
+   - After deploy: `npm run verify:staging-digest`
+3. **Alert webhook fire-drill on Render** — set `ALERT_WEBHOOK_*` + `METRICS_SCRAPE_TOKEN`; ack from staging. Local drill already PASS. Live host metrics unauth→503 (token required).
+4. **Load soak (#50)** — health multi-VU against live Render **Partial Done** (see evidence board). Still need signed ingest multi-VU + Redis-under-traffic (Docker engine not healthy locally).
 5. **Staging→prod same-digest promotion (#49)** — fill remaining rows in `parity-promotion-evidence.md` after both smokes pass.
 6. **Hardware / plant (#43–46)** — Waveshare GPIO sign-off, HIL-14…20, inverter E2E, plant PPC/relay/BMS attestation (external).
 7. **Pen-test (#47)** — sign RoE, engage vendor, attach report (templates Ready).

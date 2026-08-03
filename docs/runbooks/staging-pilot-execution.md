@@ -48,9 +48,9 @@ remains disabled throughout.
 | Authenticated health/API smoke | | | | | |
 | Simulation cross-tenant smoke | | | | | |
 | HIL matrix on isolated bench | | | | | |
-| Sustained and burst ingestion | | | | | |
+| Sustained and burst ingestion | 2026-08-03 | Engineering | **Partial** — health multi-VU only (not signed ingest) | `go-live-reports/k6-staging-health-soak-pass.json` | `a541de00261515adf3f516f587d36dfdb8482c4ced4bb973c37782cd6f8c1276` |
 | WebSocket fan-out/reconnection | | | | | |
-| Redis failure/recovery | | | | | |
+| Redis failure/recovery | | | **Open** — Docker Desktop engine returning 500 locally | | |
 | Alert fire drill and acknowledgement | | | local dispatcher PASS `4440732a…a11b8`; Render Open | | |
 | Restore/rollback rehearsal | | | Neon restore drills Done; see backup-restore evidence | | |
 

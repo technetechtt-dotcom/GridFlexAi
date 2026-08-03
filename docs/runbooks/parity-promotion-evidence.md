@@ -16,7 +16,7 @@ One section per promote-to-production. **Never** paste secret values.
 | Staging smoke (`verify:go-live:staging`) | **Open** |
 | Production deploy time (UTC) | **Open** — blocked on same-digest staging pass |
 | Production smoke (`verify:go-live:production`) | **Open** |
-| `check:env-parity` | **PASS** (2026-08-03) — 68/68 keys; schema `a8f7e5605177b735562c7ea061b2951041ee1662eaa70eb6b22180be26df158b` (includes `METRICS_SCRAPE_TOKEN`, `ALERT_WEBHOOK_*`, `ALLOW_SIMULATION_IN_PRODUCTION`) |
+| `check:env-parity` | **PASS** (2026-08-03 evening) — 70/70 keys; schema `4814043a7783dab3ddf17c3bf1f968898904d35e3f9108c3913bde85ecf2e094` (adds `RELEASE_GIT_SHA`, `RELEASE_IMAGE_DIGEST`) |
 | Parity report path | `go-live-reports/env-parity.json` |
 | Parity report checksum | regenerate `.sha256` at promote time |
 | Approved config diffs (if any) | `GRIDFLEX_OPERATING_MODE` staging `SIMULATION\|HIL` vs production `PILOT_LIVE\|PRODUCTION_ADVISORY` |
@@ -39,16 +39,18 @@ One section per promote-to-production. **Never** paste secret values.
 | 2026-07-23 | `cdcd3e7` | `accf07fc…c718` (signed RC-2026-07-23) | Open | Open | _pending_ |
 | 2026-07-22 | `7fd0ba3` | `1a0f0aa1…4928` (signed, superseded for pilot) | Open | Open | _pending_ |
 
-## Repository key-schema check — 2026-08-03
+## Repository key-schema check — 2026-08-03 (evening)
 
-`npm run check:env-parity` passed with 68 staging keys and 68 production
-keys. Both templates produced schema hash
-`a8f7e5605177b735562c7ea061b2951041ee1662eaa70eb6b22180be26df158b`.
+`npm run check:env-parity` passed with 70 staging keys and 70 production
+keys. Schema hash
+`4814043a7783dab3ddf17c3bf1f968898904d35e3f9108c3913bde85ecf2e094`.
 
-Required keys now include `METRICS_SCRAPE_TOKEN`, `ALERT_WEBHOOK_*`, and
-`ALLOW_SIMULATION_IN_PRODUCTION` (PR #87).
+Adds optional `RELEASE_GIT_SHA` / `RELEASE_IMAGE_DIGEST` for health-advertised
+deploy identity (see `staging-rc-digest-deploy.md`).
 
-This closes only the environment-variable **name** comparison. Migration
-versions, immutable staging/production image digest, safety/feature flags,
-smoke tests and approved runtime differences remain open until Render deploys
-the same digest to staging then production.
+## Live host probe — 2026-08-03
+
+`https://gridflex-backend.onrender.com` — `/api/health` → database **up**, redis **up**.
+No `release` field yet (pre-deploy of health identity). Source Blueprint rebuild — **not**
+confirmed as RC digest `accf07fc…c718`.
+

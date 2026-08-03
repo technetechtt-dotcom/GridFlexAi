@@ -133,7 +133,17 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-4o-mini"),
   FORECAST_CIRCUIT_FAILURE_THRESHOLD: z.coerce.number().int().min(1).default(3),
-  FORECAST_CIRCUIT_OPEN_MS: z.coerce.number().int().min(1000).default(180000)
+  FORECAST_CIRCUIT_OPEN_MS: z.coerce.number().int().min(1000).default(180000),
+  /**
+   * Optional release identity exposed on /api/health (never secrets).
+   * Set at deploy time so staging/prod digest promotion can be verified without Render UI.
+   */
+  RELEASE_GIT_SHA: z.string().min(7).max(64).optional(),
+  /** Full registry digest including sha256: prefix when deploying a signed image. */
+  RELEASE_IMAGE_DIGEST: z
+    .string()
+    .regex(/^sha256:[a-f0-9]{64}$/i, "RELEASE_IMAGE_DIGEST must be sha256:<64 hex>")
+    .optional()
 });
 
 const parsed = envSchema.safeParse(process.env);
