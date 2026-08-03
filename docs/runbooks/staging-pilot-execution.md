@@ -1,23 +1,27 @@
 # Controlled staging pilot execution record
 
-Status: **OPEN** until a complete record is approved by engineering and
-operations. Use simulation or isolated test equipment only. Physical command
-execution remains disabled throughout.
+Status: **OPEN** — release identity and safety defaults are fixed; **deploy and
+operator steps remain blank** until Render staging receives the signed RC
+digest and ops completes the sequence below.
+
+Use simulation or isolated test equipment only. Physical command execution
+remains disabled throughout.
 
 ## Release identity
 
 | Field | Value |
 |-------|-------|
-| Pilot start / end (UTC) | |
+| Pilot start / end (UTC) | _pending — start when digest is live on staging_ |
 | Environment | staging |
 | Git commit SHA | `cdcd3e7ae2b5962ba58f990f3249728b164ab560` (`RC-2026-07-23`) |
-| Backend image digest (`sha256:`) | `sha256:accf07fc8326ffa15dd4df647af3175bb36b2d9b587270234247324c7e57c718` (signed; staging deploy still Open) |
+| Backend image digest (`sha256:`) | `sha256:accf07fc8326ffa15dd4df647af3175bb36b2d9b587270234247324c7e57c718` (signed; **staging deploy still Open**) |
 | CI run URL / run ID | https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29988892052 |
 | Evidence manifest path / SHA-256 | `37cd37f0b13d39550be465a29c93d34bc0d4cdba5e49274a5a8792e8d8916d72` |
-| Frontend release identifier | |
-| Firmware version / binary SHA-256 | see CI firmware-evidence artifact |
-| Participants and roles | |
-| On-call primary / escalation contact | |
+| Frontend release identifier | _pending staging frontend deploy id_ |
+| Firmware version / binary SHA-256 | see CI firmware-evidence artifact on freeze run |
+| Participants and roles | Engineering owner `@technetechtt-dotcom` (deploy/ops lead TBD) |
+| On-call primary / escalation contact | _pending named ops on-call_ |
+| Rollback digest (previous staging) | _record before deploy; must not be `d1a7363` / RC-2026-07-22_ |
 
 ## Mandatory safety preflight
 
@@ -32,22 +36,23 @@ execution remains disabled throughout.
 - [ ] Secrets are redacted from every evidence artifact
 - [x] Authenticated HTTP smoke against restore/staging target (2026-07-22 restore-drill SHA-256 `57531f57…d4bb`)
 - [ ] Waveshare/board pin map signed before any RS485 energize
-- [ ] Approver sign-off on restore drill
-- [ ] Alert webhook delivery/ack fire-drill with `METRICS_SCRAPE_TOKEN` + `ALERT_WEBHOOK_*`
+- [x] Approver sign-off on restore drill (engineering owner `@technetechtt-dotcom`, 2026-08-03 — see `backup-restore-evidence.md`)
+- [ ] Alert webhook delivery/ack fire-drill with `METRICS_SCRAPE_TOKEN` + `ALERT_WEBHOOK_*` **on Render staging**
+- [x] Env key schema parity includes alert/metrics keys (PR #87; `check:env-parity` PASS, schema `a8f7e560…158b`)
 
 ## Execution sequence
 
 | Step | Start/end UTC | Operator | Result | Raw artifact / URL | SHA-256 |
 |------|---------------|----------|--------|--------------------|---------|
-| Deploy immutable digest to staging | | | | | |
+| Deploy immutable digest to staging | | | **Open** — needs Render image pin to `sha256:accf07fc…c718` | | |
 | Authenticated health/API smoke | | | | | |
 | Simulation cross-tenant smoke | | | | | |
 | HIL matrix on isolated bench | | | | | |
 | Sustained and burst ingestion | | | | | |
 | WebSocket fan-out/reconnection | | | | | |
 | Redis failure/recovery | | | | | |
-| Alert fire drill and acknowledgement | | | | | |
-| Restore/rollback rehearsal | | | | | |
+| Alert fire drill and acknowledgement | | | local dispatcher PASS `4440732a…a11b8`; Render Open | | |
+| Restore/rollback rehearsal | | | Neon restore drills Done; see backup-restore evidence | | |
 
 ## Abort and rollback
 
