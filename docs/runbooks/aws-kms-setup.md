@@ -3,7 +3,7 @@
 GridFlex encrypts per-device HMAC secrets at rest with AWS KMS when
 `DEVICE_SECRET_VAULT_PROVIDER=aws_kms`.
 
-**Workstation status 2026-08-03 (evening):** AWS CLI **installed** (`aws-cli/2.36.14`).
+**Workstation status 2026-08-03 (late):** AWS CLI **installed** (`aws-cli/2.36.14`).
 IAM credentials still missing (`aws sts get-caller-identity` → NoCredentials).
 `node scripts/verify-kms-readiness.mjs` → **fail**, 4 blockers (provider, key id, region, credentials).
 Issue **#45** remains **Open** until staging and production Render services set
@@ -11,6 +11,18 @@ Issue **#45** remains **Open** until staging and production Render services set
 and record credential rotation fingerprints (never secret values).
 
 Dry-run without secrets: `node scripts/verify-kms-readiness.mjs`  
+Bootstrap CMK + IAM user (when credentials exist):
+
+```bash
+# After: aws configure   (or AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_REGION)
+BOOTSTRAP_AWS_KMS_ALLOW=true CREATE_IAM_ACCESS_KEY=true npm run bootstrap:aws-kms
+```
+
+Writes non-secret evidence to `go-live-reports/aws-kms-bootstrap.json`.
+If `CREATE_IAM_ACCESS_KEY=true`, one-time secret material is written to
+`go-live-reports/aws-kms-bootstrap.access-key.json` (gitignored) — copy into Render
+and **delete the file**.
+
 After Render credentials exist: `ROUND_TRIP=true node scripts/verify-kms-readiness.mjs`
 
 Local/restore vault rehearseals do **not** satisfy #45.

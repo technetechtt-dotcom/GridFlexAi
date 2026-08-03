@@ -20,11 +20,13 @@ Remaining items need AWS, Render staging, people signatures, or plant hardware.
 ## Operator unlock order (still blocked from this workstation)
 
 1. **AWS KMS (#45)** — AWS CLI installed; **IAM credentials still missing**.
-   - Follow `docs/runbooks/aws-kms-setup.md`
-   - Dry-run: `node scripts/verify-kms-readiness.mjs` (currently 4 blockers)
-   - After Render env is set: `ROUND_TRIP=true node scripts/verify-kms-readiness.mjs`
+   - `aws configure` (or set `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION`)
+   - Then: `BOOTSTRAP_AWS_KMS_ALLOW=true CREATE_IAM_ACCESS_KEY=true npm run bootstrap:aws-kms`
+   - Copy Render env from the bootstrap report; delete the one-time access-key file
+   - Redeploy; then `ROUND_TRIP=true npm run verify:kms-readiness`
 2. **Staging deploy of signed RC digest** — Blueprint Node rebuild ≠ Cosign digest.
-   - Follow `docs/runbooks/staging-rc-digest-deploy.md`
+   - `docs/runbooks/staging-rc-digest-deploy.md` + `docs/runbooks/render-rc-image-blueprint.md`
+   - Set `RELEASE_GIT_SHA` / `RELEASE_IMAGE_DIGEST` (live host already returns `release: null/null`)
    - After deploy: `npm run verify:staging-digest`
 3. **Alert webhook fire-drill on Render** — set `ALERT_WEBHOOK_*` + `METRICS_SCRAPE_TOKEN`; ack from staging. Local drill already PASS. Live host metrics unauth→503 (token required).
 4. **Load soak (#50)** — health multi-VU against live Render **Partial Done** (see evidence board). Still need signed ingest multi-VU + Redis-under-traffic (Docker engine not healthy locally).

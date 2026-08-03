@@ -24,6 +24,7 @@
     "ci:redis-fail-closed": "node scripts/ci-redis-fail-closed-probe.mjs",
     "ci:npm-audit": "node scripts/npm-audit-ci.mjs",
     "verify:kms-readiness": "node scripts/verify-kms-readiness.mjs",
+    "bootstrap:aws-kms": "node scripts/bootstrap-aws-kms.mjs",
     "verify:staging-digest": "node scripts/verify-staging-digest.mjs",
     "drill:alert-webhook": "npm --prefix backend run drill:alert-webhook",
     "export:access-review": "npm --prefix backend run export:access-review",
@@ -53,6 +54,9 @@
     "tailwind-merge": "latest",
     "zustand": "latest"
   },
+  "overrides": {
+    "socket.io-parser": "4.2.7"
+  },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@types/node": "^20.11.18",
@@ -65,7 +69,7 @@
     "eslint": "^8.50.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "0.4.26",
-    "postcss": "latest",
+    "postcss": "8.5.23",
     "tailwindcss": "3.4.17",
     "typescript": "^5.5.4",
     "vite": "^7.3.1"
