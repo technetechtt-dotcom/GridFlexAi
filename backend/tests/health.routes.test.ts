@@ -18,6 +18,7 @@ describe("Health route", () => {
     expect(response.body.status).toBe("ok");
     expect(typeof response.body.uptime).toBe("number");
     expect(typeof response.body.timestamp).toBe("string");
+    expect(response.body.release).toEqual({ gitSha: null, imageDigest: null });
   });
 
   it("returns service status payload", async () => {
@@ -27,6 +28,7 @@ describe("Health route", () => {
     expect(response.body.status).toBe("ok");
     expect(typeof response.body.uptime).toBe("number");
     expect(typeof response.body.timestamp).toBe("string");
+    expect(response.body.release).toEqual({ gitSha: null, imageDigest: null });
     expect(response.body.dependencies?.database).toBe("up");
   });
 });

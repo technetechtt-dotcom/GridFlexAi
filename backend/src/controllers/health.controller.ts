@@ -10,12 +10,23 @@ type DependencyStatus = {
   redis: "up" | "down" | "disabled";
 };
 
+type ReleaseIdentity = {
+  gitSha: string | null;
+  imageDigest: string | null;
+};
+
 type HealthResponse = {
   status: "ok";
   uptime: number;
   timestamp: string;
+  release: ReleaseIdentity;
   dependencies: DependencyStatus;
 };
+
+const releaseIdentity = (): ReleaseIdentity => ({
+  gitSha: env.RELEASE_GIT_SHA?.trim() || null,
+  imageDigest: env.RELEASE_IMAGE_DIGEST?.trim() || null
+});
 
 export const getLiveness = asyncHandler(async (
   _req: Request<Record<string, never>, Omit<HealthResponse, "dependencies">>,
@@ -24,7 +35,8 @@ export const getLiveness = asyncHandler(async (
   res.status(200).json({
     status: "ok",
     uptime: process.uptime(),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    release: releaseIdentity()
   });
 });
 
@@ -55,6 +67,7 @@ export const getHealth = asyncHandler(async (
     status: "ok",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
+    release: releaseIdentity(),
     dependencies: {
       database: "up",
       redis: redisStatus
