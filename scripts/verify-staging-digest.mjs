@@ -26,19 +26,38 @@ if (!/^sha256:[a-f0-9]{64}$/i.test(expectedDigest)) {
   process.exit(2);
 }
 
+const asDigest = (value) =>
+  typeof value === "string" && /^sha256:[a-f0-9]{64}$/i.test(value) ? value.toLowerCase() : null;
+
+const asGitSha = (value) =>
+  typeof value === "string" && /^[0-9a-f]{7,64}$/i.test(value) ? value.toLowerCase() : null;
+
+const asDeps = (deps) => {
+  if (!deps || typeof deps !== "object") {
+    return null;
+  }
+  const database = deps.database === "up" || deps.database === "down" ? deps.database : null;
+  const redis =
+    deps.redis === "up" || deps.redis === "down" || deps.redis === "disabled" ? deps.redis : null;
+  return { database, redis };
+};
+
 const main = async () => {
   const res = await fetch(`${baseUrl}/api/health`);
   const body = await res.json().catch(() => ({}));
-  const observedDigest =
-    typeof body?.release?.imageDigest === "string" ? body.release.imageDigest : null;
-  const observedSha = typeof body?.release?.gitSha === "string" ? body.release.gitSha : null;
+  const observedDigest = asDigest(body?.release?.imageDigest);
+  const observedSha = asGitSha(body?.release?.gitSha);
 
   const report = {
     generatedAt: new Date().toISOString(),
     baseUrl,
     httpStatus: res.status,
-    expected: { imageDigest: expectedDigest, gitSha: expectedSha || null },
-    observed: { imageDigest: observedDigest, gitSha: observedSha, dependencies: body?.dependencies ?? null },
+    expected: { imageDigest: expectedDigest.toLowerCase(), gitSha: expectedSha || null },
+    observed: {
+      imageDigest: observedDigest,
+      gitSha: observedSha,
+      dependencies: asDeps(body?.dependencies)
+    },
     pass: false,
     blockers: []
   };
@@ -50,10 +69,10 @@ const main = async () => {
     report.blockers.push(
       "release.imageDigest missing — set RELEASE_IMAGE_DIGEST on the service (requires post-PR health payload)."
     );
-  } else if (observedDigest.toLowerCase() !== expectedDigest.toLowerCase()) {
+  } else if (observedDigest !== expectedDigest.toLowerCase()) {
     report.blockers.push(`Digest mismatch: observed ${observedDigest}`);
   }
-  if (expectedSha && observedSha && observedSha !== expectedSha) {
+  if (expectedSha && observedSha && observedSha !== expectedSha.toLowerCase()) {
     report.blockers.push(`Git SHA mismatch: observed ${observedSha}`);
   }
   if (expectedSha && !observedSha) {
