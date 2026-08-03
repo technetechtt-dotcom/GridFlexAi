@@ -59,4 +59,5 @@ AWS CLI; **credentials still required**.
 
 | Date (UTC) | Operator | Digest pinned? | Health release match? | Notes |
 |------------|----------|----------------|------------------------|-------|
-| 2026-08-03 | Engineering | **No** | Live `gridflex-backend.onrender.com` is source-built (no `release` field yet); db+redis up | Multi-VU health soak evidence recorded; digest pin still Open |
+| 2026-08-03 late | Engineering | **No** | Live host returns `release:{gitSha:null,imageDigest:null}` after health identity deploy | Multi-VU soak Done; set `RELEASE_*` + pin GHCR digest — see `render-rc-image-blueprint.md` |
+| 2026-08-03 | Engineering | **No** | pre-`release` field | Multi-VU health soak evidence recorded |
