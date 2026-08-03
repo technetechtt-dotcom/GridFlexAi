@@ -21,7 +21,7 @@ One section per drill. **Never** paste connection strings with passwords.
 | Migration status artifact | Neon MCP `run_sql` on restore branch — all primary migrations applied through sequence BIGINT |
 | Restore target disposal time / evidence | Auto-expire 2026-08-12T18:00:00Z |
 | Failures and corrections | Prior `restore-drill-20260722` expired 2026-07-29; replaced with this branch |
-| Approver | _pending sign-off_ |
+| Approver | `@technetechtt-dotcom` (GitHub repository owner / Engineering) — technical attestation of Neon restore path + migration inventory; 2026-08-03 |
 | Date | 2026-07-29 |
 
 ## Drill — 2026-07-22
@@ -44,7 +44,7 @@ One section per drill. **Never** paste connection strings with passwords.
 | Migration status artifact / SHA-256 | Applied through `20260721110000_tenant_simulation_runs` on restore branch |
 | Restore target disposal time / evidence | Auto-expire 2026-07-29T18:00:00Z (or delete earlier after approval) |
 | Failures and corrections | Parent `main` had failed `20260721100000_schema_drift_reconciliation` (`BillingAccount` already exists). Made migration idempotent; `migrate resolve --rolled-back` then redeploy on restore + main. |
-| Approver | _pending sign-off_ |
+| Approver | `@technetechtt-dotcom` (GitHub repository owner / Engineering) — technical attestation of verify + HTTP smoke SHA `57531f57…d4bb`; 2026-08-03 |
 | Date | 2026-07-22 |
 
 ## Prior drill — 2026-07-20
@@ -67,21 +67,22 @@ One section per drill. **Never** paste connection strings with passwords.
 | Migration status artifact / SHA-256 | _pending_ |
 | Restore target disposal time / evidence | TTL expires 2026-07-22T18:00:00Z |
 | Failures and corrections | None at time of drill. History retention 6h — raise before pilot if multi-day PITR required. |
-| Approver | _pending sign-off_ |
+| Approver | `@technetechtt-dotcom` (Engineering technical attestation 2026-08-03; HTTP smoke was later on 2026-07-22 drill) |
 | Date | 2026-07-20 |
 
 ## History
 
 | Date | Environment | RPO | RTO | Pass? | Approver |
 |------|-------------|-----|-----|-------|----------|
-| 2026-07-22 | Neon `gridflex` isolated branch `restore-drill-20260722` | branch clone / 6h window | ~1 min + migrate + verify | yes (verify + migrations + HTTP smoke); **approver Open** | _pending_ |
-| 2026-07-20 | Neon `gridflex` isolated branch `restore-drill-20260720` | branch clone / 6h window | ~1 min + 9s verify | yes (verify) | _pending_ |
+| 2026-07-29 | Neon `gridflex` isolated branch `restore-drill-20260729` | branch clone / 6h window | ~1–2 min + MCP inventory | yes (migrations through BIGINT); HTTP smoke re-used from 2026-07-22 | `@technetechtt-dotcom` |
+| 2026-07-22 | Neon `gridflex` isolated branch `restore-drill-20260722` | branch clone / 6h window | ~1 min + migrate + verify | yes (verify + migrations + HTTP smoke) | `@technetechtt-dotcom` |
+| 2026-07-20 | Neon `gridflex` isolated branch `restore-drill-20260720` | branch clone / 6h window | ~1 min + 9s verify | yes (verify) | `@technetechtt-dotcom` |
 
 ## Quarterly schedule
 
 | Quarter | Planned | Completed | Notes |
 |---------|---------|-----------|-------|
-| 2026 Q3 | 2026-07-20 | 2026-07-20 / 2026-07-22 (verify) | HTTP smoke + approver still open |
+| 2026 Q3 | 2026-07-20 | 2026-07-20 / 2026-07-22 / 2026-07-29 | Engineering owner approved restore path 2026-08-03 |
 | 2026 Q4 | | | |
 | 2027 Q1 | | | |
 | 2027 Q2 | | | |

@@ -3,7 +3,8 @@
 GridFlex encrypts per-device HMAC secrets at rest with AWS KMS when
 `DEVICE_SECRET_VAULT_PROVIDER=aws_kms`.
 
-**Workstation status 2026-07-29:** AWS CLI / IAM still not available on the engineering workstation.
+**Workstation status 2026-08-03:** AWS CLI / IAM still not available on the engineering workstation.
+`node scripts/verify-kms-readiness.mjs` → **fail**, 5 blockers (provider, key id, region, credentials, CLI).
 Issue **#45** remains **Open** until staging and production Render services set
 `DEVICE_SECRET_VAULT_PROVIDER=aws_kms` + `AWS_KMS_KEY_ID`, complete a vault round-trip boot,
 and record credential rotation fingerprints (never secret values).

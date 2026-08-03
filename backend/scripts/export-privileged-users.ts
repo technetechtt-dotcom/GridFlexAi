@@ -37,8 +37,9 @@ const main = async () => {
           id: true,
           email: true,
           role: true,
-          createdAt: true,
-          updatedAt: true
+          status: true,
+          lastLoginAt: true,
+          createdAt: true
         },
         orderBy: { email: "asc" }
       }),
@@ -118,8 +119,9 @@ const main = async () => {
       id: u.id,
       email: u.email,
       role: u.role,
-      createdAt: u.createdAt.toISOString(),
-      updatedAt: u.updatedAt.toISOString()
+      status: u.status,
+      lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
+      createdAt: u.createdAt.toISOString()
     })),
     privilegedOrgMemberships: privilegedOrgMemberships.map((m) => ({
       id: m.id,
