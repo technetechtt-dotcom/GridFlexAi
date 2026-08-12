@@ -2,7 +2,19 @@
 
 One section per promote-to-production. **Never** paste secret values.
 
-## Promotion record — RC-2026-07-23 (in progress)
+## Promotion record — RC-2026-08-12 (in progress)
+
+| Field | Value |
+|-------|-------|
+| Date (UTC) | _pending — fill when staging→prod promote executes_ |
+| Git commit SHA | `d0cfd3f36b54478767e862280ca8cd38e2bb35df` |
+| Image tag | `gridflex-backend:rc-2026-08-12` / `sha-d0cfd3f…` |
+| Registry image digest | `sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c` |
+| Staging deploy time (UTC) | **Open** — live host is still a source rebuild |
+| Production deploy time (UTC) | **Open** |
+| Pass? | **No** |
+
+## Promotion record — RC-2026-07-23 (superseded for new deploys)
 
 | Field | Value |
 |-------|-------|
@@ -36,7 +48,8 @@ One section per promote-to-production. **Never** paste secret values.
 
 | Date | Commit | Digest (short) | Staging | Prod | Approver |
 |------|--------|----------------|---------|------|----------|
-| 2026-07-23 | `cdcd3e7` | `accf07fc…c718` (signed RC-2026-07-23) | Open | Open | _pending_ |
+| 2026-08-12 | `d0cfd3f` | `644f623f…378c` (signed RC-2026-08-12) | Open | Open | _pending_ |
+| 2026-07-23 | `cdcd3e7` | `accf07fc…c718` (signed RC-2026-07-23, superseded) | Open | Open | _pending_ |
 | 2026-07-22 | `7fd0ba3` | `1a0f0aa1…4928` (signed, superseded for pilot) | Open | Open | _pending_ |
 
 ## Repository key-schema check — 2026-08-03 (evening)

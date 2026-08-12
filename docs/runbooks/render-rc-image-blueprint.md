@@ -1,24 +1,23 @@
 # Optional Render Blueprint — signed RC image (staging)
 
 Use this **instead of** the Node `buildCommand` service when you need Gate 10
-same-digest promotion. It pins the Cosign-signed image from RC-2026-07-23.
+same-digest promotion. It pins the Cosign-signed image from RC-2026-08-12.
 
 Image:
-`ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:accf07fc8326ffa15dd4df647af3175bb36b2d9b587270234247324c7e57c718`
+`ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c`
 
 ## How to apply
 
-1. In Render → New → Blueprint → point at this file **or** create a Docker/Image
-   web service manually with the digest above.
+1. In Render → New → Blueprint **or** create a Docker/Image web service with the digest above.
 2. Add a GHCR registry credential (PAT with `read:packages`).
 3. Paste the same secrets as `render.yaml` (DATABASE_URL, JWT, AWS KMS, etc.).
 4. Set release identity:
-   - `RELEASE_GIT_SHA=cdcd3e7ae2b5962ba58f990f3249728b164ab560`
-   - `RELEASE_IMAGE_DIGEST=sha256:accf07fc8326ffa15dd4df647af3175bb36b2d9b587270234247324c7e57c718`
+   - `RELEASE_GIT_SHA=d0cfd3f36b54478767e862280ca8cd38e2bb35df`
+   - `RELEASE_IMAGE_DIGEST=sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c`
 5. Verify:
    ```bash
-   EXPECTED_IMAGE_DIGEST=sha256:accf07fc8326ffa15dd4df647af3175bb36b2d9b587270234247324c7e57c718 \
-   EXPECTED_GIT_SHA=cdcd3e7ae2b5962ba58f990f3249728b164ab560 \
+   EXPECTED_IMAGE_DIGEST=sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c \
+   EXPECTED_GIT_SHA=d0cfd3f36b54478767e862280ca8cd38e2bb35df \
    STAGING_BASE_URL=https://<this-service> npm run verify:staging-digest
    ```
 
@@ -27,24 +26,22 @@ when a new signed RC is frozen.
 
 ## Service sketch (Render image runtime)
 
-If your Render account supports `runtime: image` in Blueprints:
-
 ```yaml
 services:
   - type: web
     name: gridflex-backend-rc
     runtime: image
     image:
-      url: ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:accf07fc8326ffa15dd4df647af3175bb36b2d9b587270234247324c7e57c718
+      url: ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c
     plan: starter
     healthCheckPath: /api/health/live
     envVars:
       - key: NODE_ENV
         value: production
       - key: RELEASE_GIT_SHA
-        value: cdcd3e7ae2b5962ba58f990f3249728b164ab560
+        value: d0cfd3f36b54478767e862280ca8cd38e2bb35df
       - key: RELEASE_IMAGE_DIGEST
-        value: sha256:accf07fc8326ffa15dd4df647af3175bb36b2d9b587270234247324c7e57c718
+        value: sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c
       - key: DEVICE_SECRET_VAULT_PROVIDER
         value: aws_kms
       - key: PHYSICAL_COMMAND_EXECUTION_ENABLED
