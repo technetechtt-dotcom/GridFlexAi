@@ -20,13 +20,15 @@ Remaining items need AWS, Render staging, people signatures, or plant hardware.
 ## Operator unlock order (still blocked from this workstation)
 
 1. **AWS KMS (#45)** — AWS CLI installed; **IAM credentials still missing**.
-   - `aws configure` (or set `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION`)
-   - Then: `BOOTSTRAP_AWS_KMS_ALLOW=true CREATE_IAM_ACCESS_KEY=true npm run bootstrap:aws-kms`
-   - Copy Render env from the bootstrap report; delete the one-time access-key file
+   - Self-test: `npm run bootstrap:aws-kms:self-test`
+   - `aws configure` then `BOOTSTRAP_AWS_KMS_ALLOW=true DRY_RUN=true npm run bootstrap:aws-kms`
+   - Apply: `BOOTSTRAP_AWS_KMS_ALLOW=true EXPECTED_AWS_ACCOUNT_ID=<12-digit> npm run bootstrap:aws-kms`
+   - Static keys only with `CREATE_IAM_ACCESS_KEY=true` **and** `CONFIRM_CREATE_ACCESS_KEY=I_UNDERSTAND_LONG_LIVED_KEYS`
+   - Copy Render env; delete the one-time access-key file
    - Redeploy; then `ROUND_TRIP=true npm run verify:kms-readiness`
 2. **Staging deploy of signed RC digest** — Blueprint Node rebuild ≠ Cosign digest.
-   - `docs/runbooks/staging-rc-digest-deploy.md` + `docs/runbooks/render-rc-image-blueprint.md`
-   - Set `RELEASE_GIT_SHA` / `RELEASE_IMAGE_DIGEST` (live host already returns `release: null/null`)
+   - After `rc-2026-08-12` is signed, follow `docs/runbooks/staging-rc-digest-deploy.md`
+   - Set `RELEASE_GIT_SHA` / `RELEASE_IMAGE_DIGEST`
    - After deploy: `npm run verify:staging-digest`
 3. **Alert webhook fire-drill on Render** — set `ALERT_WEBHOOK_*` + `METRICS_SCRAPE_TOKEN`; ack from staging. Local drill already PASS. Live host metrics unauth→503 (token required).
 4. **Load soak (#50)** — health multi-VU against live Render **Partial Done** (see evidence board). Still need signed ingest multi-VU + Redis-under-traffic (Docker engine not healthy locally).

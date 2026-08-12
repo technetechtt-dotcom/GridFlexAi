@@ -3,60 +3,61 @@
 GridFlex encrypts per-device HMAC secrets at rest with AWS KMS when
 `DEVICE_SECRET_VAULT_PROVIDER=aws_kms`.
 
-**Workstation status 2026-08-03 (late):** AWS CLI **installed** (`aws-cli/2.36.14`).
-IAM credentials still missing (`aws sts get-caller-identity` → NoCredentials).
-`node scripts/verify-kms-readiness.mjs` → **fail**, 4 blockers (provider, key id, region, credentials).
-Issue **#45** remains **Open** until staging and production Render services set
-`DEVICE_SECRET_VAULT_PROVIDER=aws_kms` + `AWS_KMS_KEY_ID`, complete a vault round-trip boot,
-and record credential rotation fingerprints (never secret values).
+**Workstation status 2026-08-12:** AWS CLI installed. IAM credentials still
+required before bootstrap can create a CMK. Local restore vault rehearseals do
+**not** satisfy issue #45.
 
-Dry-run without secrets: `node scripts/verify-kms-readiness.mjs`  
-Bootstrap CMK + IAM user (when credentials exist):
+## Secure bootstrap (preferred)
 
-```bash
-# After: aws configure   (or AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_REGION)
-BOOTSTRAP_AWS_KMS_ALLOW=true CREATE_IAM_ACCESS_KEY=true npm run bootstrap:aws-kms
-```
+The bootstrap script is fail-closed:
 
-Writes non-secret evidence to `go-live-reports/aws-kms-bootstrap.json`.
-If `CREATE_IAM_ACCESS_KEY=true`, one-time secret material is written to
-`go-live-reports/aws-kms-bootstrap.access-key.json` (gitignored) — copy into Render
-and **delete the file**.
+- requires `BOOTSTRAP_AWS_KMS_ALLOW=true`
+- does **not** invoke a shell (no interpolation of alias / user / region)
+- validates region, alias, and IAM user names
+- writes reports only under `go-live-reports/`
+- never prints `SecretAccessKey`
+- long-lived IAM access keys need dual confirmation
 
-After Render credentials exist: `ROUND_TRIP=true node scripts/verify-kms-readiness.mjs`
-
-Local/restore vault rehearseals do **not** satisfy #45.
-
-Operator order of unlock: `docs/runbooks/platform-unblock-checklist.md`.
-
-## 1. Create a CMK
+Self-test (no AWS required):
 
 ```bash
-aws kms create-key \
-  --description "GridFlex device HMAC vault" \
-  --key-usage ENCRYPT_DECRYPT \
-  --origin AWS_KMS
+npm run bootstrap:aws-kms:self-test
 ```
 
-Note the `KeyId` / ARN. Optionally alias it:
+Dry-run after `aws configure`:
 
 ```bash
-aws kms create-alias \
-  --alias-name alias/gridflex-device-secrets \
-  --target-key-id <KeyId>
+BOOTSTRAP_AWS_KMS_ALLOW=true DRY_RUN=true EXPECTED_AWS_ACCOUNT_ID=<12-digit> npm run bootstrap:aws-kms
 ```
 
-## 2. IAM policy for Render (or the runtime role)
+Apply (CMK + IAM user + least-privilege inline policy; **no** access key):
 
-Allow at least:
+```bash
+BOOTSTRAP_AWS_KMS_ALLOW=true EXPECTED_AWS_ACCOUNT_ID=<12-digit> npm run bootstrap:aws-kms
+```
 
-- `kms:Encrypt`
-- `kms:Decrypt`
-- `kms:DescribeKey`
+Only if Render cannot use a role and must have static keys:
 
-on that key ARN. Prefer a dedicated IAM user or role used only by GridFlex.
+```bash
+BOOTSTRAP_AWS_KMS_ALLOW=true \
+CREATE_IAM_ACCESS_KEY=true \
+CONFIRM_CREATE_ACCESS_KEY=I_UNDERSTAND_LONG_LIVED_KEYS \
+EXPECTED_AWS_ACCOUNT_ID=<12-digit> \
+npm run bootstrap:aws-kms
+```
 
-## 3. Render environment
+Copy the one-time file `go-live-reports/aws-kms-bootstrap.access-key.json` into
+Render, then **delete the file**. Do not commit it (`go-live-reports/*` is gitignored).
+
+After Render env is set:
+
+```bash
+ROUND_TRIP=true DEVICE_SECRET_VAULT_PROVIDER=aws_kms AWS_KMS_KEY_ID=<arn> npm run verify:kms-readiness
+```
+
+Require boot log `{"event":"device_secret_vault.round_trip_ok","provider":"aws_kms",...}`.
+
+## Render environment
 
 | Key | Value |
 |-----|--------|
@@ -66,28 +67,15 @@ on that key ARN. Prefer a dedicated IAM user or role used only by GridFlex.
 | `AWS_ACCESS_KEY_ID` | IAM access key (if not using instance role) |
 | `AWS_SECRET_ACCESS_KEY` | IAM secret |
 
-Remove `DEVICE_SECRET_VAULT_KEY` when using KMS (not used by aws_kms path).
-
-## 4. Redeploy and verify
-
-1. Manual deploy the backend.
-2. Startup runs an encrypt/decrypt round trip before opening the API port.
-3. Require this log event:
-   `{"event":"device_secret_vault.round_trip_ok","provider":"aws_kms",...}`.
-4. Any encrypt/decrypt or IAM failure aborts startup; do not bypass it.
-5. Provision a device credential from Ops/Admin only after the startup test passes.
-6. If boot fails with `AWS_KMS_KEY_ID is required`, the env var is missing/empty on Render.
+Remove `DEVICE_SECRET_VAULT_KEY` when using KMS.
 
 ## Encryption context
-
-Ciphertexts are bound to:
 
 ```json
 { "application": "gridflex", "purpose": "device-hmac-secret" }
 ```
 
-Decrypt outside GridFlex must supply the same context.
-
 ## Rollback
 
-Temporary emergency only: switch to `local` is **blocked in production** by design. Keep a standby CMK / key policy and rotate credentials if the CMK is compromised.
+Temporary emergency only: switch to `local` is **blocked in production** by design.
+Keep a standby CMK / key policy and rotate credentials if the CMK is compromised.
