@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import {
   AlertTriangle,
   Battery,
+  Clock3,
+  Download,
   Droplet,
   Factory,
   Leaf,
@@ -24,6 +26,7 @@ import { Page } from '../components/Sidebar';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
 import {
   analyseRecoveryWindow,
+  downloadRecoveryReportHtml,
   type RecoveryAnalysis,
   type RecoverySample
 } from '../services/api';
@@ -114,6 +117,9 @@ export function RecoveryCommandCenter(_props: RecoveryCommandCenterProps) {
       try {
         const result = await analyseRecoveryWindow({
           samples,
+          dataEnvironment: 'synthetic_demo',
+          annualEventDays: 120,
+          estimatedCapexZar: 2_500_000,
           assumptions: {
             intervalMinutes: 10,
             tariffZarPerKwh,
@@ -290,10 +296,24 @@ export function RecoveryCommandCenter(_props: RecoveryCommandCenterProps) {
         <ChartSkeleton />
       ) : analysis ? (
         <>
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">
+              Algorithm {analysis.algorithmVersion} · {analysis.provenance.dataEnvironment} ·
+              material-loss duration {num(analysis.affectedDurationHours, 2)} h
+            </p>
+            <button
+              type="button"
+              onClick={() => downloadRecoveryReportHtml(analysis)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 hover:border-emerald-500/40">
+              <Download className="h-4 w-4" />
+              Download branded report
+            </button>
+          </div>
+
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
             {[
               {
-                label: 'Energy lost',
+                label: 'Material energy lost',
                 value: `${num(analysis.lostEnergyKwh)} kWh`,
                 icon: Zap
               },
@@ -311,6 +331,11 @@ export function RecoveryCommandCenter(_props: RecoveryCommandCenterProps) {
                 label: 'Carbon opportunity',
                 value: `${num(analysis.carbonOpportunityKg)} kg CO₂e`,
                 icon: Leaf
+              },
+              {
+                label: 'Affected duration',
+                value: `${num(analysis.affectedDurationHours, 2)} h`,
+                icon: Clock3
               },
               {
                 label: 'Affected intervals',
@@ -450,13 +475,112 @@ export function RecoveryCommandCenter(_props: RecoveryCommandCenterProps) {
                       {zar.format(option.estimatedGrossValueZar)}
                     </div>
                     <div className="mt-1 text-sm text-slate-400">
-                      {num(option.recoverableEnergyKwh)} kWh recoverable (demo estimate)
+                      {num(option.recoverableEnergyKwh)} kWh recoverable ({option.readiness})
                     </div>
                     <p className="mt-3 text-xs text-slate-500">{option.notes}</p>
                   </div>
                 );
               })}
             </div>
+          </section>
+
+          <section className="grid gap-4 xl:grid-cols-2">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+              <h2 className="mb-3 text-sm font-medium text-slate-200">Plant digital twin (energy flow)</h2>
+              <div className="relative h-56 overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/40 p-4">
+                <div className="absolute left-6 top-8 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+                  Expected
+                  <div className="text-lg font-semibold">{num(analysis.expectedEnergyKwh)} kWh</div>
+                </div>
+                <div className="absolute right-6 top-8 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
+                  Measured
+                  <div className="text-lg font-semibold">{num(analysis.actualEnergyKwh)} kWh</div>
+                </div>
+                <div className="absolute left-1/2 top-1/2 w-40 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-100">
+                  Constrained asset
+                  <div className="text-sm font-semibold">{analysis.causeLabel}</div>
+                  <div className="mt-1 text-[11px] text-amber-200/80">
+                    {num(analysis.lostEnergyKwh)} kWh material loss
+                  </div>
+                </div>
+                <div className="absolute bottom-4 left-6 right-6 flex justify-between text-[11px] text-slate-400">
+                  <span>PV / inverter</span>
+                  <span>Export / grid</span>
+                  <span>Flexible load · BESS · H₂</span>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-slate-500">
+                Visual twin highlights the constrained path. It is advisory visualisation only and does
+                not issue plant commands.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+              <h2 className="mb-3 text-sm font-medium text-slate-200">Annual financial & payback sketch</h2>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <div className="text-xs text-slate-500">Annual lost energy</div>
+                  <div className="font-semibold text-slate-100">
+                    {num(analysis.annualFinancialModel.annualLostEnergyKwh)} kWh
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Annual revenue at risk</div>
+                  <div className="font-semibold text-slate-100">
+                    {zar.format(analysis.annualFinancialModel.annualRevenueAtRiskZar)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Top-option annual gross</div>
+                  <div className="font-semibold text-slate-100">
+                    {zar.format(analysis.annualFinancialModel.topOptionAnnualGrossValueZar)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Simple payback</div>
+                  <div className="font-semibold text-slate-100">
+                    {analysis.annualFinancialModel.simplePaybackYears == null
+                      ? 'n/a'
+                      : `${num(analysis.annualFinancialModel.simplePaybackYears, 1)} years`}
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-slate-500">{analysis.annualFinancialModel.notes}</p>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 overflow-x-auto">
+            <h2 className="mb-3 text-sm font-medium text-slate-200">Interval-by-interval recovery</h2>
+            <table className="min-w-full text-left text-xs text-slate-300">
+              <thead className="text-slate-500">
+                <tr>
+                  <th className="px-2 py-1">Time</th>
+                  <th className="px-2 py-1">Expected</th>
+                  <th className="px-2 py-1">Actual</th>
+                  <th className="px-2 py-1">Material kWh</th>
+                  <th className="px-2 py-1">Cause</th>
+                </tr>
+              </thead>
+              <tbody>
+                {analysis.intervals.map((interval) => (
+                  <tr
+                    key={interval.timestamp}
+                    className={interval.material ? 'bg-amber-500/5' : undefined}>
+                    <td className="px-2 py-1">
+                      {new Date(interval.timestamp).toLocaleTimeString('en-ZA', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                      })}
+                    </td>
+                    <td className="px-2 py-1">{num(interval.expectedPowerKw)} kW</td>
+                    <td className="px-2 py-1">{num(interval.actualPowerKw)} kW</td>
+                    <td className="px-2 py-1">{num(interval.lostEnergyKwh, 2)}</td>
+                    <td className="px-2 py-1">{interval.causeLabel}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </section>
         </>
       ) : null}

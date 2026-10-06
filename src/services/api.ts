@@ -2105,27 +2105,63 @@ export type RecoveryOpportunity = {
   label: string;
   recoverableEnergyKwh: number;
   estimatedGrossValueZar: number;
-  readiness: 'demo_estimate';
+  readiness: 'demo_estimate' | 'site_estimate';
   notes: string;
   ranking: number;
 };
 
+export type RecoveryIntervalResult = {
+  timestamp: string;
+  expectedPowerKw: number;
+  actualPowerKw: number;
+  gapKw: number;
+  lostEnergyKwh: number;
+  material: boolean;
+  cause: RecoveryCause;
+  causeLabel: string;
+  confidence: number;
+};
+
 export type RecoveryAnalysis = {
   analysisMode: 'advisory_only';
+  algorithmVersion: string;
   dominantCause: RecoveryCause;
   causeLabel: string;
   confidence: number;
   expectedEnergyKwh: number;
   actualEnergyKwh: number;
   lostEnergyKwh: number;
+  grossGapEnergyKwh: number;
   performanceRatioPercent: number;
   revenueAtRiskZar: number;
   carbonOpportunityKg: number;
   affectedIntervals: number;
+  affectedDurationHours: number;
   sampleCount: number;
+  windowDurationHours: number;
+  intervals: RecoveryIntervalResult[];
   evidence: string[];
   recommendation: string;
   opportunities: RecoveryOpportunity[];
+  annualFinancialModel: {
+    assumedEventDaysPerYear: number;
+    annualLostEnergyKwh: number;
+    annualRevenueAtRiskZar: number;
+    annualCarbonOpportunityKg: number;
+    topOptionAnnualGrossValueZar: number;
+    estimatedCapexZar: number;
+    simplePaybackYears: number | null;
+    notes: string;
+  };
+  provenance: {
+    algorithmVersion: string;
+    dataEnvironment: 'live' | 'simulation' | 'hil' | 'synthetic_demo';
+    sampleCount: number;
+    expectedSourceSummary: string;
+    actualSourceSummary: string;
+    qualitySummary: string;
+    syntheticDemo: boolean;
+  };
   assumptions: Required<RecoveryAssumptions>;
   disclaimer: string;
 };
@@ -2133,6 +2169,9 @@ export type RecoveryAnalysis = {
 export async function analyseRecoveryWindow(body: {
   samples: RecoverySample[];
   assumptions?: RecoveryAssumptions;
+  dataEnvironment?: RecoveryAnalysis['provenance']['dataEnvironment'];
+  annualEventDays?: number;
+  estimatedCapexZar?: number;
 }): Promise<RecoveryAnalysis> {
   const response = await apiRequest<{ data: RecoveryAnalysis }>('/recovery/analyse', {
     method: 'POST',
@@ -2140,4 +2179,31 @@ export async function analyseRecoveryWindow(body: {
     body
   });
   return response.data;
+}
+
+export function downloadRecoveryReportHtml(analysis: RecoveryAnalysis, filename = 'gridflex-recovery-report.html'): void {
+  const opportunityRows = analysis.opportunities
+    .map(
+      (option) =>
+        `<tr><td>${option.ranking}</td><td>${option.label}</td><td>${option.recoverableEnergyKwh}</td><td>R ${option.estimatedGrossValueZar.toFixed(2)}</td></tr>`
+    )
+    .join('');
+  const html = `<!doctype html><html><head><meta charset="utf-8"/><title>GridFlex AI Recovery Report</title>
+  <style>body{font-family:Georgia,serif;margin:32px;color:#0f172a}h1{color:#065f46}.banner{background:#ecfdf5;border:1px solid #6ee7b7;padding:12px;margin:16px 0}table{border-collapse:collapse;width:100%}th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left}th{background:#f1f5f9}</style></head>
+  <body><h1>GridFlex AI Recovery Report</h1>
+  <p>Algorithm ${analysis.algorithmVersion} · Advisory only · Physical execution disabled</p>
+  <div class="banner"><strong>${analysis.causeLabel}</strong> (${Math.round(analysis.confidence * 100)}%) — ${analysis.recommendation}</div>
+  <p>Material loss: ${analysis.lostEnergyKwh} kWh · Affected duration: ${analysis.affectedDurationHours} h · Revenue at risk: R ${analysis.revenueAtRiskZar.toFixed(2)}</p>
+  <h2>Recovery options</h2><table><thead><tr><th>#</th><th>Option</th><th>kWh</th><th>Gross value</th></tr></thead><tbody>${opportunityRows}</tbody></table>
+  <h2>Annual financial sketch</h2>
+  <p>Event-days/year ${analysis.annualFinancialModel.assumedEventDaysPerYear}; top-option annual gross R ${analysis.annualFinancialModel.topOptionAnnualGrossValueZar.toFixed(2)}; payback ${analysis.annualFinancialModel.simplePaybackYears ?? 'n/a'} years.</p>
+  <p>${analysis.provenance.dataEnvironment} · expected ${analysis.provenance.expectedSourceSummary} · actual ${analysis.provenance.actualSourceSummary}</p>
+  </body></html>`;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }

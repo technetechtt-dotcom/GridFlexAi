@@ -184,6 +184,22 @@ enum CurtailmentEventStatus {
   dismissed
 }
 
+enum RecoveryAnalysisStatus {
+  open
+  under_review
+  confirmed
+  dismissed
+}
+
+enum RecoveryCauseCode {
+  none
+  grid_instruction
+  equipment_fault
+  export_limit
+  weather
+  performance_gap
+}
+
 enum GridConstraintType {
   feeder
   transformer
@@ -326,6 +342,8 @@ model User {
   alarmAcknowledgements    AlarmAcknowledgement[]
   incidentsOpened          Incident[]              @relation("IncidentOpenedBy")
   incidentTimelineEntries  IncidentTimeline[]
+  recoveryAnalysesCreated  RecoveryAnalysisRun[]      @relation("RecoveryAnalysisCreator")
+  recoveryReviews          RecoveryReview[]
 
   @@index([managedById])
   @@index([role])
@@ -365,6 +383,7 @@ model Organisation {
   alarmRules          AlarmRule[]
   alarmEvents         AlarmEvent[]
   incidents           Incident[]
+  recoveryAnalyses    RecoveryAnalysisRun[]
 
   @@index([status])
 }
@@ -672,6 +691,7 @@ model Site {
   alarmRules          AlarmRule[]
   alarmEvents         AlarmEvent[]
   incidents           Incident[]
+  recoveryAnalyses    RecoveryAnalysisRun[]
 
   @@index([clientId])
   @@index([organisationId])
@@ -707,6 +727,7 @@ model Plant {
   alarmRules          AlarmRule[]
   alarmEvents         AlarmEvent[]
   incidents           Incident[]
+  recoveryAnalyses    RecoveryAnalysisRun[]
 
   @@unique([organisationId, code])
   @@index([siteId])
@@ -1454,4 +1475,93 @@ model IncidentTimeline {
 
   @@index([incidentId, createdAt])
   @@index([actorUserId])
+}
+
+/// Persisted advisory recovery analysis (never linked to physical command execution).
+model RecoveryAnalysisRun {
+  id                     String                 @id @default(cuid())
+  organisationId         String
+  organisation           Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  siteId                 String?
+  site                   Site?                  @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  plantId                String?
+  plant                  Plant?                 @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  environment            TelemetryEnvironment   @default(simulation)
+  status                 RecoveryAnalysisStatus @default(open)
+  dominantCause          RecoveryCauseCode      @default(none)
+  causeConfidence        Float                  @default(0)
+  algorithmVersion       String
+  windowStart            DateTime
+  windowEnd              DateTime
+  expectedEnergyKwh      Float                  @default(0)
+  actualEnergyKwh        Float                  @default(0)
+  lostEnergyKwh          Float                  @default(0)
+  revenueAtRiskZar       Float                  @default(0)
+  carbonOpportunityKg    Float                  @default(0)
+  affectedIntervals      Int                    @default(0)
+  affectedDurationHours  Float                  @default(0)
+  assumptionsJson        Json
+  analysisJson           Json
+  provenanceJson         Json
+  recommendation         String
+  createdById            String?
+  createdBy              User?                  @relation("RecoveryAnalysisCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  evidence               RecoveryEvidence[]
+  opportunities          RecoveryOpportunityRow[]
+  reviews                RecoveryReview[]
+
+  @@index([organisationId, createdAt])
+  @@index([siteId, createdAt])
+  @@index([plantId, createdAt])
+  @@index([status, dominantCause])
+  @@index([algorithmVersion])
+  @@index([environment, createdAt])
+}
+
+model RecoveryEvidence {
+  id               String              @id @default(cuid())
+  analysisId       String
+  analysis         RecoveryAnalysisRun @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  timestamp        DateTime
+  sourceType       DataSourceType      @default(simulated)
+  measurementKey   String
+  numericValue     Float?
+  quality          DataQuality         @default(unverified)
+  provenanceNote   String?
+  createdAt        DateTime            @default(now())
+
+  @@index([analysisId, timestamp])
+}
+
+model RecoveryOpportunityRow {
+  id                       String              @id @default(cuid())
+  analysisId               String
+  analysis                 RecoveryAnalysisRun @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  opportunityType          String
+  label                    String
+  recoverableEnergyKwh     Float
+  estimatedGrossValueZar   Float
+  ranking                  Int
+  readiness                String
+  notes                    String?
+  createdAt                DateTime            @default(now())
+
+  @@index([analysisId, ranking])
+}
+
+model RecoveryReview {
+  id              String                 @id @default(cuid())
+  analysisId      String
+  analysis        RecoveryAnalysisRun    @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  reviewerId      String?
+  reviewer        User?                  @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  decision        RecoveryAnalysisStatus
+  correctedCause  RecoveryCauseCode?
+  notes           String
+  createdAt       DateTime               @default(now())
+
+  @@index([analysisId, createdAt])
+  @@index([reviewerId])
 }

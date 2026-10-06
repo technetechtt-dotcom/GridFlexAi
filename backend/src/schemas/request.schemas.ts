@@ -535,7 +535,12 @@ export const recoverySampleSchema = z.object({
   exportLimitKw: nonNegativeFinite.optional(),
   irradianceWm2: nonNegativeFinite.optional(),
   inverterAvailable: z.boolean().optional(),
-  gridInstructionActive: z.boolean().optional()
+  gridInstructionActive: z.boolean().optional(),
+  expectedSourceType: z.enum(["forecast", "estimated", "simulated", "operator_entered"]).optional(),
+  actualSourceType: z
+    .enum(["measured", "calculated", "simulated", "operator_entered", "imported"])
+    .optional(),
+  quality: z.enum(["valid", "uncertain", "stale", "invalid", "unverified"]).optional()
 });
 
 export const recoveryAssumptionsSchema = z
@@ -554,7 +559,39 @@ export const recoveryAssumptionsSchema = z
 
 export const recoveryAnalyseBodySchema = z.object({
   samples: z.array(recoverySampleSchema).min(1).max(288),
-  assumptions: recoveryAssumptionsSchema.optional()
+  assumptions: recoveryAssumptionsSchema.optional(),
+  dataEnvironment: z.enum(["live", "simulation", "hil", "synthetic_demo"]).optional(),
+  persist: z.boolean().optional(),
+  organisationId: z.string().min(1).max(160).optional(),
+  siteId: z.string().min(1).max(160).optional(),
+  plantId: z.string().min(1).max(160).optional(),
+  annualEventDays: z.number().finite().min(1).max(365).optional(),
+  estimatedCapexZar: nonNegativeFinite.max(1_000_000_000).optional()
+});
+
+export const recoveryAnalysePlantBodySchema = z.object({
+  plantId: z.string().min(1).max(160),
+  from: z.string().datetime(),
+  to: z.string().datetime(),
+  assumptions: recoveryAssumptionsSchema.optional(),
+  persist: z.boolean().optional(),
+  annualEventDays: z.number().finite().min(1).max(365).optional(),
+  estimatedCapexZar: nonNegativeFinite.max(1_000_000_000).optional()
+});
+
+export const recoveryListQuerySchema = z.object({
+  plantId: z.string().optional(),
+  siteId: z.string().optional(),
+  status: z.enum(["open", "under_review", "confirmed", "dismissed"]).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional()
+});
+
+export const recoveryReviewBodySchema = z.object({
+  decision: z.enum(["under_review", "confirmed", "dismissed"]),
+  notes: z.string().min(1).max(4000),
+  correctedCause: z
+    .enum(["none", "grid_instruction", "equipment_fault", "export_limit", "weather", "performance_gap"])
+    .optional()
 });
 
 export type RecoveryAnalyseBody = z.infer<typeof recoveryAnalyseBodySchema>;
