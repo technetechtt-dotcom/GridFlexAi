@@ -24,6 +24,9 @@ const KPIReporting = lazy(() => import('./pages/KPIReporting').then((module) => 
 const PlatformBlueprint = lazy(() => import('./pages/PlatformBlueprint').then((module) => ({ default: module.PlatformBlueprint })));
 const TotalGeneration = lazy(() => import('./pages/TotalGeneration').then((module) => ({ default: module.TotalGeneration })));
 const CurtailmentDetail = lazy(() => import('./pages/CurtailmentDetail').then((module) => ({ default: module.CurtailmentDetail })));
+const RecoveryCommandCenter = lazy(() =>
+  import('./pages/RecoveryCommandCenter').then((module) => ({ default: module.RecoveryCommandCenter }))
+);
 const RevenueDetail = lazy(() => import('./pages/RevenueDetail').then((module) => ({ default: module.RevenueDetail })));
 const ForecastAccuracy = lazy(() => import('./pages/ForecastAccuracy').then((module) => ({ default: module.ForecastAccuracy })));
 const GenerationVsForecast = lazy(() => import('./pages/GenerationVsForecast').then((module) => ({ default: module.GenerationVsForecast })));
@@ -60,6 +63,7 @@ const pageToPath: Record<Page, string> = {
   blueprint: '/blueprint',
   'total-generation': '/total-generation',
   'curtailment-detail': '/curtailment',
+  recovery: '/recovery',
   'revenue-detail': '/revenue',
   'forecast-accuracy': '/forecast-accuracy',
   'generation-vs-forecast': '/generation-vs-forecast',
@@ -86,6 +90,7 @@ function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/blueprint')) return 'blueprint';
   if (pathname.startsWith('/total-generation')) return 'total-generation';
   if (pathname.startsWith('/curtailment')) return 'curtailment-detail';
+  if (pathname.startsWith('/recovery')) return 'recovery';
   if (pathname.startsWith('/revenue')) return 'revenue-detail';
   if (pathname.startsWith('/forecast-accuracy')) return 'forecast-accuracy';
   if (pathname.startsWith('/generation-vs-forecast')) return 'generation-vs-forecast';
@@ -203,6 +208,7 @@ function AppRoutes() {
           <Route path="/blueprint" element={<PlatformBlueprint onNavigate={routeNavigate} />} />
           <Route path="/total-generation" element={<TotalGeneration onNavigate={routeNavigate} />} />
           <Route path="/curtailment" element={<CurtailmentDetail onNavigate={routeNavigate} />} />
+          <Route path="/recovery" element={<RecoveryCommandCenter onNavigate={routeNavigate} />} />
           <Route path="/revenue" element={<RevenueDetail onNavigate={routeNavigate} />} />
           <Route path="/forecast-accuracy" element={<ForecastAccuracy onNavigate={routeNavigate} />} />
           <Route path="/generation-vs-forecast" element={<GenerationVsForecast onNavigate={routeNavigate} />} />

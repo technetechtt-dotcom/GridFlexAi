@@ -525,3 +525,36 @@ export type BillingAccountBody = z.infer<typeof billingAccountBodySchema>;
 export type BillingAccountUpdateBody = z.infer<typeof billingAccountUpdateBodySchema>;
 export type InvoiceBody = z.infer<typeof invoiceBodySchema>;
 export type InvoiceUpdateBody = z.infer<typeof invoiceUpdateBodySchema>;
+
+const nonNegativeFinite = z.number().finite().min(0);
+
+export const recoverySampleSchema = z.object({
+  timestamp: z.string().datetime(),
+  expectedPowerKw: nonNegativeFinite,
+  actualPowerKw: nonNegativeFinite,
+  exportLimitKw: nonNegativeFinite.optional(),
+  irradianceWm2: nonNegativeFinite.optional(),
+  inverterAvailable: z.boolean().optional(),
+  gridInstructionActive: z.boolean().optional()
+});
+
+export const recoveryAssumptionsSchema = z
+  .object({
+    intervalMinutes: z.number().finite().min(1).max(60).optional(),
+    tariffZarPerKwh: nonNegativeFinite.max(1000).optional(),
+    gridEmissionFactorKgPerKwh: nonNegativeFinite.max(5).optional(),
+    flexibleLoadCapacityKw: nonNegativeFinite.max(100_000).optional(),
+    batteryUsableEnergyKwh: nonNegativeFinite.max(1_000_000).optional(),
+    batteryRoundTripEfficiency: z.number().finite().gt(0).max(1).optional(),
+    electrolyserCapacityKw: nonNegativeFinite.max(100_000).optional(),
+    electrolyserEfficiencyKwhPerKg: z.number().finite().gt(0).max(200).optional(),
+    hydrogenValueZarPerKg: nonNegativeFinite.max(1_000_000).optional()
+  })
+  .strict();
+
+export const recoveryAnalyseBodySchema = z.object({
+  samples: z.array(recoverySampleSchema).min(1).max(288),
+  assumptions: recoveryAssumptionsSchema.optional()
+});
+
+export type RecoveryAnalyseBody = z.infer<typeof recoveryAnalyseBodySchema>;

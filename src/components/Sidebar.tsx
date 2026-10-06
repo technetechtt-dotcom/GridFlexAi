@@ -17,7 +17,8 @@ import {
   Droplet,
   Factory,
   Users,
-  Server } from
+  Server,
+  Recycle } from
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
@@ -36,6 +37,7 @@ export type Page =
 'blueprint' |
 'total-generation' |
 'curtailment-detail' |
+'recovery' |
 'revenue-detail' |
 'forecast-accuracy' |
 'generation-vs-forecast' |
@@ -118,6 +120,11 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     id: 'curtailment-detail',
     label: 'Curtailment',
     icon: AlertTriangle
+  },
+  {
+    id: 'recovery',
+    label: 'Recovery Centre',
+    icon: Recycle
   },
   {
     id: 'ai-assistant',

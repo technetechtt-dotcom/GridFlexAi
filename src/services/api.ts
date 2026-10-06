@@ -2069,3 +2069,75 @@ export async function createAdvisoryOptimisationRun(body: {
   );
   return response.data;
 }
+
+export type RecoveryCause =
+  | 'none'
+  | 'grid_instruction'
+  | 'equipment_fault'
+  | 'export_limit'
+  | 'weather'
+  | 'performance_gap';
+
+export type RecoverySample = {
+  timestamp: string;
+  expectedPowerKw: number;
+  actualPowerKw: number;
+  exportLimitKw?: number;
+  irradianceWm2?: number;
+  inverterAvailable?: boolean;
+  gridInstructionActive?: boolean;
+};
+
+export type RecoveryAssumptions = {
+  intervalMinutes?: number;
+  tariffZarPerKwh?: number;
+  gridEmissionFactorKgPerKwh?: number;
+  flexibleLoadCapacityKw?: number;
+  batteryUsableEnergyKwh?: number;
+  batteryRoundTripEfficiency?: number;
+  electrolyserCapacityKw?: number;
+  electrolyserEfficiencyKwhPerKg?: number;
+  hydrogenValueZarPerKg?: number;
+};
+
+export type RecoveryOpportunity = {
+  id: 'flexible_load' | 'battery' | 'green_hydrogen';
+  label: string;
+  recoverableEnergyKwh: number;
+  estimatedGrossValueZar: number;
+  readiness: 'demo_estimate';
+  notes: string;
+  ranking: number;
+};
+
+export type RecoveryAnalysis = {
+  analysisMode: 'advisory_only';
+  dominantCause: RecoveryCause;
+  causeLabel: string;
+  confidence: number;
+  expectedEnergyKwh: number;
+  actualEnergyKwh: number;
+  lostEnergyKwh: number;
+  performanceRatioPercent: number;
+  revenueAtRiskZar: number;
+  carbonOpportunityKg: number;
+  affectedIntervals: number;
+  sampleCount: number;
+  evidence: string[];
+  recommendation: string;
+  opportunities: RecoveryOpportunity[];
+  assumptions: Required<RecoveryAssumptions>;
+  disclaimer: string;
+};
+
+export async function analyseRecoveryWindow(body: {
+  samples: RecoverySample[];
+  assumptions?: RecoveryAssumptions;
+}): Promise<RecoveryAnalysis> {
+  const response = await apiRequest<{ data: RecoveryAnalysis }>('/recovery/analyse', {
+    method: 'POST',
+    auth: true,
+    body
+  });
+  return response.data;
+}
