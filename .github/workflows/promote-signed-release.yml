@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       image_digest:
-        description: Full sha256 digest including sha256: prefix
+        description: "Full image digest including the sha256: prefix"
         required: true
         type: string
       git_sha:
-        description: Full git commit SHA expected on /api/health
+        description: "Full git commit SHA expected on /api/health"
         required: true
         type: string
       service_id:
-        description: Render service id for the Docker/image staging backend
+        description: "Render service id for the Docker/image staging backend"
         required: false
         type: string
 
