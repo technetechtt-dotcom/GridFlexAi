@@ -1,10 +1,12 @@
 # Optional Render Blueprint — signed RC image (staging)
 
 Use this **instead of** the Node `buildCommand` service when you need Gate 10
-same-digest promotion. It pins the Cosign-signed image from RC-2026-08-12.
+same-digest promotion. It pins the Cosign-signed image from RC-2026-10-08.
 
 Image:
-`ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c`
+`ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:c2ec24db972b4f48b80d92c8d4d130d0a9a9324d90fe436799bd082a94bd8a74`
+
+> After apt OS CVE remediation lands, replace this digest with the newest signed RC digest from `docs/releases/RC-2026-10-08.md` (or successor tag) before deploying.
 
 ## How to apply
 
@@ -12,12 +14,12 @@ Image:
 2. Add a GHCR registry credential (PAT with `read:packages`).
 3. Paste the same secrets as `render.yaml` (DATABASE_URL, JWT, AWS KMS, etc.).
 4. Set release identity:
-   - `RELEASE_GIT_SHA=d0cfd3f36b54478767e862280ca8cd38e2bb35df`
-   - `RELEASE_IMAGE_DIGEST=sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c`
+   - `RELEASE_GIT_SHA=7ff9219da5e2b5f934fc233b7b1fcd12ed0dae78`
+   - `RELEASE_IMAGE_DIGEST=sha256:c2ec24db972b4f48b80d92c8d4d130d0a9a9324d90fe436799bd082a94bd8a74`
 5. Verify:
    ```bash
-   EXPECTED_IMAGE_DIGEST=sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c \
-   EXPECTED_GIT_SHA=d0cfd3f36b54478767e862280ca8cd38e2bb35df \
+   EXPECTED_IMAGE_DIGEST=sha256:c2ec24db972b4f48b80d92c8d4d130d0a9a9324d90fe436799bd082a94bd8a74 \
+   EXPECTED_GIT_SHA=7ff9219da5e2b5f934fc233b7b1fcd12ed0dae78 \
    STAGING_BASE_URL=https://<this-service> npm run verify:staging-digest
    ```
 
@@ -32,16 +34,16 @@ services:
     name: gridflex-backend-rc
     runtime: image
     image:
-      url: ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c
+      url: ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:c2ec24db972b4f48b80d92c8d4d130d0a9a9324d90fe436799bd082a94bd8a74
     plan: starter
     healthCheckPath: /api/health/live
     envVars:
       - key: NODE_ENV
         value: production
       - key: RELEASE_GIT_SHA
-        value: d0cfd3f36b54478767e862280ca8cd38e2bb35df
+        value: 7ff9219da5e2b5f934fc233b7b1fcd12ed0dae78
       - key: RELEASE_IMAGE_DIGEST
-        value: sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c
+        value: sha256:c2ec24db972b4f48b80d92c8d4d130d0a9a9324d90fe436799bd082a94bd8a74
       - key: DEVICE_SECRET_VAULT_PROVIDER
         value: aws_kms
       - key: PHYSICAL_COMMAND_EXECUTION_ENABLED

@@ -3,6 +3,7 @@ FROM node:22.23.1-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5
 WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates openssl \
+    && apt-get upgrade -y --no-install-recommends libpcre2-8-0 perl-base \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
@@ -25,6 +26,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates openssl \
+    && apt-get upgrade -y --no-install-recommends libpcre2-8-0 perl-base \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./

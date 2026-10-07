@@ -2,12 +2,12 @@
 
 **Goal:** Run the frozen RC signed image on staging — not a Render source rebuild.
 
-RC-2026-08-12 identity:
+RC-2026-10-08 identity:
 
 | Field | Value |
 |-------|-------|
-| Commit | `d0cfd3f36b54478767e862280ca8cd38e2bb35df` |
-| Image | `ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c` |
+| Commit | `7ff9219da5e2b5f934fc233b7b1fcd12ed0dae78` |
+| Image | `ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:c2ec24db972b4f48b80d92c8d4d130d0a9a9324d90fe436799bd082a94bd8a74` |
 
 ## Why `render.yaml` alone is insufficient
 
@@ -19,7 +19,7 @@ the staging→prod same-digest promotion gate.
 
 1. Create or convert a **Docker** web service (staging) that pulls from GHCR:
    - Image URL: `ghcr.io/technetechtt-dotcom/gridflex-backend`
-   - Tag / digest: pin **`@sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c`**
+   - Tag / digest: pin **`@sha256:c2ec24db972b4f48b80d92c8d4d130d0a9a9324d90fe436799bd082a94bd8a74`**
    - Registry credential: GHCR read token (classic PAT with `read:packages`, or org deploy token)
 2. Copy env from the existing Node service (or Blueprint), including:
    - `DEVICE_SECRET_VAULT_PROVIDER=aws_kms` + `AWS_KMS_KEY_ID` / region / IAM keys (**#45**)
@@ -27,14 +27,14 @@ the staging→prod same-digest promotion gate.
    - `METRICS_SCRAPE_TOKEN`
    - Physical lock flags remain **false** / pilot lock **true**
 3. Set release identity (exposed on `/api/health`):
-   - `RELEASE_GIT_SHA=d0cfd3f36b54478767e862280ca8cd38e2bb35df`
-   - `RELEASE_IMAGE_DIGEST=sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c`
+   - `RELEASE_GIT_SHA=7ff9219da5e2b5f934fc233b7b1fcd12ed0dae78`
+   - `RELEASE_IMAGE_DIGEST=sha256:c2ec24db972b4f48b80d92c8d4d130d0a9a9324d90fe436799bd082a94bd8a74`
 4. Deploy → wait for healthy.
 5. Verify:
    ```bash
    curl -s https://<staging-backend>/api/health
-   EXPECTED_IMAGE_DIGEST=sha256:644f623f033c6fdbaacf53c1bc4693bc0650f4fd43b096c24420a3fb8433378c \
-   EXPECTED_GIT_SHA=d0cfd3f36b54478767e862280ca8cd38e2bb35df \
+   EXPECTED_IMAGE_DIGEST=sha256:c2ec24db972b4f48b80d92c8d4d130d0a9a9324d90fe436799bd082a94bd8a74 \
+   EXPECTED_GIT_SHA=7ff9219da5e2b5f934fc233b7b1fcd12ed0dae78 \
    STAGING_BASE_URL=https://<staging-backend> npm run verify:staging-digest
    ```
 6. Record deploy UTC + smoke in `staging-pilot-execution.md` and `parity-promotion-evidence.md`.
@@ -57,5 +57,6 @@ the staging→prod same-digest promotion gate.
 
 | Date (UTC) | Operator | Digest pinned? | Health release match? | Notes |
 |------------|----------|----------------|------------------------|-------|
-| 2026-08-12 | Engineering | **No** | Live `gridflex-backend.onrender.com` missing `release.imageDigest` (source rebuild) | RC-2026-08-12 signed `644f623f…378c`; pin this digest |
+| 2026-10-08 | Engineering | **Pending** | Live `gridflex-backend.onrender.com` still source-built (`release` null) | RC-2026-10-08 signed `c2ec24db…8a74`; pin Docker image + `RELEASE_*` |
+| 2026-08-12 | Engineering | **No** | Live `gridflex-backend.onrender.com` missing `release.imageDigest` (source rebuild) | RC-2026-08-12 signed `644f623f…378c`; superseded for new deploys |
 | 2026-08-03 late | Engineering | **No** | `release:{gitSha:null,imageDigest:null}` | Multi-VU soak Done |

@@ -1,0 +1,88 @@
+name: Promote Signed Release To Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_digest:
+        description: Full sha256 digest including sha256: prefix
+        required: true
+        type: string
+      git_sha:
+        description: Full git commit SHA expected on /api/health
+        required: true
+        type: string
+      service_id:
+        description: Render service id for the Docker/image staging backend
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require Render credentials
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ inputs.service_id || secrets.RENDER_STAGING_SERVICE_ID }}
+        run: |
+          if [ -z "$RENDER_API_KEY" ]; then
+            echo "::error::RENDER_API_KEY secret is not configured"
+            exit 1
+          fi
+          if [ -z "$RENDER_SERVICE_ID" ]; then
+            echo "::error::Provide service_id input or RENDER_STAGING_SERVICE_ID secret"
+            exit 1
+          fi
+          echo "service_id=$RENDER_SERVICE_ID" >> "$GITHUB_ENV"
+
+      - name: Pin image digest and release identity on Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          GIT_SHA: ${{ inputs.git_sha }}
+          IMAGE_URL: ghcr.io/technetechtt-dotcom/gridflex-backend
+        run: |
+          set -euo pipefail
+          digest="$IMAGE_DIGEST"
+          case "$digest" in
+            sha256:*) ;;
+            *) echo "::error::image_digest must start with sha256:"; exit 1 ;;
+          esac
+          payload=$(jq -n \
+            --arg imageUrl "$IMAGE_URL@$digest" \
+            --arg gitSha "$GIT_SHA" \
+            --arg digest "$digest" \
+            '{
+              image: { imageURL: $imageUrl },
+              envVars: [
+                { key: "RELEASE_GIT_SHA", value: $gitSha },
+                { key: "RELEASE_IMAGE_DIGEST", value: $digest }
+              ]
+            }')
+          curl -fsS -X PATCH \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "https://api.render.com/v1/services/$service_id" \
+            | tee promote-service.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -d '{"clearCache":"do_not_clear"}' \
+            "https://api.render.com/v1/services/$service_id/deploys" \
+            | tee promote-deploy.json
+
+      - name: Upload promote evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: promote-signed-release-evidence
+          path: |
+            promote-service.json
+            promote-deploy.json
+          if-no-files-found: ignore
