@@ -50,16 +50,17 @@ export const postRecoveryAnalyseHandler = asyncHandler(async (req: Request, res:
   if (!organisationId) {
     throw new AppError("organisationId is required when persist=true.", 400);
   }
-  if (analysis.provenance.syntheticDemo && analysis.provenance.dataEnvironment === "synthetic_demo") {
-    // Demo runs may persist only when explicitly requested with an organisation.
+  if (!req.user) {
+    throw new AppError("Authentication required.", 401);
   }
 
   const saved = await persistRecoveryAnalysis({
     analysis,
     organisationId,
+    actor: req.user,
+    actorId: req.user.id,
     ...(siteId ? { siteId } : {}),
-    ...(plantId ? { plantId } : {}),
-    ...(req.user?.id ? { actorId: req.user.id } : {})
+    ...(plantId ? { plantId } : {})
   });
 
   res.status(201).json({ data: analysis, persisted: { id: saved.id, status: saved.status } });
@@ -107,12 +108,16 @@ export const postRecoveryAnalysePlantHandler = asyncHandler(async (req: Request,
     return;
   }
 
+  if (!req.user) {
+    throw new AppError("Authentication required.", 401);
+  }
   const saved = await persistRecoveryAnalysis({
     analysis,
     organisationId: assembled.plant.organisationId,
     siteId: assembled.plant.siteId,
     plantId: assembled.plant.id,
-    ...(req.user?.id ? { actorId: req.user.id } : {})
+    actor: req.user,
+    actorId: req.user.id
   });
 
   res.status(201).json({

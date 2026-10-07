@@ -18,10 +18,43 @@ import {
   type RecoverySample
 } from "../domain/recovery-engine.js";
 import { prisma } from "../lib/prisma.js";
+import {
+  assertOrganisationAccess,
+  assertSiteAccess,
+  resolveAccessScope,
+  type AccessScope
+} from "../middleware/permissions.js";
 import { AppError } from "../utils/AppError.js";
 import { recordAuditLog } from "./audit-log.service.js";
 import type { AccessActor } from "./access-scope.service.js";
-import { getOptionalSiteAccessScope } from "./access-scope.service.js";
+
+const requireActor = (actor?: AccessActor): AccessActor => {
+  if (!actor?.id || !actor.role) {
+    throw new AppError("Authentication required.", 401);
+  }
+  return actor;
+};
+
+const resolveRecoveryScope = async (actor?: AccessActor): Promise<AccessScope> => {
+  const user = requireActor(actor);
+  return resolveAccessScope(user.id, user.role as "admin" | "developer" | "manager" | "operator");
+};
+
+const escapeHtml = (value: unknown): string =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const escapeCsv = (value: unknown): string => {
+  const text = String(value ?? "");
+  if (/[",\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+};
 
 const toCauseCode = (cause: RecoveryCause): RecoveryCauseCode => {
   switch (cause) {
@@ -49,13 +82,62 @@ const toEnvironment = (
 };
 
 const assertPlantAccess = async (plantId: string, actor?: AccessActor) => {
-  const scope = await getOptionalSiteAccessScope(actor);
+  const scope = await resolveRecoveryScope(actor);
   const plant = await prisma.plant.findUnique({ where: { id: plantId } });
   if (!plant) throw new AppError("Plant not found.", 404);
-  if (scope.kind === "site" && plant.siteId !== scope.siteId) {
-    throw new AppError("Cross-tenant plant access denied.", 403);
-  }
+  await assertSiteAccess(scope, plant.siteId);
+  assertOrganisationAccess(scope, plant.organisationId);
   return plant;
+};
+
+const assertPersistenceTargets = async (input: {
+  organisationId: string;
+  siteId?: string | null;
+  plantId?: string | null;
+  actor?: AccessActor;
+}) => {
+  const scope = await resolveRecoveryScope(input.actor);
+  assertOrganisationAccess(scope, input.organisationId);
+
+  if (input.siteId) {
+    await assertSiteAccess(scope, input.siteId);
+    const site = await prisma.site.findUnique({
+      where: { id: input.siteId },
+      select: { organisationId: true }
+    });
+    if (!site) throw new AppError("Site not found.", 404);
+    if (site.organisationId && site.organisationId !== input.organisationId) {
+      throw new AppError("Site does not belong to the requested organisation.", 403);
+    }
+  }
+
+  if (input.plantId) {
+    const plant = await prisma.plant.findUnique({
+      where: { id: input.plantId },
+      select: { id: true, siteId: true, organisationId: true }
+    });
+    if (!plant) throw new AppError("Plant not found.", 404);
+    if (plant.organisationId !== input.organisationId) {
+      throw new AppError("Plant does not belong to the requested organisation.", 403);
+    }
+    if (input.siteId && plant.siteId !== input.siteId) {
+      throw new AppError("Plant does not belong to the requested site.", 403);
+    }
+    await assertSiteAccess(scope, plant.siteId);
+  }
+};
+
+const assertAnalysisAccess = async (
+  row: { organisationId: string; siteId: string | null },
+  actor?: AccessActor
+): Promise<void> => {
+  const scope = await resolveRecoveryScope(actor);
+  assertOrganisationAccess(scope, row.organisationId);
+  if (row.siteId) {
+    await assertSiteAccess(scope, row.siteId);
+  } else if (scope.kind === "site") {
+    throw new AppError("Cross-tenant recovery analysis access denied.", 403);
+  }
 };
 
 const bucketMs = (intervalMinutes: number) => intervalMinutes * 60 * 1000;
@@ -213,10 +295,17 @@ export const persistRecoveryAnalysis = async (input: {
   siteId?: string | null;
   plantId?: string | null;
   actorId?: string;
+  actor?: AccessActor;
 }): Promise<RecoveryAnalysisRun> => {
-  if (input.analysis.provenance.syntheticDemo) {
-    // Allow demo persistence only into simulation environment with explicit org.
+  if (!input.actor) {
+    throw new AppError("Authentication required to persist recovery analysis.", 401);
   }
+  await assertPersistenceTargets({
+    organisationId: input.organisationId,
+    actor: input.actor,
+    ...(input.siteId !== undefined ? { siteId: input.siteId } : {}),
+    ...(input.plantId !== undefined ? { plantId: input.plantId } : {})
+  });
 
   const windowStart = new Date(input.analysis.intervals[0]?.timestamp ?? Date.now());
   const windowEnd = new Date(
@@ -314,11 +403,48 @@ export const listRecoveryAnalyses = async (
   },
   actor?: AccessActor
 ) => {
-  const scope = await getOptionalSiteAccessScope(actor);
+  const scope = await resolveRecoveryScope(actor);
   const where: Prisma.RecoveryAnalysisRunWhereInput = {};
-  if (scope.kind === "site") where.siteId = scope.siteId;
-  else if (filters.siteId) where.siteId = filters.siteId;
-  if (filters.plantId) where.plantId = filters.plantId;
+
+  if (scope.kind === "none") {
+    return [];
+  }
+
+  if (scope.kind === "site") {
+    where.siteId = { in: scope.siteIds };
+    if (filters.siteId) {
+      await assertSiteAccess(scope, filters.siteId);
+      where.siteId = filters.siteId;
+    }
+    if (filters.plantId) {
+      const plant = await prisma.plant.findUnique({
+        where: { id: filters.plantId },
+        select: { siteId: true, organisationId: true }
+      });
+      if (!plant) throw new AppError("Plant not found.", 404);
+      await assertSiteAccess(scope, plant.siteId);
+      where.plantId = filters.plantId;
+    }
+  } else if (scope.kind === "organisation") {
+    where.organisationId = { in: scope.organisationIds };
+    if (filters.siteId) {
+      await assertSiteAccess(scope, filters.siteId);
+      where.siteId = filters.siteId;
+    }
+    if (filters.plantId) {
+      const plant = await prisma.plant.findUnique({
+        where: { id: filters.plantId },
+        select: { organisationId: true, siteId: true }
+      });
+      if (!plant) throw new AppError("Plant not found.", 404);
+      assertOrganisationAccess(scope, plant.organisationId);
+      where.plantId = filters.plantId;
+    }
+  } else {
+    if (filters.siteId) where.siteId = filters.siteId;
+    if (filters.plantId) where.plantId = filters.plantId;
+  }
+
   if (filters.status) where.status = filters.status;
 
   return prisma.recoveryAnalysisRun.findMany({
@@ -335,7 +461,6 @@ export const listRecoveryAnalyses = async (
 };
 
 export const getRecoveryAnalysis = async (analysisId: string, actor?: AccessActor) => {
-  const scope = await getOptionalSiteAccessScope(actor);
   const row = await prisma.recoveryAnalysisRun.findUnique({
     where: { id: analysisId },
     include: {
@@ -347,9 +472,7 @@ export const getRecoveryAnalysis = async (analysisId: string, actor?: AccessActo
     }
   });
   if (!row) throw new AppError("Recovery analysis not found.", 404);
-  if (scope.kind === "site" && row.siteId !== scope.siteId) {
-    throw new AppError("Cross-tenant recovery analysis access denied.", 403);
-  }
+  await assertAnalysisAccess(row, actor);
   return row;
 };
 
@@ -404,39 +527,44 @@ export const reviewRecoveryAnalysis = async (input: {
 export const buildRecoveryReportCsv = (analysis: RecoveryAnalysis): string => {
   const lines = [
     "section,key,value",
-    `meta,algorithmVersion,${analysis.algorithmVersion}`,
-    `meta,analysisMode,${analysis.analysisMode}`,
-    `meta,dominantCause,${analysis.dominantCause}`,
-    `meta,confidence,${analysis.confidence}`,
-    `meta,lostEnergyKwh,${analysis.lostEnergyKwh}`,
-    `meta,affectedDurationHours,${analysis.affectedDurationHours}`,
-    `meta,revenueAtRiskZar,${analysis.revenueAtRiskZar}`,
-    `meta,carbonOpportunityKg,${analysis.carbonOpportunityKg}`,
-    `meta,dataEnvironment,${analysis.provenance.dataEnvironment}`,
-    `meta,syntheticDemo,${analysis.provenance.syntheticDemo}`,
+    `meta,algorithmVersion,${escapeCsv(analysis.algorithmVersion)}`,
+    `meta,analysisMode,${escapeCsv(analysis.analysisMode)}`,
+    `meta,dominantCause,${escapeCsv(analysis.dominantCause)}`,
+    `meta,confidence,${escapeCsv(analysis.confidence)}`,
+    `meta,lostEnergyKwh,${escapeCsv(analysis.lostEnergyKwh)}`,
+    `meta,affectedDurationHours,${escapeCsv(analysis.affectedDurationHours)}`,
+    `meta,revenueAtRiskZar,${escapeCsv(analysis.revenueAtRiskZar)}`,
+    `meta,carbonOpportunityKg,${escapeCsv(analysis.carbonOpportunityKg)}`,
+    `meta,dataEnvironment,${escapeCsv(analysis.provenance.dataEnvironment)}`,
+    `meta,syntheticDemo,${escapeCsv(analysis.provenance.syntheticDemo)}`,
     ...analysis.opportunities.map(
       (option) =>
-        `opportunity,${option.id},${option.estimatedGrossValueZar}|${option.recoverableEnergyKwh}|${option.ranking}`
+        `opportunity,${escapeCsv(option.id)},${escapeCsv(
+          `${option.estimatedGrossValueZar}|${option.recoverableEnergyKwh}|${option.ranking}`
+        )}`
     ),
     ...analysis.intervals.map(
       (interval) =>
-        `interval,${interval.timestamp},${interval.expectedPowerKw}|${interval.actualPowerKw}|${interval.lostEnergyKwh}|${interval.cause}|${interval.material}`
+        `interval,${escapeCsv(interval.timestamp)},${escapeCsv(
+          `${interval.expectedPowerKw}|${interval.actualPowerKw}|${interval.lostEnergyKwh}|${interval.cause}|${interval.material}`
+        )}`
     )
   ];
   return `${lines.join("\n")}\n`;
 };
 
 export const buildRecoveryReportHtml = (analysis: RecoveryAnalysis, title = "GridFlex AI Recovery Report"): string => {
+  const safeTitle = escapeHtml(title);
   const opportunityRows = analysis.opportunities
     .map(
       (option) =>
-        `<tr><td>${option.ranking}</td><td>${option.label}</td><td>${option.recoverableEnergyKwh}</td><td>R ${option.estimatedGrossValueZar.toFixed(2)}</td></tr>`
+        `<tr><td>${escapeHtml(option.ranking)}</td><td>${escapeHtml(option.label)}</td><td>${escapeHtml(option.recoverableEnergyKwh)}</td><td>R ${escapeHtml(option.estimatedGrossValueZar.toFixed(2))}</td></tr>`
     )
     .join("");
   const intervalRows = analysis.intervals
     .map(
       (interval) =>
-        `<tr><td>${interval.timestamp}</td><td>${interval.expectedPowerKw}</td><td>${interval.actualPowerKw}</td><td>${interval.lostEnergyKwh}</td><td>${interval.causeLabel}</td><td>${interval.material ? "yes" : "no"}</td></tr>`
+        `<tr><td>${escapeHtml(interval.timestamp)}</td><td>${escapeHtml(interval.expectedPowerKw)}</td><td>${escapeHtml(interval.actualPowerKw)}</td><td>${escapeHtml(interval.lostEnergyKwh)}</td><td>${escapeHtml(interval.causeLabel)}</td><td>${interval.material ? "yes" : "no"}</td></tr>`
     )
     .join("");
 
@@ -444,7 +572,7 @@ export const buildRecoveryReportHtml = (analysis: RecoveryAnalysis, title = "Gri
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>${title}</title>
+  <title>${safeTitle}</title>
   <style>
     body { font-family: Georgia, "Times New Roman", serif; color: #0f172a; margin: 32px; }
     h1 { color: #065f46; margin-bottom: 4px; }
@@ -457,23 +585,23 @@ export const buildRecoveryReportHtml = (analysis: RecoveryAnalysis, title = "Gri
   </style>
 </head>
 <body>
-  <h1>${title}</h1>
-  <p class="muted">Algorithm ${analysis.algorithmVersion} · Advisory only · Physical execution disabled</p>
-  <div class="banner"><strong>${analysis.causeLabel}</strong> (confidence ${(analysis.confidence * 100).toFixed(0)}%) — ${analysis.recommendation}</div>
+  <h1>${safeTitle}</h1>
+  <p class="muted">Algorithm ${escapeHtml(analysis.algorithmVersion)} · Advisory only · Physical execution disabled</p>
+  <div class="banner"><strong>${escapeHtml(analysis.causeLabel)}</strong> (confidence ${escapeHtml((analysis.confidence * 100).toFixed(0))}%) — ${escapeHtml(analysis.recommendation)}</div>
   <div>
-    <div class="kpi"><strong>${analysis.lostEnergyKwh}</strong><br/>kWh material loss</div>
-    <div class="kpi"><strong>R ${analysis.revenueAtRiskZar.toFixed(2)}</strong><br/>revenue at risk</div>
-    <div class="kpi"><strong>${analysis.affectedDurationHours}</strong><br/>affected hours</div>
-    <div class="kpi"><strong>${analysis.carbonOpportunityKg}</strong><br/>kg CO₂e opportunity</div>
+    <div class="kpi"><strong>${escapeHtml(analysis.lostEnergyKwh)}</strong><br/>kWh material loss</div>
+    <div class="kpi"><strong>R ${escapeHtml(analysis.revenueAtRiskZar.toFixed(2))}</strong><br/>revenue at risk</div>
+    <div class="kpi"><strong>${escapeHtml(analysis.affectedDurationHours)}</strong><br/>affected hours</div>
+    <div class="kpi"><strong>${escapeHtml(analysis.carbonOpportunityKg)}</strong><br/>kg CO₂e opportunity</div>
   </div>
   <h2>Recovery options</h2>
   <table><thead><tr><th>#</th><th>Option</th><th>kWh</th><th>Gross value</th></tr></thead><tbody>${opportunityRows}</tbody></table>
   <h2>Annual financial sketch</h2>
-  <p>Assumed event-days/year: ${analysis.annualFinancialModel.assumedEventDaysPerYear}. Top-option annual gross value: R ${analysis.annualFinancialModel.topOptionAnnualGrossValueZar.toFixed(2)}. Simple payback: ${analysis.annualFinancialModel.simplePaybackYears ?? "n/a"} years.</p>
-  <p class="muted">${analysis.annualFinancialModel.notes}</p>
+  <p>Assumed event-days/year: ${escapeHtml(analysis.annualFinancialModel.assumedEventDaysPerYear)}. Top-option annual gross value: R ${escapeHtml(analysis.annualFinancialModel.topOptionAnnualGrossValueZar.toFixed(2))}. Simple payback: ${escapeHtml(analysis.annualFinancialModel.simplePaybackYears ?? "n/a")} years.</p>
+  <p class="muted">${escapeHtml(analysis.annualFinancialModel.notes)}</p>
   <h2>Interval detail</h2>
   <table><thead><tr><th>Timestamp</th><th>Expected kW</th><th>Actual kW</th><th>Material lost kWh</th><th>Cause</th><th>Material</th></tr></thead><tbody>${intervalRows}</tbody></table>
-  <p class="muted">Provenance: ${analysis.provenance.dataEnvironment} · expected ${analysis.provenance.expectedSourceSummary} · actual ${analysis.provenance.actualSourceSummary}</p>
+  <p class="muted">Provenance: ${escapeHtml(analysis.provenance.dataEnvironment)} · expected ${escapeHtml(analysis.provenance.expectedSourceSummary)} · actual ${escapeHtml(analysis.provenance.actualSourceSummary)}</p>
 </body>
 </html>`;
 };

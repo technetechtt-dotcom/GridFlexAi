@@ -27,6 +27,8 @@
     "bootstrap:aws-kms": "node scripts/bootstrap-aws-kms.mjs",
     "bootstrap:aws-kms:self-test": "node scripts/bootstrap-aws-kms.mjs --self-test",
     "verify:staging-digest": "node scripts/verify-staging-digest.mjs",
+    "demo:recovery-solar": "node scripts/recovery-solar-demo.mjs",
+    "demo:recovery-solar:engine": "npm --prefix backend exec -- tsx scripts/run-recovery-solar-demo.ts",
     "verify:observability-readiness": "node scripts/verify-observability-readiness.mjs",
     "drill:alert-webhook": "npm --prefix backend run drill:alert-webhook",
     "export:access-review": "npm --prefix backend run export:access-review",
