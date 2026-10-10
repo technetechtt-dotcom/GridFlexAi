@@ -43,7 +43,7 @@
     "e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
-    "@ai-sdk/react": "^3.0.306",
+    "@ai-sdk/react": "^4.0.136",
     "@emotion/react": "^11.13.3",
     "@neondatabase/serverless": "^1.1.0",
     "ai": "^6.0.303",
@@ -51,11 +51,11 @@
     "framer-motion": "^11.5.4",
     "lucide-react": "1.53.0",
     "react": "^19.2.8",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.2.8",
     "react-router-dom": "7.18.2",
-    "recharts": "^2.12.7",
+    "recharts": "^3.10.1",
     "socket.io-client": "^4.8.1",
-    "tailwind-merge": "latest",
+    "tailwind-merge": "3.7.0",
     "zustand": "latest"
   },
   "overrides": {
@@ -70,17 +70,17 @@
     "@playwright/test": "^1.59.1",
     "@types/node": "^20.11.18",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^18.3.1",
-    "@typescript-eslint/eslint-plugin": "^5.54.0",
-    "@typescript-eslint/parser": "^5.54.0",
+    "@types/react-dom": "^19.2.18",
+    "@typescript-eslint/eslint-plugin": "^8.71.1",
+    "@typescript-eslint/parser": "^8.71.1",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "10.5.4",
-    "eslint": "^8.50.0",
+    "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "0.5.3",
     "postcss": "8.5.23",
     "tailwindcss": "4.3.3",
-    "typescript": "^5.5.4",
+    "typescript": "^7.0.2",
     "vite": "^8.3.3"
   }
 }
