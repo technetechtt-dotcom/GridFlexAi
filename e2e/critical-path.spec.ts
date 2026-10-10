@@ -6,6 +6,20 @@ type MockOptions = {
 
 const nowIso = "2026-04-17T09:00:00.000Z";
 
+const mockAccessToken = (() => {
+  const header = Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url");
+  const payload = Buffer.from(
+    JSON.stringify({
+      sub: "user-1",
+      email: "admin@gridflex.ai",
+      name: "GridFlex Admin",
+      role: "admin",
+      exp: Math.floor(Date.now() / 1000) + 60 * 60
+    })
+  ).toString("base64url");
+  return `${header}.${payload}.sig`;
+})();
+
 const makeForecastPayload = () => ({
   meta: {
     location: { lat: -28.4478, lon: 21.2561 },
@@ -87,7 +101,7 @@ const mockApi = async (page: Page, options: MockOptions = {}) => {
             lastLoginAt: nowIso,
             createdAt: "2026-01-01T00:00:00.000Z"
           },
-          token: "mock-access-token"
+          token: mockAccessToken
         })
       });
       return;
@@ -334,8 +348,13 @@ test("dispatch retry banner recovers from transient API failure", async ({ page 
 test("unknown route shows page not found with path", async ({ page }) => {
   await mockApi(page);
   await signIn(page);
+  await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 
-  await page.goto("/this-route-does-not-exist");
+  // Client-side navigation only — full reload clears the SPA session under the 401 refresh mock.
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/this-route-does-not-exist");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
   await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
   await expect(page.getByText("/this-route-does-not-exist")).toBeVisible();
   await page.getByRole("link", { name: "Return to dashboard" }).click();
@@ -345,6 +364,7 @@ test("unknown route shows page not found with path", async ({ page }) => {
 test("settings icon opens account settings", async ({ page }) => {
   await mockApi(page);
   await signIn(page);
+  await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 
   await page.getByRole("button", { name: "Account settings" }).click();
   await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible();
