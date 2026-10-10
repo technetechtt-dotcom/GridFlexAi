@@ -16,6 +16,8 @@ import {
   Legend } from
 'recharts';
 import { Page } from '../components/Sidebar';
+import { PageHeader } from '../components/PageHeader';
+import { Breadcrumbs } from '../components/Breadcrumbs';
 import { auditLogger } from '../lib/auditLogger';
 import { useAuth } from '../context/AuthContext';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
@@ -179,32 +181,30 @@ export function KPIReporting({ onNavigate }: KPIReportingProps) {
 
   return (
     <div className="space-y-6 p-6 pb-20">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-100">KPI & Reporting</h2>
-          <p className="text-slate-400">
-            Performance tracking and financial analytics
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="bg-slate-800 p-1 rounded-lg border border-slate-700 flex space-x-1">
-            {['7d', '30d', '90d', 'YTD'].map((range) =>
+      <PageHeader
+        title="KPI & reporting"
+        description="Performance tracking and financial analytics"
+        breadcrumbs={
+          <Breadcrumbs items={[{ label: 'Overview', onClick: () => onNavigate('dashboard') }, { label: 'KPI' }]} />
+        }
+        primaryAction={{
+          label: 'Export Report',
+          onClick: handleExport,
+          icon: Download,
+          variant: 'primary'
+        }}
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex space-x-1 rounded-lg border border-slate-700 bg-slate-800 p-1">
+          {['7d', '30d', '90d', 'YTD'].map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${timeRange === range ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'}`}>
-
-                {range}
-              </button>
-            )}
-          </div>
-          <button
-            onClick={handleExport}
-            className="flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
-
-            <Download className="w-4 h-4 mr-2" />
-            Export Report
-          </button>
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${timeRange === range ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'}`}>
+              {range}
+            </button>
+          ))}
         </div>
       </div>
 

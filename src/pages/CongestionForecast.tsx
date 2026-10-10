@@ -4,7 +4,6 @@ import {
   Calendar,
   Filter,
   Download,
-  ArrowLeft,
   ArrowRight,
   Activity,
   Droplet } from
@@ -22,6 +21,8 @@ import {
   ResponsiveContainer } from
 'recharts';
 import { Page } from '../components/Sidebar';
+import { PageHeader } from '../components/PageHeader';
+import { Breadcrumbs } from '../components/Breadcrumbs';
 import { SimulationBanner } from '../components/SimulationBanner';
 import { usePilotStore } from '../store/pilotStore';
 import { fetchCongestionNodes, fetchDynamicLineRatings, fetchForecast, fetchGridConstraints } from '../services/api';
@@ -52,6 +53,8 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [horizon72, setHorizon72] = useState(false);
+  const [exportNote, setExportNote] = useState<string | null>(null);
   const handleRetry = () => {
     setError(null);
     setLoading(true);
@@ -153,6 +156,28 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
     slice(0, 5);
     setRiskRows(rows);
   }, [displayData, timeLabels]);
+
+  const handleExportCsv = () => {
+    if (!trendData.length && !riskRows.length) {
+      setExportNote('Export unavailable — no forecast rows loaded yet.');
+      return;
+    }
+    const lines = [
+      'section,time,upington_pct,deAar_pct,limit_pct',
+      ...trendData.map((row) => `trend,${row.time},${row.upington},${row.deAar},${row.limit}`),
+      'section,node,peak_pct,peak_time,risk',
+      ...riskRows.map((row) => `risk,${row.node},${row.peak},${row.time},${row.risk}`)
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `congestion-forecast-${horizon72 ? '72h' : '24h'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportNote('CSV exported for visible forecast and risk rows.');
+  };
+
   return (
     <div className="space-y-6 p-6 pb-20">
       {constraintsSimulated ? (
@@ -167,54 +192,52 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
           High PV output alone is not equated with congestion.
         </div>
       )}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => onNavigate('dashboard')}
-            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-100">
-              Congestion Forecasting
-            </h2>
-            <p className="text-slate-400">
-              72-hour grid congestion prediction across all nodes
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setShowHyShift(!showHyShift)}
-            className={`flex items-center px-3 py-2 rounded-lg transition-all border ${showHyShift ? 'bg-purple-500/20 border-purple-500/50 text-purple-300' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'}`}>
+      <PageHeader
+        title="Congestion forecasting"
+        description={
+          horizon72
+            ? '72-hour horizon (24h feed extrapolated for demonstration)'
+            : '24-hour grid congestion prediction across nodes'
+        }
+        onBack={() => onNavigate('dashboard')}
+        breadcrumbs={
+          <Breadcrumbs
+            items={[{ label: 'Overview', onClick: () => onNavigate('dashboard') }, { label: 'Congestion' }]}
+          />
+        }
+        secondaryActions={[
+          {
+            label: showHyShift ? 'HyShift on' : 'Show with HyShift',
+            onClick: () => setShowHyShift(!showHyShift),
+            icon: Droplet
+          },
+          {
+            label: enableDlr ? 'DLR on' : 'Enable DLR',
+            onClick: () => setEnableDlr(!enableDlr)
+          },
+          {
+            label: 'Compare vs Actual',
+            onClick: () => onNavigate('generation-vs-forecast'),
+            icon: Activity
+          },
+          {
+            label: horizon72 ? '24h view' : 'Next 72 Hours',
+            onClick: () => setHorizon72((v) => !v),
+            icon: Calendar
+          },
+          {
+            label: 'Export',
+            onClick: handleExportCsv,
+            icon: Download,
+            disabled: !trendData.length && !riskRows.length,
+            title: !trendData.length && !riskRows.length ? 'Load forecast data first' : undefined
+          }
+        ]}
+      />
 
-            <Droplet
-              className={`w-4 h-4 mr-2 ${showHyShift ? 'text-purple-400' : ''}`} />
-
-            Show with HyShift
-          </button>
-          <button
-            onClick={() => setEnableDlr(!enableDlr)}
-            className={`flex items-center px-3 py-2 rounded-lg transition-all border ${enableDlr ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'}`}>
-            Enable DLR
-          </button>
-          <button
-            onClick={() => onNavigate('generation-vs-forecast')}
-            className="flex items-center px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 hover:bg-emerald-500/20 transition-colors">
-
-            <Activity className="w-4 h-4 mr-2" />
-            Compare vs Actual
-          </button>
-          <button className="flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
-            <Calendar className="w-4 h-4 mr-2" />
-            Next 72 Hours
-          </button>
-          <button className="flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </button>
-        </div>
-      </div>
+      {exportNote && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-100">{exportNote}</div>
+      )}
 
       <DataStateBanner
         loading={loading}

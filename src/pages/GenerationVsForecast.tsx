@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft,
   Target,
   TrendingUp,
   AlertTriangle,
@@ -19,6 +18,8 @@ import {
   Legend } from
 'recharts';
 import { Page } from '../components/Sidebar';
+import { PageHeader } from '../components/PageHeader';
+import { Breadcrumbs } from '../components/Breadcrumbs';
 import { StatusBadge } from '../components/StatusBadge';
 import { fetchForecast, fetchNodes, fetchReadings, type BackendNode } from '../services/api';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
@@ -51,6 +52,8 @@ export function GenerationVsForecast({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [retrainNotice, setRetrainNotice] = useState<string | null>(null);
+  const [exportBanner, setExportBanner] = useState<string | null>(null);
   const handleRetry = () => {
     setError(null);
     setLoading(true);
@@ -176,43 +179,62 @@ export function GenerationVsForecast({
     [breakdownRows]
   );
 
+  const exportComparisonCsv = () => {
+    if (!chartRows.length) {
+      setExportBanner('No chart rows to export.');
+      return;
+    }
+    const lines = [
+      'time,actual_kw,forecast_kw',
+      ...chartRows.map((row) => `${row.time},${row.actual ?? ''},${row.forecast}`)
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'generation-vs-forecast.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportBanner('Comparison CSV downloaded.');
+  };
+
   return (
     <div className="space-y-6 p-6 pb-20">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => onNavigate('dashboard')}
-            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors">
+      <PageHeader
+        title="Generation vs forecast"
+        description="Real-time performance against AI predictions"
+        onBack={() => onNavigate('dashboard')}
+        breadcrumbs={
+          <Breadcrumbs
+            items={[{ label: 'Overview', onClick: () => onNavigate('dashboard') }, { label: 'Generation vs forecast' }]}
+          />
+        }
+        primaryAction={{
+          label: 'View Forecast Accuracy',
+          onClick: () => onNavigate('forecast-accuracy'),
+          icon: Target,
+          variant: 'primary'
+        }}
+        secondaryActions={[
+          { label: 'Export Comparison', onClick: exportComparisonCsv, icon: Download },
+          {
+            label: 'Retrain Model',
+            onClick: () =>
+              setRetrainNotice(
+                'Retraining requires manager approval — workflow coming soon. Your interest was noted locally.'
+              ),
+            icon: RefreshCw,
+            title: 'Retraining requires manager approval — workflow coming soon'
+          }
+        ]}
+      />
 
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-100">
-              Generation vs Forecast
-            </h2>
-            <p className="text-slate-400">
-              Real-time performance against AI predictions
-            </p>
-          </div>
-        </div>
-        <div className="flex space-x-2">
-          <button className="flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
-            <Download className="w-4 h-4 mr-2" />
-            Export Comparison
-          </button>
-          <button className="flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Retrain Model
-          </button>
-          <button
-            onClick={() => onNavigate('forecast-accuracy')}
-            className="flex items-center px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors font-medium shadow-lg shadow-emerald-500/20">
-
-            <Target className="w-4 h-4 mr-2" />
-            View Forecast Accuracy
-          </button>
-        </div>
-      </div>
+      {exportBanner && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-100">{exportBanner}</div>
+      )}
+      {retrainNotice && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">{retrainNotice}</div>
+      )}
 
       <DataStateBanner
         loading={loading}

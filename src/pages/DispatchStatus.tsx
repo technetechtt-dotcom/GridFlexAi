@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft,
   Battery,
   Zap,
   Activity,
@@ -22,7 +21,10 @@ import {
   ResponsiveContainer } from
 'recharts';
 import { StatusBadge } from '../components/StatusBadge';
+import { useNavigate } from 'react-router-dom';
 import { Page } from '../components/Sidebar';
+import { PageHeader } from '../components/PageHeader';
+import { Breadcrumbs } from '../components/Breadcrumbs';
 import {
   fetchDispatchRecommendations,
   fetchNodes,
@@ -34,8 +36,19 @@ import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
 interface DispatchStatusProps {
   onNavigate: (page: Page) => void;
 }
+type AssetRow = {
+  name: string;
+  type: string;
+  output: string;
+  capacity: string;
+  status: string;
+  progress: number;
+};
+
 export function DispatchStatus({ onNavigate }: DispatchStatusProps) {
+  const navigate = useNavigate();
   const [nodes, setNodes] = useState<BackendNode[]>([]);
+  const [detailAsset, setDetailAsset] = useState<AssetRow | null>(null);
   const [recommendations, setRecommendations] = useState<DispatchRecommendation[]>([]);
   const [latencyRows, setLatencyRows] = useState<Array<{time: string;value: number;}>>([]);
   const [loading, setLoading] = useState(true);
@@ -128,35 +141,29 @@ export function DispatchStatus({ onNavigate }: DispatchStatusProps) {
 
   return (
     <div className="space-y-6 p-6 pb-20">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => onNavigate('dashboard')}
-            className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors">
-
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-100">
-              Dispatch Status
-            </h2>
-            <p className="text-slate-400">Real-time asset control and state</p>
-          </div>
-        </div>
-        <div className="flex space-x-2">
-          <button className="flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Run Diagnostics
-          </button>
-          <button
-            onClick={() => onNavigate('dispatch')}
-            className="flex items-center px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors font-medium shadow-lg shadow-emerald-500/20">
-
-            <Activity className="w-4 h-4 mr-2" />
-            View Optimization
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Dispatch status"
+        description="Advisory command log and asset state (no physical actuation)"
+        onBack={() => onNavigate('dashboard')}
+        breadcrumbs={
+          <Breadcrumbs
+            items={[{ label: 'Overview', onClick: () => onNavigate('dashboard') }, { label: 'Dispatch status' }]}
+          />
+        }
+        primaryAction={{
+          label: 'View Optimization',
+          onClick: () => onNavigate('dispatch'),
+          icon: Activity,
+          variant: 'primary'
+        }}
+        secondaryActions={[
+          {
+            label: 'Run Diagnostics',
+            onClick: () => navigate('/provider-diagnostics'),
+            icon: RotateCcw
+          }
+        ]}
+      />
 
       <DataStateBanner
         loading={loading}
@@ -460,7 +467,10 @@ export function DispatchStatus({ onNavigate }: DispatchStatusProps) {
                         / {asset.capacity}
                       </span>
                     </div>
-                    <button className="text-xs text-emerald-400 hover:text-emerald-300 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => setDetailAsset(asset)}
+                      className="text-xs font-medium text-emerald-400 hover:text-emerald-300">
                       View Details
                     </button>
                   </div>
@@ -546,6 +556,56 @@ export function DispatchStatus({ onNavigate }: DispatchStatusProps) {
           </motion.div>
         </div>
       </div>
+
+      {detailAsset && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal
+          aria-labelledby="asset-detail-title">
+          <div className="max-w-md rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-xl">
+            <h3 id="asset-detail-title" className="text-lg font-semibold text-slate-100">
+              {detailAsset.name}
+            </h3>
+            <p className="text-sm text-slate-400">{detailAsset.type}</p>
+            <dl className="mt-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-slate-500">Output</dt>
+                <dd className="text-slate-200">{detailAsset.output}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-slate-500">Capacity</dt>
+                <dd className="text-slate-200">{detailAsset.capacity}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-slate-500">Status</dt>
+                <dd className="capitalize text-slate-200">{detailAsset.status}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-slate-500">Utilisation</dt>
+                <dd className="text-slate-200">{detailAsset.progress}%</dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-xs text-amber-200/90">
+              Display-only snapshot. Remote setpoints and plant control are not available in pilot mode.
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => onNavigate('nodes')}
+                className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800">
+                Open Nodes
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailAsset(null)}
+                className="rounded-lg bg-emerald-500 px-3 py-2 text-sm text-white hover:bg-emerald-600">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>);
 
 }

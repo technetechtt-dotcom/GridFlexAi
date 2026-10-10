@@ -1788,6 +1788,24 @@ export async function fetchOptimisationRuns(plantId?: string): Promise<Optimisat
   return response.data;
 }
 
+export type PlatformHealth = {
+  status: string;
+  uptime: number;
+  timestamp: string;
+  release: {
+    gitSha: string | null;
+    imageDigest: string | null;
+  };
+  dependencies?: {
+    database: string;
+    redis: string;
+  };
+};
+
+export async function fetchPlatformHealth(): Promise<PlatformHealth> {
+  return apiRequest<PlatformHealth>('/health', { auth: false });
+}
+
 export async function submitAIPrompt(
 prompt: string,
 context?: string)
@@ -2179,6 +2197,38 @@ export async function analyseRecoveryWindow(body: {
     body
   });
   return response.data;
+}
+
+export type RecoveryAnalysisListItem = {
+  id: string;
+  plantId?: string | null;
+  siteId?: string | null;
+  status?: string | null;
+  dominantCause?: string | null;
+  lostEnergyKwh?: number | null;
+  affectedDurationHours?: number | null;
+  revenueAtRiskZar?: number | null;
+  algorithmVersion?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+export async function listRecoveryAnalyses(params?: {
+  plantId?: string;
+  siteId?: string;
+  status?: string;
+  limit?: number;
+}): Promise<RecoveryAnalysisListItem[]> {
+  const query = new URLSearchParams();
+  if (params?.plantId) query.set('plantId', params.plantId);
+  if (params?.siteId) query.set('siteId', params.siteId);
+  if (params?.status) query.set('status', params.status);
+  if (params?.limit) query.set('limit', String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  const response = await apiRequest<{ data: RecoveryAnalysisListItem[] }>(`/recovery/analyses${suffix}`, {
+    auth: true
+  });
+  return response.data ?? [];
 }
 
 export function downloadRecoveryReportHtml(analysis: RecoveryAnalysis, filename = 'gridflex-recovery-report.html'): void {

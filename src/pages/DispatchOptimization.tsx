@@ -137,6 +137,7 @@ export function DispatchOptimization({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [proposeBanner, setProposeBanner] = useState<string | null>(null);
   const plantId =
     (import.meta.env.VITE_DEMO_PLANT_ID as string | undefined) ?? 'plant-upington-pv-demo';
   const bessAssetId =
@@ -148,6 +149,15 @@ export function DispatchOptimization({
     setError(null);
     setLoading(true);
     setRefreshKey((prev) => prev + 1);
+  };
+
+  const handleProposeOnly = (rec: DispatchRecommendation) => {
+    setRecommendations((prev) =>
+      prev.map((row) => (row.id === rec.id ? { ...row, status: 'approved' as const } : row))
+    );
+    setProposeBanner(
+      `Proposal recorded for "${rec.title}". Advisory-only mode — physical plant execution remains locked.`
+    );
   };
 
   useEffect(() => {
@@ -244,6 +254,9 @@ export function DispatchOptimization({
         featureName="Dispatch optimisation / flexible-asset advisory"
         detail="Schedules are advisory only. BESS/electrolyser limits are configured assumptions, not measured plant state. Approve proposes only — physical execution remains disabled."
       />
+      {proposeBanner && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">{proposeBanner}</div>
+      )}
       {advisoryMeta &&
       <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-xs text-emerald-100">
           Advisory improvement vs no-action baseline:{' '}
@@ -373,7 +386,10 @@ export function DispatchOptimization({
                   <span className="text-xs font-medium text-emerald-400">{rec.impact}</span>
                   {rec.status === 'pending' &&
                 <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="px-3 py-1 bg-emerald-500/80 hover:bg-emerald-600 text-white text-xs font-medium rounded transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => handleProposeOnly(rec)}
+                        className="rounded bg-emerald-500/80 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-emerald-600">
                         Propose only
                       </button>
                     </div>

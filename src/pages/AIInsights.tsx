@@ -13,6 +13,7 @@ import {
   Droplet } from
 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Page } from '../components/Sidebar';
 import { SimulationBanner } from '../components/SimulationBanner';
 import { useRealTime } from '../context/RealTimeContext';
@@ -144,9 +145,11 @@ const filters = [
 'Result'];
 
 export function AIInsights({ onNavigate }: AIInsightsProps) {
+  const routerNavigate = useNavigate();
   const { availableNodeNames, selectedNodeNames, toggleSelectedNode, backendNodes } = useRealTime();
   const [activeFilter, setActiveFilter] = useState('All');
   const [insightRows, setInsightRows] = useState(insights);
+  const [dismissedIds, setDismissedIds] = useState<Set<number>>(() => new Set());
   const hasSpecificNodeScope = !selectedNodeNames.includes('All Nodes');
   const selectedScopeLabel = hasSpecificNodeScope ? selectedNodeNames.join(', ') : 'All Nodes';
 
@@ -217,10 +220,23 @@ export function AIInsights({ onNavigate }: AIInsightsProps) {
     return scoped.length ? scoped : insightRows.slice(0, 2);
   }, [hasSpecificNodeScope, insightRows, selectedNodeNames]);
 
+  const visibleInsights = scopedInsights.filter((i) => !dismissedIds.has(i.id));
   const filteredInsights =
-  activeFilter === 'All' ?
-  scopedInsights :
-  scopedInsights.filter((i) => i.type === activeFilter);
+    activeFilter === 'All' ? visibleInsights : visibleInsights.filter((i) => i.type === activeFilter);
+
+  const dismissInsight = (id: number) => {
+    setDismissedIds((prev) => new Set(prev).add(id));
+  };
+
+  const actOnInsight = (insight: (typeof insights)[0]) => {
+    const toDispatch =
+      insight.target === 'dispatch' || insight.type === 'Forecast' || insight.type === 'Opportunity';
+    if (toDispatch) {
+      routerNavigate('/dispatch', { state: { fromInsightId: insight.id, title: insight.title } });
+    } else {
+      routerNavigate('/all-recommendations', { state: { fromInsightId: insight.id, title: insight.title } });
+    }
+  };
   return (
     <div className="space-y-6 p-6 pb-20">
       <SimulationBanner
@@ -280,12 +296,12 @@ export function AIInsights({ onNavigate }: AIInsightsProps) {
         },
         {
           label: 'Acted On',
-          value: '8',
+          value: '—',
           color: 'text-emerald-400'
         },
         {
           label: 'Dismissed',
-          value: '2',
+          value: String(dismissedIds.size),
           color: 'text-slate-400'
         },
         {
@@ -379,10 +395,16 @@ export function AIInsights({ onNavigate }: AIInsightsProps) {
                 {insight.action} <ArrowRight className="w-4 h-4 ml-2" />
               </button>
               <div className="flex space-x-2">
-                <button className="flex-1 py-1.5 bg-transparent hover:bg-slate-900/30 text-slate-400 hover:text-slate-300 text-xs font-medium rounded-lg transition-colors">
+                <button
+                  type="button"
+                  onClick={() => dismissInsight(insight.id)}
+                  className="flex-1 rounded-lg bg-transparent py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-900/30 hover:text-slate-300">
                   Dismiss
                 </button>
-                <button className="flex-1 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 hover:text-emerald-300 text-xs font-medium rounded-lg transition-colors">
+                <button
+                  type="button"
+                  onClick={() => actOnInsight(insight)}
+                  className="flex-1 rounded-lg bg-emerald-500/20 py-1.5 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-500/30 hover:text-emerald-300">
                   Act on This
                 </button>
               </div>

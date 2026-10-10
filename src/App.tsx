@@ -11,6 +11,7 @@ import { RealTimeProvider, useRealTime } from './context/RealTimeContext';
 import { canAccessOpsCenter, isPlantManager } from './lib/roles';
 import { PilotReportModal } from './components/PilotReportModal';
 import { OperatingModeBanner } from './components/OperatingModeBanner';
+import { ToastProvider } from './components/Toast';
 import { LoginPage } from './pages/LoginPage';
 import { usePilotStore } from './store/pilotStore';
 
@@ -49,10 +50,36 @@ const AdminAlarmsPage = lazy(() => import('./pages/admin/AdminAlarmsPage').then(
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
 const SuperAdminShell = lazy(() => import('./pages/admin/SuperAdminShell').then((module) => ({ default: module.SuperAdminShell })));
 const ManagerTeamPage = lazy(() => import('./pages/ManagerTeamPage').then((module) => ({ default: module.ManagerTeamPage })));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })));
+const AccessDeniedPage = lazy(() => import('./pages/AccessDeniedPage').then((module) => ({ default: module.AccessDeniedPage })));
+const AccountSettingsPage = lazy(() =>
+  import('./pages/AccountSettingsPage').then((module) => ({ default: module.AccountSettingsPage }))
+);
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({ default: module.ProfilePage })));
+const HelpCentrePage = lazy(() => import('./pages/HelpCentrePage').then((module) => ({ default: module.HelpCentrePage })));
+const PlantPortfolioPage = lazy(() =>
+  import('./pages/PlantPortfolioPage').then((module) => ({ default: module.PlantPortfolioPage }))
+);
+const RecoveryHistoryPage = lazy(() =>
+  import('./pages/RecoveryHistoryPage').then((module) => ({ default: module.RecoveryHistoryPage }))
+);
+const AlarmRulesPage = lazy(() => import('./pages/AlarmRulesPage').then((module) => ({ default: module.AlarmRulesPage })));
+const ApprovalQueuePage = lazy(() =>
+  import('./pages/ApprovalQueuePage').then((module) => ({ default: module.ApprovalQueuePage }))
+);
+const ReportCentrePage = lazy(() => import('./pages/ReportCentrePage').then((module) => ({ default: module.ReportCentrePage })));
+const EnvironmentReleasePage = lazy(() =>
+  import('./pages/EnvironmentReleasePage').then((module) => ({ default: module.EnvironmentReleasePage }))
+);
+const PrivacyNoticePage = lazy(() =>
+  import('./pages/PrivacyNoticePage').then((module) => ({ default: module.PrivacyNoticePage }))
+);
+const TermsOfUsePage = lazy(() => import('./pages/TermsOfUsePage').then((module) => ({ default: module.TermsOfUsePage })));
 
 const pageToPath: Record<Page, string> = {
   dashboard: '/',
   nodes: '/nodes',
+  plants: '/plants',
   'admin-dashboard': '/ops',
   'manager-team': '/team',
   congestion: '/congestion',
@@ -61,9 +88,12 @@ const pageToPath: Record<Page, string> = {
   'ai-assistant': '/ai',
   kpi: '/kpi',
   blueprint: '/blueprint',
+  help: '/help',
+  settings: '/settings',
   'total-generation': '/total-generation',
   'curtailment-detail': '/curtailment',
   recovery: '/recovery',
+  'recovery-history': '/recovery/history',
   'revenue-detail': '/revenue',
   'forecast-accuracy': '/forecast-accuracy',
   'generation-vs-forecast': '/generation-vs-forecast',
@@ -78,8 +108,11 @@ const pageToPath: Record<Page, string> = {
 function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/ops')) return 'admin-dashboard';
   if (pathname.startsWith('/admin')) return 'admin-dashboard';
+  if (pathname.startsWith('/plants')) return 'plants';
   if (pathname.startsWith('/nodes')) return 'nodes';
   if (pathname.startsWith('/team')) return 'manager-team';
+  if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname.startsWith('/help')) return 'help';
   if (pathname.startsWith('/congestion')) return 'congestion';
   if (pathname.startsWith('/dispatch-status')) return 'dispatch-status';
   if (pathname.startsWith('/dispatch')) return 'dispatch';
@@ -90,6 +123,7 @@ function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/blueprint')) return 'blueprint';
   if (pathname.startsWith('/total-generation')) return 'total-generation';
   if (pathname.startsWith('/curtailment')) return 'curtailment-detail';
+  if (pathname.startsWith('/recovery/history')) return 'recovery-history';
   if (pathname.startsWith('/recovery')) return 'recovery';
   if (pathname.startsWith('/revenue')) return 'revenue-detail';
   if (pathname.startsWith('/forecast-accuracy')) return 'forecast-accuracy';
@@ -114,16 +148,18 @@ function RequireAuth() {
 
 function RequireAdmin() {
   const { user } = useAuth();
+  const location = useLocation();
   if (!user || !canAccessOpsCenter(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/access-denied" replace state={{ reason: 'admin', from: location }} />;
   }
   return <Outlet />;
 }
 
 function RequireManager() {
   const { user } = useAuth();
+  const location = useLocation();
   if (!user || !isPlantManager(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/access-denied" replace state={{ reason: 'manager', from: location }} />;
   }
   return <Outlet />;
 }
@@ -197,6 +233,18 @@ function AppRoutes() {
         <Route element={<AuthShell />}>
           <Route path="/" element={<Dashboard onNavigate={routeNavigate} />} />
           <Route path="/nodes" element={<NodeDashboard />} />
+          <Route path="/plants" element={<PlantPortfolioPage />} />
+          <Route path="/settings" element={<AccountSettingsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/help" element={<HelpCentrePage />} />
+          <Route path="/access-denied" element={<AccessDeniedPage />} />
+          <Route path="/recovery/history" element={<RecoveryHistoryPage />} />
+          <Route path="/alarms" element={<AlarmRulesPage />} />
+          <Route path="/approvals" element={<ApprovalQueuePage />} />
+          <Route path="/reports" element={<ReportCentrePage />} />
+          <Route path="/environment-release" element={<EnvironmentReleasePage />} />
+          <Route path="/privacy" element={<PrivacyNoticePage />} />
+          <Route path="/terms" element={<TermsOfUsePage />} />
           <Route element={<RequireManager />}>
             <Route path="/team" element={<ManagerTeamPage />} />
           </Route>
@@ -218,6 +266,7 @@ function AppRoutes() {
           <Route path="/hyshift" element={<HyShiftControl onNavigate={routeNavigate} />} />
           <Route path="/sector-coupling" element={<SectorCouplingSimulator onNavigate={routeNavigate} />} />
           <Route path="/provider-diagnostics" element={<ProviderDiagnostics onNavigate={routeNavigate} />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
 
         <Route element={<RequireAdmin />}>
@@ -237,7 +286,7 @@ function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
@@ -246,9 +295,11 @@ export function App() {
   return (
     <AuthProvider>
       <RealTimeProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </ToastProvider>
       </RealTimeProvider>
     </AuthProvider>
   );

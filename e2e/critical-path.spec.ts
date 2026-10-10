@@ -330,3 +330,22 @@ test("dispatch retry banner recovers from transient API failure", async ({ page 
   await expect(page.getByText("Synthetic dispatch failure")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Advisory Dispatch Profile" })).toBeVisible();
 });
+
+test("unknown route shows page not found with path", async ({ page }) => {
+  await mockApi(page);
+  await signIn(page);
+
+  await page.goto("/this-route-does-not-exist");
+  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+  await expect(page.getByText("/this-route-does-not-exist")).toBeVisible();
+  await page.getByRole("link", { name: "Return to dashboard" }).click();
+  await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
+});
+
+test("settings icon opens account settings", async ({ page }) => {
+  await mockApi(page);
+  await signIn(page);
+
+  await page.getByRole("button", { name: "Account settings" }).click();
+  await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible();
+});

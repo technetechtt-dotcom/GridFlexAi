@@ -22,7 +22,10 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import { Link } from 'react-router-dom';
 import { Page } from '../components/Sidebar';
+import { PageHeader } from '../components/PageHeader';
+import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
 import {
   analyseRecoveryWindow,
@@ -96,7 +99,7 @@ function buildCompetitionScenario(scenario: ScenarioId): RecoverySample[] {
   });
 }
 
-export function RecoveryCommandCenter(_props: RecoveryCommandCenterProps) {
+export function RecoveryCommandCenter({ onNavigate }: RecoveryCommandCenterProps) {
   const [scenario, setScenario] = useState<ScenarioId>('export_limit');
   const [tariffZarPerKwh, setTariffZarPerKwh] = useState(2.25);
   const [flexibleLoadCapacityKw, setFlexibleLoadCapacityKw] = useState(180);
@@ -175,19 +178,33 @@ export function RecoveryCommandCenter(_props: RecoveryCommandCenterProps) {
   return (
     <div className="p-4 pb-16 sm:p-6 lg:p-8 space-y-6">
       <header className="space-y-3">
+        <PageHeader
+          title="Where clean energy is being lost"
+          description="Compare expected and measured generation, classify causes, and review recovery options. Advisory only — no plant commands."
+          breadcrumbs={
+            <Breadcrumbs
+              items={[
+                { label: 'Overview', onClick: () => onNavigate('dashboard') },
+                { label: 'Recovery' }
+              ]}
+            />
+          }
+          secondaryActions={[
+            {
+              label: 'Recovery history',
+              onClick: () => onNavigate('recovery-history')
+            }
+          ]}
+        />
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
               <Recycle className="h-3.5 w-3.5" />
               Renewable Energy Recovery Centre
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-50 sm:text-3xl">
-              Where clean energy is being lost
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-400">
-              Compare expected and measured generation, classify the likely cause, value the loss in
-              rand and carbon, and review safe recovery options. Advisory only — no plant commands.
-            </p>
+            <Link to="/recovery/history" className="text-sm text-emerald-400 hover:text-emerald-300">
+              View recovery history →
+            </Link>
           </div>
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
             <div className="flex items-center gap-2 font-medium">

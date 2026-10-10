@@ -23,6 +23,8 @@ import {
   ResponsiveContainer } from
 'recharts';
 import { Page } from '../components/Sidebar';
+import { PageHeader } from '../components/PageHeader';
+import { Breadcrumbs } from '../components/Breadcrumbs';
 import { SimulationBanner } from '../components/SimulationBanner';
 import { usePilotStore } from '../store/pilotStore';
 import { optimizeGETTopology } from '../services/api';
@@ -42,6 +44,17 @@ export function ScenarioSimulation({ onNavigate }: ScenarioSimulationProps) {
   useEffect(() => {
     void optimizeGETTopology().then(setGetResult);
   }, []);
+  const resetSimulation = () => {
+    setBatteryCap(150);
+    setSolarVar(0);
+    setWindVar(0);
+    setElectrolyzer(0);
+    setEnableGet(true);
+    setTopologyFlex(40);
+    setIsSimulating(false);
+    void optimizeGETTopology().then(setGetResult);
+  };
+
   const runSimulation = () => {
     setIsSimulating(true);
     setTimeout(() => {
@@ -107,42 +120,29 @@ export function ScenarioSimulation({ onNavigate }: ScenarioSimulationProps) {
         featureName="Scenario simulation / topology optimisation"
         detail="All revenue, hydrogen, curtailment, stability, congestion, and transfer-capacity outputs use fictional demonstration assumptions. They are not measured plant or network results. Flexible-asset setpoints shown here are advisory only — physical control remains disabled."
       />
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-100">
-            Scenario Simulation
-          </h2>
-          <p className="text-slate-400">
-            "What-if" analysis for capacity planning and operations
-          </p>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => onNavigate('forecast-accuracy')}
-            className="flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
-
-            <TrendingUp className="w-4 h-4 mr-2" />
-            View Forecast Accuracy
-          </button>
-          <button className="flex items-center px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors">
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reset
-          </button>
-          <button
-            className="flex items-center px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors font-medium shadow-lg shadow-emerald-500/20"
-            onClick={runSimulation}>
-
-            {isSimulating ?
-            <span className="animate-pulse">Simulating...</span> :
-
-            <>
-                <Play className="w-4 h-4 mr-2" />
-                Run Simulation
-              </>
-            }
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Scenario simulation"
+        description='"What-if" analysis for capacity planning and operations'
+        breadcrumbs={
+          <Breadcrumbs
+            items={[{ label: 'Overview', onClick: () => onNavigate('dashboard') }, { label: 'Scenario' }]}
+          />
+        }
+        primaryAction={{
+          label: isSimulating ? 'Simulating…' : 'Run Simulation',
+          onClick: runSimulation,
+          icon: Play,
+          variant: 'primary'
+        }}
+        secondaryActions={[
+          {
+            label: 'View Forecast Accuracy',
+            onClick: () => onNavigate('forecast-accuracy'),
+            icon: TrendingUp
+          },
+          { label: 'Reset', onClick: resetSimulation, icon: RotateCcw }
+        ]}
+      />
 
       {/* AI Prompt */}
       <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
