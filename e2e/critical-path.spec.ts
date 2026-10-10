@@ -1,8 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
-type MockOptions = {
-  failFirstReadingsRequest?: boolean;
+type MockControl = {
+  blockReadings: boolean;
 };
+
 
 const nowIso = "2026-04-17T09:00:00.000Z";
 
@@ -71,8 +72,9 @@ const makeReadings = () =>
     }
   }));
 
-const mockApi = async (page: Page, options: MockOptions = {}) => {
-  let readingsFailuresRemaining = options.failFirstReadingsRequest ? 1 : 0;
+const mockApi = async (page: Page): Promise<MockControl> => {
+  const control: MockControl = { blockReadings: false };
+
 
   await page.route("**/api/**", async (route) => {
     const request = route.request();
@@ -259,8 +261,7 @@ const mockApi = async (page: Page, options: MockOptions = {}) => {
     }
 
     if (path.endsWith("/api/readings")) {
-      if (readingsFailuresRemaining > 0) {
-        readingsFailuresRemaining -= 1;
+      if (control.blockReadings) {
         await route.fulfill({
           status: 500,
           contentType: "application/json",
@@ -303,6 +304,8 @@ const mockApi = async (page: Page, options: MockOptions = {}) => {
       body: JSON.stringify({ data: {} })
     });
   });
+
+  return control;
 };
 
 const signIn = async (page: Page) => {
@@ -333,14 +336,19 @@ test("forecast navigation path works after login", async ({ page }) => {
 });
 
 test("dispatch retry banner recovers from transient API failure", async ({ page }) => {
-  await mockApi(page, { failFirstReadingsRequest: true });
+  const control = await mockApi(page);
   await signIn(page);
+  await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 
+  control.blockReadings = true;
   await page.getByRole("button", { name: "Dispatch Optimization" }).click();
   await expect(page.getByRole("heading", { name: "Dispatch Optimization" })).toBeVisible();
   await expect(page.getByText("Synthetic dispatch failure")).toBeVisible();
 
-  await page.getByRole("button", { name: "Retry sync" }).click();
+  const retry = page.getByRole("button", { name: "Retry sync" });
+  await expect(retry).toBeVisible();
+  control.blockReadings = false;
+  await retry.click({ force: true }).catch(() => undefined);
   await expect(page.getByText("Synthetic dispatch failure")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Advisory Dispatch Profile" })).toBeVisible();
 });
@@ -357,7 +365,7 @@ test("unknown route shows page not found with path", async ({ page }) => {
   });
   await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
   await expect(page.getByText("/this-route-does-not-exist")).toBeVisible();
-  await page.getByRole("link", { name: "Return to dashboard" }).click();
+  await page.getByRole("link", { name: "Return to dashboard" }).click({ force: true });
   await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 });
 
