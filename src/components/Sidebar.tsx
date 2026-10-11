@@ -18,7 +18,8 @@ import {
   Server,
   Recycle,
   Leaf,
-  HelpCircle
+  HelpCircle,
+  Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
@@ -29,6 +30,7 @@ export type Page =
   | 'dashboard'
   | 'nodes'
   | 'plants'
+  | 'gcip'
   | 'admin-dashboard'
   | 'manager-team'
   | 'congestion'
@@ -128,6 +130,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
   }, [isMobile, isOpen]);
 
   const navItems: Array<{ id: Page; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+    { id: 'gcip', label: 'GCIP Showcase', icon: Trophy },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'nodes', label: 'Nodes', icon: Server },
     { id: 'plants', label: 'Plants', icon: Leaf },

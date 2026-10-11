@@ -75,11 +75,13 @@ const PrivacyNoticePage = lazy(() =>
   import('./pages/PrivacyNoticePage').then((module) => ({ default: module.PrivacyNoticePage }))
 );
 const TermsOfUsePage = lazy(() => import('./pages/TermsOfUsePage').then((module) => ({ default: module.TermsOfUsePage })));
+const GCIPShowcase = lazy(() => import('./pages/GCIPShowcase').then((module) => ({ default: module.GCIPShowcase })));
 
 const pageToPath: Record<Page, string> = {
   dashboard: '/',
   nodes: '/nodes',
   plants: '/plants',
+  gcip: '/gcip',
   'admin-dashboard': '/ops',
   'manager-team': '/team',
   congestion: '/congestion',
@@ -108,6 +110,7 @@ const pageToPath: Record<Page, string> = {
 function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/ops')) return 'admin-dashboard';
   if (pathname.startsWith('/admin')) return 'admin-dashboard';
+  if (pathname.startsWith('/gcip')) return 'gcip';
   if (pathname.startsWith('/plants')) return 'plants';
   if (pathname.startsWith('/nodes')) return 'nodes';
   if (pathname.startsWith('/team')) return 'manager-team';
@@ -232,6 +235,7 @@ function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route element={<AuthShell />}>
           <Route path="/" element={<Dashboard onNavigate={routeNavigate} />} />
+          <Route path="/gcip" element={<GCIPShowcase onNavigate={routeNavigate} />} />
           <Route path="/nodes" element={<NodeDashboard />} />
           <Route path="/plants" element={<PlantPortfolioPage />} />
           <Route path="/settings" element={<AccountSettingsPage />} />
