@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.124",
-    "@aws-sdk/client-kms": "^3.1090.0",
+    "@aws-sdk/client-kms": "^3.1147.0",
     "@prisma/client": "^7.9.1",
     "@socket.io/redis-adapter": "^8.3.0",
     "ai": "^6.0.302",
