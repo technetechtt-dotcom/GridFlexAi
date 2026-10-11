@@ -377,3 +377,41 @@ test("settings icon opens account settings", async ({ page }) => {
   await page.getByRole("button", { name: "Account settings" }).click();
   await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible();
 });
+
+test("GCIP showcase presents the judge journey and safety state", async ({ page }) => {
+  await mockApi(page);
+  await signIn(page);
+  await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
+
+  await page.getByRole("button", { name: "GCIP Showcase" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Recover renewable energy that South Africa already produces."
+    })
+  ).toBeVisible();
+  await expect(page.getByText("Physical execution")).toBeVisible();
+  await expect(page.getByText("Locked off")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Run the recovery demonstration/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "One problem. Four clear steps." })).toBeVisible();
+});
+
+test("GCIP showcase remains usable on a phone-sized screen", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(page);
+  await signIn(page);
+  await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
+
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/gcip");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+
+  await expect(
+    page.getByRole("heading", {
+      name: "Recover renewable energy that South Africa already produces."
+    })
+  ).toBeVisible();
+  await expect(page.getByText("Safe competition mode")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Run the recovery demonstration/i }).first()).toBeVisible();
+});
+

@@ -236,6 +236,7 @@ function AppRoutes() {
         <Route element={<AuthShell />}>
           <Route path="/" element={<Dashboard onNavigate={routeNavigate} />} />
           <Route path="/gcip" element={<GCIPShowcase onNavigate={routeNavigate} />} />
+          <Route path="/gcip-demo" element={<GCIPShowcase onNavigate={routeNavigate} />} />
           <Route path="/nodes" element={<NodeDashboard />} />
           <Route path="/plants" element={<PlantPortfolioPage />} />
           <Route path="/settings" element={<AccountSettingsPage />} />
