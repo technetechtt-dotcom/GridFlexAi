@@ -23,8 +23,9 @@ import { Breadcrumbs } from '../components/Breadcrumbs';
 import { StatusBadge } from '../components/StatusBadge';
 import { fetchForecast, fetchNodes, fetchReadings, type BackendNode } from '../services/api';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { recordDecision } from '../lib/decisionLog';
+import { persistDecision } from '../lib/decisionLog';
 interface GenerationVsForecastProps {
   onNavigate: (page: Page) => void;
 }
@@ -48,6 +49,7 @@ export function GenerationVsForecast({
   onNavigate
 }: GenerationVsForecastProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedNodeId, setSelectedNodeId] = useState<string>('all');
   const [nodes, setNodes] = useState<BackendNode[]>([]);
   const [chartRows, setChartRows] = useState<ChartRow[]>([]);
@@ -223,23 +225,25 @@ export function GenerationVsForecast({
           {
             label: 'Request model review',
             onClick: () => {
-              recordDecision({
+              void persistDecision({
                 entityType: 'forecast',
                 entityId: selectedNodeId,
                 title: 'Forecast model review',
                 stage: 'model_review_requested',
                 actorName: user?.name ?? 'Operator',
                 actorRole: user?.role ?? 'operator',
-                reason: 'Operator requested controlled model review',
+                reason: 'Operator opened controlled model-review workflow',
                 expectedOutcome:
                   'Dataset selection → evaluation → approval → versioning → deploy/rollback gate'
+              }).then(() => {
+                setRetrainNotice(
+                  'Opening model review workflow. Training does not run in place; manager approval is required before any deploy.'
+                );
+                navigate('/model-review');
               });
-              setRetrainNotice(
-                'Model review requested. Dataset selection, evaluation, approval, versioning, deployment and rollback are required before any retrain/deploy. Physical execution remains locked.'
-              );
             },
             icon: RefreshCw,
-            title: 'Opens a controlled model-review request — does not retrain in place'
+            title: 'Opens controlled model-review workflow — does not retrain in place'
           }
         ]}
       />

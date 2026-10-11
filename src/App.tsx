@@ -82,6 +82,9 @@ const DiagnosticsResultsPage = lazy(() =>
 const RecoveryCaseManagementPage = lazy(() =>
   import('./pages/RecoveryCaseManagementPage').then((module) => ({ default: module.RecoveryCaseManagementPage }))
 );
+const ModelReviewPage = lazy(() =>
+  import('./pages/ModelReviewPage').then((module) => ({ default: module.ModelReviewPage }))
+);
 const WorkflowStubPage = lazy(() =>
   import('./pages/WorkflowStubPage').then((module) => ({ default: module.WorkflowStubPage }))
 );
@@ -274,6 +277,7 @@ function AppRoutes() {
           <Route path="/alarms" element={<AlarmRulesPage />} />
           <Route path="/approvals" element={<ApprovalQueuePage />} />
           <Route path="/reports" element={<ReportCentrePage />} />
+          <Route path="/model-review" element={<ModelReviewPage />} />
           <Route
             path="/pilot-onboarding"
             element={

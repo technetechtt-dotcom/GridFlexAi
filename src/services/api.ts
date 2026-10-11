@@ -894,6 +894,163 @@ export async function logoutSession(): Promise<void> {
   }
 }
 
+export type OperatorDecisionValue =
+  | 'approved'
+  | 'rejected'
+  | 'dismissed'
+  | 'assigned'
+  | 'reviewed'
+  | 'completed'
+  | 'verified'
+  | 'model_review_requested'
+  | 'conditions_recorded'
+  | 'proposal_opened'
+  | 'recovery_case_updated';
+
+export type OperatorDecisionRecord = {
+  id: string;
+  entityType: string;
+  entityId: string | null;
+  action: string;
+  decision?: string;
+  message: string | null;
+  metadata: unknown;
+  userId: string | null;
+  createdAt: string;
+};
+
+export async function createOperatorDecision(payload: {
+  entityType: string;
+  entityId: string;
+  title: string;
+  decision: OperatorDecisionValue;
+  reason: string;
+  conditions?: string;
+  assignedReviewer?: string;
+  expectedOutcome?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<OperatorDecisionRecord> {
+  const response = await apiRequest<ApiEnvelope<OperatorDecisionRecord>>('/operator-decisions', {
+    method: 'POST',
+    auth: true,
+    body: payload
+  });
+  return response.data;
+}
+
+export async function listOperatorDecisions(params?: {
+  entityType?: string;
+  entityId?: string;
+  limit?: number;
+}): Promise<OperatorDecisionRecord[]> {
+  const search = new URLSearchParams();
+  if (params?.entityType) search.set('entityType', params.entityType);
+  if (params?.entityId) search.set('entityId', params.entityId);
+  if (params?.limit) search.set('limit', String(params.limit));
+  const query = search.toString();
+  const response = await apiRequest<ApiEnvelope<OperatorDecisionRecord[]>>(
+    `/operator-decisions${query ? `?${query}` : ''}`,
+    { auth: true }
+  );
+  return response.data;
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/auth/change-password', {
+    method: 'POST',
+    auth: true,
+    body: { currentPassword, newPassword }
+  });
+}
+
+export async function requestPasswordReset(email: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/auth/forgot-password', {
+    method: 'POST',
+    body: { email }
+  });
+}
+
+export type AuthSessionRow = {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
+export async function listAuthSessions(): Promise<AuthSessionRow[]> {
+  const response = await apiRequest<ApiEnvelope<AuthSessionRow[]>>('/auth/sessions', { auth: true });
+  return response.data;
+}
+
+export async function revokeOtherSessions(): Promise<{ revokedCount: number }> {
+  const response = await apiRequest<ApiEnvelope<{ revokedCount: number }>>('/auth/sessions', {
+    method: 'DELETE',
+    auth: true
+  });
+  return response.data;
+}
+
+export type LoginHistoryRow = {
+  id: string;
+  action: string;
+  message: string | null;
+  createdAt: string;
+  metadata: unknown;
+};
+
+export async function fetchLoginHistory(limit = 50): Promise<LoginHistoryRow[]> {
+  const response = await apiRequest<ApiEnvelope<LoginHistoryRow[]>>(
+    `/auth/login-history?limit=${limit}`,
+    { auth: true }
+  );
+  return response.data;
+}
+
+export async function acknowledgeAdminMfa(): Promise<{
+  message: string;
+  mfaEnforced: boolean;
+  status: string;
+}> {
+  const response = await apiRequest<ApiEnvelope<{
+    message: string;
+    mfaEnforced: boolean;
+    status: string;
+  }>>('/auth/mfa/acknowledge', {
+    method: 'POST',
+    auth: true,
+    body: {}
+  });
+  return response.data;
+}
+
+export type OptimisationRunDetail = OptimisationRunSummary & {
+  objective?: string;
+  inputs?: unknown;
+  assumptions?: unknown;
+  result?: unknown;
+  warnings?: unknown;
+  constraintViolations?: unknown;
+  baselineComparison?: unknown;
+  physicalControl?: boolean;
+  plant?: { id: string; name: string; code: string };
+  site?: { id: string; name: string; code: string };
+  schedules?: Array<{
+    id: string;
+    intervalStart: string;
+    intervalEnd: string;
+    exportSetpointKw?: number | null;
+    bessSetpointKw?: number | null;
+    electrolyserSetpointKw?: number | null;
+  }>;
+};
+
+export async function fetchOptimisationRun(runId: string): Promise<OptimisationRunDetail> {
+  const response = await apiRequest<ApiEnvelope<OptimisationRunDetail>>(
+    `/optimisation/runs/${encodeURIComponent(runId)}`,
+    { auth: true }
+  );
+  return response.data;
+}
+
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {
   const response = await apiRequest<ApiEnvelope<DashboardSummary>>('/dashboard/summary', {
     auth: true
@@ -1784,7 +1941,9 @@ export async function fetchDispatchRecommendations(): Promise<
 
 export async function fetchOptimisationRuns(plantId?: string): Promise<OptimisationRunSummary[]> {
   const query = plantId ? `?plantId=${encodeURIComponent(plantId)}` : '';
-  const response = await apiRequest<ApiEnvelope<OptimisationRunSummary[]>>(`/optimisation/runs${query}`);
+  const response = await apiRequest<ApiEnvelope<OptimisationRunSummary[]>>(`/optimisation/runs${query}`, {
+    auth: true
+  });
   return response.data;
 }
 

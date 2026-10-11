@@ -573,7 +573,7 @@ export const runAdvisoryOptimisation = async (
   return {
     ...run,
     advisory: true as const,
-    advisoryLabel: "Advisory only ΓÇö no physical dispatch",
+    advisoryLabel: "Advisory only — no physical dispatch",
     physicalControl: false as const,
     solverVersion: OPTIMISATION_SOLVER_VERSION
   };
@@ -606,7 +606,7 @@ export const listOptimisationRuns = async (
   return runs.map((run) => ({
     ...run,
     advisory: true as const,
-    advisoryLabel: "Advisory only ΓÇö no physical dispatch"
+    advisoryLabel: "Advisory only — no physical dispatch"
   }));
 };
 
@@ -627,7 +627,7 @@ export const getOptimisationRun = async (runId: string, actor?: AccessActor) => 
   return {
     ...run,
     advisory: true as const,
-    advisoryLabel: "Advisory only ΓÇö no physical dispatch",
+    advisoryLabel: "Advisory only — no physical dispatch",
     physicalControl: false as const
   };
 };

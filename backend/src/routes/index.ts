@@ -20,6 +20,7 @@ import simulationRoutes from "./simulation.routes.js";
 import teamRoutes from "./team.routes.js";
 import telemetryRoutes from "./telemetry.routes.js";
 import optimisationRoutes from "./optimisation.routes.js";
+import operatorDecisionRoutes from "./operator-decision.routes.js";
 import recoveryRoutes from "./recovery.routes.js";
 import { getOperatingModeHandler } from "../controllers/operating-mode.controller.js";
 
@@ -28,6 +29,7 @@ const router = Router();
 router.use("/", healthRoutes);
 router.get("/operating-mode", getOperatingModeHandler);
 router.use("/auth", authRoutes);
+router.use("/operator-decisions", operatorDecisionRoutes);
 router.use("/recovery", recoveryRoutes);
 router.use("/ai", aiRoutes);
 router.use("/admin", adminRoutes);

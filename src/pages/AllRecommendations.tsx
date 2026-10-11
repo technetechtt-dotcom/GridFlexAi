@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Check,
@@ -13,7 +13,8 @@ import { motion } from 'framer-motion';
 import { Page } from '../components/Sidebar';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
-import { listDecisions, recordDecision, type DecisionStage } from '../lib/decisionLog';
+import { listDecisions, persistDecision, type DecisionStage } from '../lib/decisionLog';
+import { listOperatorDecisions } from '../services/api';
 
 interface AllRecommendationsProps {
   onNavigate: (page: Page) => void;
@@ -84,6 +85,22 @@ const initialRecommendations: Recommendation[] = [
 
 const nextAfterApprove: RecStatus[] = ['approved', 'assigned', 'completed', 'verified'];
 
+const toRecStatus = (value: string | undefined): RecStatus | null => {
+  if (
+    value === 'proposed' ||
+    value === 'reviewed' ||
+    value === 'approved' ||
+    value === 'rejected' ||
+    value === 'assigned' ||
+    value === 'completed' ||
+    value === 'verified'
+  ) {
+    return value;
+  }
+  if (value === 'dismissed') return 'rejected';
+  return null;
+};
+
 export function AllRecommendations({ onNavigate }: AllRecommendationsProps) {
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -91,18 +108,55 @@ export function AllRecommendations({ onNavigate }: AllRecommendationsProps) {
   const [tick, setTick] = useState(0);
   const actor = user?.name ?? 'Operator';
 
+  useEffect(() => {
+    let active = true;
+    const hydrate = async () => {
+      const local = listDecisions().filter((d) => d.entityType === 'recommendation');
+      let apiRows: Awaited<ReturnType<typeof listOperatorDecisions>> = [];
+      try {
+        apiRows = await listOperatorDecisions({ entityType: 'recommendation', limit: 200 });
+      } catch {
+        apiRows = [];
+      }
+      if (!active) return;
+
+      const latest = new Map<string, RecStatus>();
+      for (const row of [...apiRows].reverse()) {
+        if (!row.entityId) continue;
+        const status = toRecStatus(row.decision ?? row.action.replace('operator.decision.', ''));
+        if (status) latest.set(row.entityId, status);
+      }
+      for (const row of [...local].reverse()) {
+        const status = toRecStatus(row.stage);
+        if (status) latest.set(row.entityId, status);
+      }
+
+      setRecommendations((prev) =>
+        prev.map((rec) => {
+          const status = latest.get(String(rec.id));
+          return status ? { ...rec, status } : rec;
+        })
+      );
+      setTick((v) => v + 1);
+    };
+    void hydrate();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const decisions = useMemo(() => {
     void tick;
     return listDecisions();
   }, [tick]);
 
-  const record = (
+  const record = async (
     rec: Recommendation,
     stage: DecisionStage,
     reason: string,
     expectedOutcome: string
   ) => {
-    recordDecision({
+    await persistDecision({
       entityType: 'recommendation',
       entityId: String(rec.id),
       title: rec.title,
@@ -119,7 +173,7 @@ export function AllRecommendations({ onNavigate }: AllRecommendationsProps) {
     setRecommendations((prev) =>
       prev.map((row) => (row.id === rec.id ? { ...row, status: 'rejected' } : row))
     );
-    record(rec, 'rejected', 'Dismissed by operator', 'No further action; advisory closed');
+    void record(rec, 'rejected', 'Dismissed by operator', 'No further action; advisory closed');
     showToast(`Dismissed "${rec.title}"`, 'info');
   };
 
@@ -127,12 +181,7 @@ export function AllRecommendations({ onNavigate }: AllRecommendationsProps) {
     setRecommendations((prev) =>
       prev.map((row) => (row.id === rec.id ? { ...row, status: 'approved' } : row))
     );
-    record(
-      rec,
-      'approved',
-      'Approved as advisory intent',
-      rec.impact
-    );
+    void record(rec, 'approved', 'Approved as advisory intent', rec.impact);
     showToast(`Approved "${rec.title}" (advisory only — no plant command)`, 'success');
   };
 
@@ -147,7 +196,7 @@ export function AllRecommendations({ onNavigate }: AllRecommendationsProps) {
           : row
       )
     );
-    record(rec, nxt, `Advanced workflow to ${nxt}`, rec.impact);
+    void record(rec, nxt, `Advanced workflow to ${nxt}`, rec.impact);
     showToast(`Moved "${rec.title}" → ${nxt}`, 'success');
   };
 
@@ -155,7 +204,7 @@ export function AllRecommendations({ onNavigate }: AllRecommendationsProps) {
     setRecommendations((prev) =>
       prev.map((row) => (row.id === rec.id ? { ...row, status: 'reviewed' } : row))
     );
-    record(rec, 'reviewed', 'Marked reviewed', 'Ready for approve/reject decision');
+    void record(rec, 'reviewed', 'Marked reviewed', 'Ready for approve/reject decision');
     showToast(`Reviewed "${rec.title}"`, 'info');
   };
 

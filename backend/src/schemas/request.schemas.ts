@@ -11,6 +11,15 @@ export const loginBodySchema = z.object({
   password: z.string().min(1)
 });
 
+export const changePasswordBodySchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(128)
+});
+
+export const forgotPasswordBodySchema = z.object({
+  email: z.string().email()
+});
+
 export const readingsQuerySchema = z.object({
   nodeId: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
@@ -496,6 +505,8 @@ export const gridConstraintUpdateBodySchema = z.object({
 
 export type RegisterBody = z.infer<typeof registerBodySchema>;
 export type LoginBody = z.infer<typeof loginBodySchema>;
+export type ChangePasswordBody = z.infer<typeof changePasswordBodySchema>;
+export type ForgotPasswordBody = z.infer<typeof forgotPasswordBodySchema>;
 export type ReadingsQuery = z.infer<typeof readingsQuerySchema>;
 export type ReadingsSummaryQuery = z.infer<typeof readingsSummaryQuerySchema>;
 export type EdgeDataBody = z.infer<typeof edgeDataBodySchema>;

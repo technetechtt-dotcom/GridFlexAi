@@ -1,18 +1,31 @@
 import React, { useState } from 'react';
 import { Grid, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { requestPasswordReset } from '../services/api';
 export function LoginPage() {
   const { login, register, isLoading } = useAuth();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
     setError(null);
+    setInfo(null);
+    if (mode === 'forgot') {
+      if (!email) return;
+      try {
+        const result = await requestPasswordReset(email);
+        setInfo(result.message);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unable to submit reset request.');
+      }
+      return;
+    }
+    if (!email || !password) return;
     try {
       if (mode === 'register') {
         if (!name.trim()) {
@@ -49,12 +62,14 @@ export function LoginPage() {
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+          {mode !== 'forgot' && (
           <div className="mb-6 grid grid-cols-2 rounded-lg border border-slate-800 bg-slate-950 p-1">
             <button
               type="button"
               onClick={() => {
                 setMode('login');
                 setError(null);
+                setInfo(null);
               }}
               className={`rounded-md py-2 text-sm font-medium transition-colors ${mode === 'login' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
               Sign In
@@ -64,11 +79,22 @@ export function LoginPage() {
               onClick={() => {
                 setMode('register');
                 setError(null);
+                setInfo(null);
               }}
               className={`rounded-md py-2 text-sm font-medium transition-colors ${mode === 'register' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-slate-200'}`}>
               Register
             </button>
           </div>
+          )}
+          {mode === 'forgot' && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-slate-100">Forgot password</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Self-serve email reset is not enabled in this pilot. Submitting records an audited request for an
+                administrator to reset the account.
+              </p>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-6">
             {mode === 'register' &&
             <div>
@@ -104,6 +130,7 @@ export function LoginPage() {
               </div>
             </div>
 
+            {mode !== 'forgot' && (
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Password
@@ -120,6 +147,7 @@ export function LoginPage() {
 
               </div>
             </div>
+            )}
             {mode === 'register' &&
             <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -148,14 +176,43 @@ export function LoginPage() {
               <Loader2 className="w-5 h-5 animate-spin" /> :
 
               <>
-                  {mode === 'register' ? 'Create Account' : 'Sign In'}
+                  {mode === 'register' ? 'Create Account' : mode === 'forgot' ? 'Request reset' : 'Sign In'}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </>
               }
             </button>
+            {mode === 'login' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('forgot');
+                  setError(null);
+                  setInfo(null);
+                }}
+                className="w-full text-sm text-emerald-400 hover:text-emerald-300">
+                Forgot password?
+              </button>
+            )}
+            {mode === 'forgot' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setError(null);
+                  setInfo(null);
+                }}
+                className="w-full text-sm text-slate-400 hover:text-slate-200">
+                Back to sign in
+              </button>
+            )}
             {error &&
             <p className="text-sm text-red-400" role="alert">
                 {error}
+              </p>
+            }
+            {info &&
+            <p className="text-sm text-emerald-300" role="status">
+                {info}
               </p>
             }
           </form>
