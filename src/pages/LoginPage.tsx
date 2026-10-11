@@ -9,6 +9,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [inviteToken, setInviteToken] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +41,7 @@ export function LoginPage() {
           setError('Passwords do not match.');
           return;
         }
-        await register(name.trim(), email, password);
+        await register(name.trim(), email, password, inviteToken.trim() || undefined);
       } else {
         await login(email, password);
       }
@@ -97,6 +98,23 @@ export function LoginPage() {
           )}
           <form onSubmit={handleSubmit} className="space-y-6">
             {mode === 'register' &&
+            <>
+            <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Invitation token
+                </label>
+                <input
+                  type="text"
+                  value={inviteToken}
+                  onChange={(e) => setInviteToken(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-4 text-slate-200 focus:outline-none focus:border-emerald-500"
+                  placeholder="Required in production"
+                  autoComplete="off"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Production environments require an administrator invitation.
+                </p>
+              </div>
             <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
                   Full Name
@@ -112,6 +130,7 @@ export function LoginPage() {
 
                 </div>
               </div>
+            </>
             }
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -219,9 +238,9 @@ export function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-xs text-slate-500">
-              Protected by military-grade encryption.
+              Access is restricted to authorised GridFlex operators.
               <br />
-              Unauthorized access is prohibited.
+              New accounts require an administrator invitation.
             </p>
           </div>
         </div>

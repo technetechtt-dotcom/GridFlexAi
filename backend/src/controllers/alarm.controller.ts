@@ -3,12 +3,14 @@ import type { Request, Response } from "express";
 import {
   acknowledgeAlarmEvent,
   appendIncidentTimeline,
+  clearAlarmEvent,
   createAlarmRule,
   createIncident,
   listAlarmEvents,
   listAlarmRules,
   listIncidents,
   raiseAlarmEvent,
+  updateAlarmRule,
   type AlarmActor
 } from "../services/alarm.service.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -83,6 +85,21 @@ export const postAcknowledgeAlarmEventHandler = asyncHandler(async (req: Request
   const note = typeof req.body.note === "string" ? req.body.note : undefined;
   const data = await acknowledgeAlarmEvent(alarmEventId, requireActor(req), note);
   res.status(201).json({ data });
+});
+
+export const postClearAlarmEventHandler = asyncHandler(async (req: Request, res: Response) => {
+  const alarmEventId = req.params.alarmEventId;
+  if (!alarmEventId) throw new AppError("alarmEventId is required.", 400);
+  const note = typeof req.body.note === "string" ? req.body.note : undefined;
+  const data = await clearAlarmEvent(alarmEventId, requireActor(req), note);
+  res.status(200).json({ data });
+});
+
+export const patchAlarmRuleHandler = asyncHandler(async (req: Request, res: Response) => {
+  const ruleId = req.params.ruleId;
+  if (!ruleId) throw new AppError("ruleId is required.", 400);
+  const data = await updateAlarmRule(ruleId, req.body, requireActor(req));
+  res.status(200).json({ data });
 });
 
 export const getIncidentsHandler = asyncHandler(async (req: Request, res: Response) => {

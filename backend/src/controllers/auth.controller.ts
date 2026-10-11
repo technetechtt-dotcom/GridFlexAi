@@ -69,7 +69,18 @@ export const register = asyncHandler(async (
   req: Request<Record<string, never>, AuthSuccessResponse, RegisterBody>,
   res: Response<AuthSuccessResponse>
 ) => {
-  const result = await registerUser(req.body);
+  const registerInput: {
+    email: string;
+    password: string;
+    name: string;
+    inviteToken?: string;
+  } = {
+    email: req.body.email,
+    password: req.body.password,
+    name: req.body.name
+  };
+  if (req.body.inviteToken) registerInput.inviteToken = req.body.inviteToken;
+  const result = await registerUser(registerInput);
   attachRefreshTokenCookie(res, result.refreshToken);
   res.status(201).json({
     user: result.user,

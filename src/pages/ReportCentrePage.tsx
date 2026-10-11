@@ -12,7 +12,7 @@ import {
   listOperatorDecisions,
   listRecoveryAnalyses
 } from '../services/api';
-import { listRecoveryCases } from '../lib/recoveryCases';
+import { listRecoveryCasesRemote } from '../services/api';
 import { listDecisions } from '../lib/decisionLog';
 
 const REPORT_TYPES = [
@@ -74,16 +74,17 @@ export function ReportCentrePage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const [summary, curtailment, recovery, runs, accuracy, apiDecisions, operatingMode] = await Promise.all([
-        fetchDashboardSummary().catch(() => null),
-        fetchCurtailmentEvents({ limit: 200 }).catch(() => []),
-        listRecoveryAnalyses({ limit: 100 }).catch(() => []),
-        fetchOptimisationRuns().catch(() => []),
-        fetchForecastAccuracyScores({ limit: 100 }).catch(() => []),
-        listOperatorDecisions({ limit: 200 }).catch(() => []),
-        fetchOperatingMode().catch(() => null)
-      ]);
-      const cases = listRecoveryCases();
+      const [summary, curtailment, recovery, runs, accuracy, apiDecisions, operatingMode, cases] =
+        await Promise.all([
+          fetchDashboardSummary().catch(() => null),
+          fetchCurtailmentEvents({ limit: 200 }).catch(() => []),
+          listRecoveryAnalyses({ limit: 100 }).catch(() => []),
+          fetchOptimisationRuns().catch(() => []),
+          fetchForecastAccuracyScores({ limit: 100 }).catch(() => []),
+          listOperatorDecisions({ limit: 200 }).catch(() => []),
+          fetchOperatingMode().catch(() => null),
+          listRecoveryCasesRemote().catch(() => [])
+        ]);
       const localDecisions = listDecisions();
       const sections: string[] = [];
 

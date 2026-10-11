@@ -344,6 +344,11 @@ model User {
   incidentTimelineEntries  IncidentTimeline[]
   recoveryAnalysesCreated  RecoveryAnalysisRun[]      @relation("RecoveryAnalysisCreator")
   recoveryReviews          RecoveryReview[]
+  operatorDecisions        OperatorDecision[]
+  recoveryCasesOwned       RecoveryCaseRecord[]       @relation("RecoveryCaseOwner")
+  workOrdersAssigned       WorkOrder[]                @relation("WorkOrderAssignee")
+  workOrdersCreated        WorkOrder[]                @relation("WorkOrderCreator")
+  invitationsSent          UserInvitation[]           @relation("InvitationSender")
 
   @@index([managedById])
   @@index([role])
@@ -384,6 +389,10 @@ model Organisation {
   alarmEvents         AlarmEvent[]
   incidents           Incident[]
   recoveryAnalyses    RecoveryAnalysisRun[]
+  operatorDecisions   OperatorDecision[]
+  recoveryCases       RecoveryCaseRecord[]
+  workOrders          WorkOrder[]
+  invitations         UserInvitation[]
 
   @@index([status])
 }
@@ -948,6 +957,119 @@ model AuditLog {
   @@index([organisationId, createdAt])
   @@index([siteId, createdAt])
   @@index([createdAt])
+}
+
+/// Durable operator decision / approval / rejection / model-review audit record.
+model OperatorDecision {
+  id                    String        @id @default(cuid())
+  organisationId        String?
+  organisation          Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  siteId                String?
+  entityType            String
+  entityId              String
+  title                 String
+  decision              String
+  reason                String
+  previousState         String?
+  newState              String?
+  conditions            String?
+  assignedReviewer      String?
+  expectedOutcome       String?
+  relatedAlarmId        String?
+  relatedRecoveryCaseId String?
+  releaseGitSha         String?
+  modelVersion          String?
+  actorUserId           String?
+  actor               User?         @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorRole             String?
+  metadata              Json?
+  createdAt             DateTime      @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@index([organisationId, createdAt])
+  @@index([siteId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([decision, createdAt])
+}
+
+/// Multi-user recovery case management (not browser localStorage).
+model RecoveryCaseRecord {
+  id                       String        @id @default(cuid())
+  caseNumber               String        @unique
+  organisationId           String?
+  organisation             Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  siteId                   String?
+  title                    String
+  plantLabel               String
+  ownerUserId              String?
+  owner                    User?         @relation("RecoveryCaseOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  ownerName                String
+  engineeringReviewer      String?
+  status                   String        @default("draft")
+  selectedOption           String?
+  evidenceNotes            String        @default("")
+  evidenceAttachments      Json          @default("[]")
+  predictedSavingsZar      Float?
+  realisedSavingsZar       Float?
+  actualRecoveredEnergyKwh Float?
+  realisationRevenueZar    Float?
+  implementationDate       DateTime?
+  closedAt                 DateTime?
+  verificationNotes        String        @default("")
+  history                  Json          @default("[]")
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  @@index([organisationId, updatedAt])
+  @@index([siteId, updatedAt])
+  @@index([ownerUserId, updatedAt])
+  @@index([status, updatedAt])
+}
+
+/// Operator work orders / tasks.
+model WorkOrder {
+  id             String        @id @default(cuid())
+  organisationId String?
+  organisation   Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  siteId         String?
+  title          String
+  description    String        @default("")
+  status         String        @default("open")
+  priority       String        @default("normal")
+  assigneeUserId String?
+  assignee       User?         @relation("WorkOrderAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  createdById    String?
+  createdBy      User?         @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  dueAt          DateTime?
+  closedAt       DateTime?
+  relatedEntityType String?
+  relatedEntityId   String?
+  notes          String        @default("")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organisationId, status, updatedAt])
+  @@index([assigneeUserId, status])
+  @@index([createdById, createdAt])
+}
+
+/// Invite-only registration tokens.
+model UserInvitation {
+  id             String        @id @default(cuid())
+  email          String
+  role           Role          @default(operator)
+  organisationId String?
+  organisation   Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  tokenHash      String        @unique
+  invitedById    String?
+  invitedBy      User?         @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: SetNull)
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([email, createdAt])
+  @@index([organisationId, createdAt])
 }
 
 /// Detected curtailment interval. Powers in kW, energies in kWh.

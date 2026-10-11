@@ -206,12 +206,39 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
                   Close
                 </button>
                 <button
-                disabled
-                title="A provenance-labelled PDF export is not implemented yet"
-                className="flex cursor-not-allowed items-center rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-400">
+                type="button"
+                disabled={!report}
+                onClick={() => {
+                  if (!report) return;
+                  const html = `<!doctype html><html><head><meta charset="utf-8"/><title>GridFlex Pilot Report</title>
+<style>body{font-family:Georgia,serif;margin:32px;color:#0f172a;line-height:1.45}h1{color:#065f46}.banner{background:#fff7ed;border:1px solid #fdba74;padding:12px;margin:16px 0}table{border-collapse:collapse;width:100%;margin-top:12px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}th{background:#f1f5f9}.meta{color:#64748b;font-size:13px}</style></head>
+<body>
+<h1>GridFlex AI — Pilot Performance Report</h1>
+<p class="meta">Period: ${report.date} · Sites: Prieska, Kathu, Boegoebaai (demo portfolio)</p>
+<div class="banner"><strong>Provenance:</strong> Simulated and calculated demonstration values. Not measured customer performance. Estimated carbon uses an illustrative factor.</div>
+<table>
+<tr><th>Metric</th><th>Value</th><th>Class</th></tr>
+<tr><td>Curtailment reduced / shifted</td><td>${report.curtailmentSaved} MWh</td><td>Simulated</td></tr>
+<tr><td>Revenue uplift</td><td>R ${report.revenueUplift.toLocaleString()}</td><td>Calculated (demo)</td></tr>
+<tr><td>Peak-demand / stability score</td><td>${report.gridStabilityScore}/100</td><td>Simulated</td></tr>
+<tr><td>Hydrogen produced</td><td>${report.h2Produced.toLocaleString()} kg</td><td>Simulated</td></tr>
+<tr><td>Carbon opportunity</td><td>${report.co2Avoided} tCO₂e</td><td>Estimated</td></tr>
+</table>
+<p class="meta">Baseline methodology: advisory comparison vs no-action case for the pilot window. Data completeness and model version should be confirmed from /environment-release and forecast-accuracy pages before customer claims.</p>
+<p class="meta">Approval status: advisory demonstration — physical execution locked. Generated ${new Date().toISOString()}.</p>
+</body></html>`;
+                  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `gridflex-pilot-report-${report.date}.html`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400">
 
                   <FileDown className="w-4 h-4 mr-2" />
-                  PDF Export Unavailable
+                  Download provenance report
                 </button>
               </div>
             </div>

@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FolderKanban } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
@@ -7,10 +8,12 @@ import {
   advanceRecoveryCase,
   createRecoveryCase,
   listRecoveryCases,
+  type RecoveryCase,
   type RecoveryCaseStatus
 } from '../lib/recoveryCases';
 import { persistDecision } from '../lib/decisionLog';
 import { useToast } from '../components/Toast';
+import { DataStateBanner } from '../components/DataFetchState';
 
 const STATUS_FLOW: RecoveryCaseStatus[] = [
   'draft',
@@ -25,70 +28,133 @@ const STATUS_FLOW: RecoveryCaseStatus[] = [
 ];
 
 export function RecoveryCaseManagementPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
   const actor = user?.name ?? 'Operator';
-  const [tick, setTick] = useState(0);
-  const cases = useMemo(() => {
-    void tick;
-    return listRecoveryCases();
-  }, [tick]);
+  const [cases, setCases] = useState<RecoveryCase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const refresh = () => setTick((v) => v + 1);
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const rows = await listRecoveryCases();
+      setCases(rows);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load recovery cases');
+      setCases([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const createCase = async () => {
-    const created = createRecoveryCase({
-      title: `Northern Cape recovery case ${new Date().toLocaleDateString()}`,
-      plantLabel: 'Upington PV (demo)',
-      owner: actor,
-      engineeringReviewer: null,
-      predictedSavingsZar: 1875.94
-    });
-    await persistDecision({
-      entityType: 'recovery_case',
-      entityId: created.id,
-      title: created.title,
-      stage: 'recovery_case_updated',
-      actorName: actor,
-      actorRole: user?.role ?? 'operator',
-      reason: `Created ${created.caseNumber}`,
-      expectedOutcome: 'Track advisory recovery through verification and closure'
-    });
-    showToast(`${created.caseNumber} created`, 'success');
-    refresh();
+    setBusy(true);
+    try {
+      const created = await createRecoveryCase({
+        title: `Northern Cape recovery case ${new Date().toLocaleDateString()}`,
+        plantLabel: 'Upington PV',
+        owner: actor,
+        engineeringReviewer: null,
+        predictedSavingsZar: null
+      });
+      await persistDecision({
+        entityType: 'recovery_case',
+        entityId: created.id,
+        title: created.title,
+        stage: 'recovery_case_updated',
+        actorName: actor,
+        actorRole: user?.role ?? 'operator',
+        reason: `Created ${created.caseNumber}`,
+        expectedOutcome: 'Track recovery through verification and closure',
+        newState: 'draft'
+      });
+      showToast(`${created.caseNumber} created in PostgreSQL`, 'success');
+      await refresh();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Create failed', 'error');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const nextStatus = (status: RecoveryCaseStatus): RecoveryCaseStatus | null => {
     const idx = STATUS_FLOW.indexOf(status);
     if (idx < 0 || idx >= STATUS_FLOW.length - 1) return null;
-    return STATUS_FLOW[idx + 1]!;
+    return STATUS_FLOW[idx + 1] ?? null;
+  };
+
+  const patch = async (
+    row: RecoveryCase,
+    update: Parameters<typeof advanceRecoveryCase>[1],
+    note: string,
+    stage: 'assigned' | 'verified' | 'recovery_case_updated' = 'recovery_case_updated'
+  ) => {
+    setBusy(true);
+    try {
+      await advanceRecoveryCase(row.id, update, actor, note);
+      await persistDecision({
+        entityType: 'recovery_case',
+        entityId: row.id,
+        title: row.title,
+        stage,
+        actorName: actor,
+        actorRole: user?.role ?? 'operator',
+        reason: note,
+        expectedOutcome: 'Server-backed recovery case update',
+        previousState: row.status,
+        newState: update.status ?? row.status,
+        relatedRecoveryCaseId: row.id
+      });
+      await refresh();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Update failed', 'error');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <div className="space-y-6 p-6 pb-20">
       <PageHeader
         title="Recovery case management"
-        description="Case numbers, owners, engineering reviewers, evidence, options, realisation, verification, and closure"
+        description="PostgreSQL-backed cases with owners, reviewers, evidence, realisation, verification, and closure"
         breadcrumbs={
           <Breadcrumbs
             items={[
-              { label: 'Overview', onClick: () => window.location.assign('/') },
+              { label: 'Overview', onClick: () => navigate('/') },
               { label: 'Recovery cases' }
             ]}
           />
         }
         primaryAction={{
-          label: 'Create recovery case',
+          label: busy ? 'Working…' : 'Create recovery case',
           onClick: () => void createCase(),
           icon: FolderKanban,
           variant: 'primary'
         }}
       />
 
-      <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-        Cases sync decisions to the audit API when online. They do not dispatch plant commands. Predicted savings from
-        synthetic demos are illustrative until verified with measured data.
+      <p className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+        Cases and decisions are stored in PostgreSQL with audit logs. They do not dispatch plant commands. Predicted
+        savings remain illustrative until verified with measured data.
       </p>
+
+      <DataStateBanner
+        loading={loading}
+        error={error}
+        empty={!loading && !error && cases.length === 0}
+        emptyMessage="No recovery cases yet. Create one to start operator case management."
+        tone="operations"
+        onRetry={() => void refresh()}
+      />
 
       <ul className="space-y-4">
         {cases.map((row) => {
@@ -118,15 +184,14 @@ export function RecoveryCaseManagementPage() {
                   Engineering reviewer
                   <input
                     className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-                    value={row.engineeringReviewer ?? ''}
-                    onChange={(e) => {
-                      advanceRecoveryCase(
-                        row.id,
+                    defaultValue={row.engineeringReviewer ?? ''}
+                    onBlur={(e) => {
+                      if (e.target.value === (row.engineeringReviewer ?? '')) return;
+                      void patch(
+                        row,
                         { engineeringReviewer: e.target.value, status: 'pending_engineering' },
-                        actor,
                         `Engineering reviewer → ${e.target.value || 'unassigned'}`
                       );
-                      refresh();
                     }}
                   />
                 </label>
@@ -135,15 +200,14 @@ export function RecoveryCaseManagementPage() {
                   <input
                     type="date"
                     className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-                    value={row.implementationDate ?? ''}
-                    onChange={(e) => {
-                      advanceRecoveryCase(
-                        row.id,
+                    defaultValue={row.implementationDate ?? ''}
+                    onBlur={(e) => {
+                      if (e.target.value === (row.implementationDate ?? '')) return;
+                      void patch(
+                        row,
                         { implementationDate: e.target.value || null, status: 'implementing' },
-                        actor,
-                        `Implementation date set to ${e.target.value || 'none'}`
+                        `Implementation date set`
                       );
-                      refresh();
                     }}
                   />
                 </label>
@@ -152,16 +216,10 @@ export function RecoveryCaseManagementPage() {
                   <input
                     type="number"
                     className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-                    value={row.actualRecoveredEnergyKwh ?? ''}
-                    onChange={(e) => {
+                    defaultValue={row.actualRecoveredEnergyKwh ?? ''}
+                    onBlur={(e) => {
                       const value = e.target.value === '' ? null : Number(e.target.value);
-                      advanceRecoveryCase(
-                        row.id,
-                        { actualRecoveredEnergyKwh: value },
-                        actor,
-                        `Recovered energy → ${value ?? 'n/a'} kWh`
-                      );
-                      refresh();
+                      void patch(row, { actualRecoveredEnergyKwh: value }, `Recovered energy → ${value ?? 'n/a'} kWh`);
                     }}
                   />
                 </label>
@@ -170,16 +228,14 @@ export function RecoveryCaseManagementPage() {
                   <input
                     type="number"
                     className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-                    value={row.realisedSavingsZar ?? ''}
-                    onChange={(e) => {
+                    defaultValue={row.realisedSavingsZar ?? ''}
+                    onBlur={(e) => {
                       const value = e.target.value === '' ? null : Number(e.target.value);
-                      advanceRecoveryCase(
-                        row.id,
+                      void patch(
+                        row,
                         { realisedSavingsZar: value, realisationRevenueZar: value },
-                        actor,
                         `Realised revenue → R ${value ?? 'n/a'}`
                       );
-                      refresh();
                     }}
                   />
                 </label>
@@ -190,15 +246,14 @@ export function RecoveryCaseManagementPage() {
                 <textarea
                   className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
                   rows={2}
-                  value={row.evidenceNotes}
-                  onChange={(e) => {
-                    advanceRecoveryCase(
-                      row.id,
+                  defaultValue={row.evidenceNotes}
+                  onBlur={(e) => {
+                    if (e.target.value === row.evidenceNotes) return;
+                    void patch(
+                      row,
                       { evidenceNotes: e.target.value, status: 'evidence_attached' },
-                      actor,
                       'Evidence notes updated'
                     );
-                    refresh();
                   }}
                 />
               </label>
@@ -207,33 +262,17 @@ export function RecoveryCaseManagementPage() {
                 Evidence attachment labels (comma-separated)
                 <input
                   className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-                  value={row.evidenceAttachments.join(', ')}
-                  placeholder="e.g. ppc-log.csv, inverter-trend.png"
-                  onChange={(e) => {
+                  defaultValue={row.evidenceAttachments.join(', ')}
+                  onBlur={(e) => {
                     const attachments = e.target.value
                       .split(',')
                       .map((s) => s.trim())
                       .filter(Boolean);
-                    advanceRecoveryCase(
-                      row.id,
+                    void patch(
+                      row,
                       { evidenceAttachments: attachments, status: 'evidence_attached' },
-                      actor,
-                      `Evidence attachments: ${attachments.join(', ') || 'none'}`
+                      `Evidence attachments updated`
                     );
-                    refresh();
-                  }}
-                />
-              </label>
-
-              <label className="block text-xs text-slate-500">
-                Verification / closure notes
-                <textarea
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-                  rows={2}
-                  value={row.verificationNotes}
-                  onChange={(e) => {
-                    advanceRecoveryCase(row.id, { verificationNotes: e.target.value }, actor, 'Verification notes updated');
-                    refresh();
                   }}
                 />
               </label>
@@ -241,75 +280,39 @@ export function RecoveryCaseManagementPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:border-emerald-500/40"
-                  onClick={() => {
-                    advanceRecoveryCase(row.id, { owner: actor, status: 'assigned' }, actor, `Assigned to ${actor}`);
-                    void persistDecision({
-                      entityType: 'recovery_case',
-                      entityId: row.id,
-                      title: row.title,
-                      stage: 'assigned',
-                      actorName: actor,
-                      actorRole: user?.role ?? 'operator',
-                      reason: `Assigned owner ${actor}`,
-                      expectedOutcome: 'Owner drives case to verification'
-                    });
-                    refresh();
-                  }}>
+                  disabled={busy}
+                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:border-emerald-500/40 disabled:opacity-50"
+                  onClick={() =>
+                    void patch(row, { owner: actor, status: 'assigned' }, `Assigned to ${actor}`, 'assigned')
+                  }>
                   Assign to me
                 </button>
                 <button
                   type="button"
-                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:border-emerald-500/40"
-                  onClick={() => {
-                    advanceRecoveryCase(
-                      row.id,
+                  disabled={busy}
+                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:border-emerald-500/40 disabled:opacity-50"
+                  onClick={() =>
+                    void patch(
+                      row,
                       { selectedOption: 'Flexible load', status: 'option_selected' },
-                      actor,
                       'Selected flexible load option'
-                    );
-                    refresh();
-                  }}>
+                    )
+                  }>
                   Select flexible load
                 </button>
                 {nxt && (
                   <button
                     type="button"
-                    className="rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-medium text-slate-950 hover:bg-emerald-400"
+                    disabled={busy}
+                    className="rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-medium text-slate-950 hover:bg-emerald-400 disabled:opacity-50"
                     onClick={() => {
-                      const realised =
-                        nxt === 'verified' || nxt === 'closed'
-                          ? row.realisedSavingsZar ?? (row.predictedSavingsZar ?? 0) * 0.72
-                          : row.realisedSavingsZar;
                       const closedAt = nxt === 'closed' ? new Date().toISOString() : row.closedAt;
-                      advanceRecoveryCase(
-                        row.id,
-                        {
-                          status: nxt,
-                          realisedSavingsZar: realised,
-                          realisationRevenueZar: realised,
-                          closedAt,
-                          actualRecoveredEnergyKwh:
-                            row.actualRecoveredEnergyKwh ??
-                            (nxt === 'verified' || nxt === 'closed' ? 42.5 : null)
-                        },
-                        actor,
-                        `Advanced to ${nxt}`
+                      void patch(
+                        row,
+                        { status: nxt, closedAt },
+                        `Advanced to ${nxt}`,
+                        nxt === 'verified' || nxt === 'closed' ? 'verified' : 'recovery_case_updated'
                       );
-                      void persistDecision({
-                        entityType: 'recovery_case',
-                        entityId: row.id,
-                        title: row.title,
-                        stage: nxt === 'verified' || nxt === 'closed' ? 'verified' : 'recovery_case_updated',
-                        actorName: actor,
-                        actorRole: user?.role ?? 'operator',
-                        reason: `Status → ${nxt}`,
-                        expectedOutcome:
-                          nxt === 'closed'
-                            ? 'Case closed with realised energy/revenue recorded'
-                            : `Move case toward ${nxt}`
-                      });
-                      refresh();
                     }}>
                     Advance to {nxt.replace(/_/g, ' ')}
                   </button>
@@ -329,11 +332,6 @@ export function RecoveryCaseManagementPage() {
             </li>
           );
         })}
-        {!cases.length && (
-          <li className="rounded-xl border border-dashed border-slate-700 p-6 text-sm text-slate-500">
-            No recovery cases yet. Create one to start operator case management.
-          </li>
-        )}
       </ul>
     </div>
   );

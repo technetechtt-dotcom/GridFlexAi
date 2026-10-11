@@ -18,6 +18,11 @@ const createDecisionBodySchema = z.object({
   conditions: z.string().max(2000).optional(),
   assignedReviewer: z.string().max(160).optional(),
   expectedOutcome: z.string().max(2000).optional(),
+  previousState: z.string().max(120).optional(),
+  newState: z.string().max(120).optional(),
+  relatedAlarmId: z.string().optional(),
+  relatedRecoveryCaseId: z.string().optional(),
+  modelVersion: z.string().max(120).optional(),
   organisationId: z.string().optional(),
   siteId: z.string().optional(),
   metadata: z.record(z.unknown()).optional()

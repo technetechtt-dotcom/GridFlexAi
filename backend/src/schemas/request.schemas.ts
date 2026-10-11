@@ -3,7 +3,8 @@ import { z } from "zod";
 export const registerBodySchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  name: z.string().min(2)
+  name: z.string().min(2),
+  inviteToken: z.string().min(16).max(200).optional()
 });
 
 export const loginBodySchema = z.object({

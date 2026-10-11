@@ -14,6 +14,7 @@ type RegisterInput = {
   email: string;
   password: string;
   name: string;
+  inviteToken?: string;
 };
 
 type LoginInput = {
@@ -62,10 +63,40 @@ const issueTokenPair = async (user: { id: string; email: string; name: string; r
   };
 };
 
-export const registerUser = async ({ email, password, name }: RegisterInput) => {
+const inviteOnlyEnabled = (): boolean => {
+  if (typeof env.INVITE_ONLY_REGISTRATION === "boolean") return env.INVITE_ONLY_REGISTRATION;
+  return env.NODE_ENV === "production";
+};
+
+export const registerUser = async ({ email, password, name, inviteToken }: RegisterInput) => {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     throw new AppError("An account with this email already exists.", 409);
+  }
+
+  let role: Role = Role.operator;
+  let invitationId: string | null = null;
+
+  if (inviteOnlyEnabled()) {
+    if (!inviteToken?.trim()) {
+      throw new AppError(
+        "Public self-registration is disabled. Ask an administrator for an invitation.",
+        403
+      );
+    }
+    const tokenHash = hashToken(inviteToken.trim());
+    const invitation = await prisma.userInvitation.findUnique({ where: { tokenHash } });
+    if (!invitation || invitation.revokedAt || invitation.acceptedAt) {
+      throw new AppError("Invitation is invalid or already used.", 403);
+    }
+    if (invitation.expiresAt.getTime() <= Date.now()) {
+      throw new AppError("Invitation has expired.", 403);
+    }
+    if (invitation.email.toLowerCase() !== email.toLowerCase()) {
+      throw new AppError("Invitation email does not match.", 403);
+    }
+    role = invitation.role;
+    invitationId = invitation.id;
   }
 
   const hashedPassword = await hashPassword(password);
@@ -75,9 +106,16 @@ export const registerUser = async ({ email, password, name }: RegisterInput) => 
       email,
       password: hashedPassword,
       name,
-      role: Role.operator
+      role
     }
   });
+
+  if (invitationId) {
+    await prisma.userInvitation.update({
+      where: { id: invitationId },
+      data: { acceptedAt: new Date() }
+    });
+  }
 
   const { accessToken, refreshToken } = await issueTokenPair(user);
 
@@ -85,8 +123,11 @@ export const registerUser = async ({ email, password, name }: RegisterInput) => 
     action: "auth.register",
     entityType: "User",
     entityId: user.id,
-    message: `User registered: ${user.email}`,
-    userId: user.id
+    message: invitationId
+      ? `User registered via invitation: ${user.email}`
+      : `User registered: ${user.email}`,
+    userId: user.id,
+    metadata: { inviteOnly: inviteOnlyEnabled(), invitationId }
   });
 
   return {

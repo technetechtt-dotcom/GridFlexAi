@@ -853,15 +853,18 @@ password: string)
 export async function registerWithPassword(
 name: string,
 email: string,
-password: string)
+password: string,
+inviteToken?: string)
 : Promise<AuthResponse> {
+  const body: { name: string; email: string; password: string; inviteToken?: string } = {
+    name,
+    email,
+    password
+  };
+  if (inviteToken?.trim()) body.inviteToken = inviteToken.trim();
   const result = await apiRequest<AuthResponse>('/auth/register', {
     method: 'POST',
-    body: {
-      name,
-      email,
-      password
-    }
+    body
   });
   persistAuthSession(result);
   return result;
@@ -928,6 +931,11 @@ export async function createOperatorDecision(payload: {
   conditions?: string;
   assignedReviewer?: string;
   expectedOutcome?: string;
+  previousState?: string;
+  newState?: string;
+  relatedAlarmId?: string;
+  relatedRecoveryCaseId?: string;
+  modelVersion?: string;
   metadata?: Record<string, unknown>;
 }): Promise<OperatorDecisionRecord> {
   const response = await apiRequest<ApiEnvelope<OperatorDecisionRecord>>('/operator-decisions', {
@@ -935,6 +943,174 @@ export async function createOperatorDecision(payload: {
     auth: true,
     body: payload
   });
+  return response.data;
+}
+
+export type RecoveryCaseDto = {
+  id: string;
+  caseNumber: string;
+  title: string;
+  plantLabel: string;
+  owner: string;
+  engineeringReviewer: string | null;
+  status: string;
+  selectedOption: string | null;
+  evidenceNotes: string;
+  evidenceAttachments: string[];
+  predictedSavingsZar: number | null;
+  realisedSavingsZar: number | null;
+  actualRecoveredEnergyKwh: number | null;
+  realisationRevenueZar: number | null;
+  implementationDate: string | null;
+  closedAt: string | null;
+  verificationNotes: string;
+  history: Array<{ at: string; actor: string; note: string; status: string }>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listRecoveryCasesRemote(): Promise<RecoveryCaseDto[]> {
+  const response = await apiRequest<ApiEnvelope<RecoveryCaseDto[]>>('/recovery-cases', { auth: true });
+  return response.data;
+}
+
+export async function createRecoveryCaseRemote(payload: {
+  title: string;
+  plantLabel: string;
+  predictedSavingsZar?: number | null;
+  engineeringReviewer?: string | null;
+}): Promise<RecoveryCaseDto> {
+  const response = await apiRequest<ApiEnvelope<RecoveryCaseDto>>('/recovery-cases', {
+    method: 'POST',
+    auth: true,
+    body: payload
+  });
+  return response.data;
+}
+
+export async function updateRecoveryCaseRemote(
+  id: string,
+  payload: Record<string, unknown>
+): Promise<RecoveryCaseDto> {
+  const response = await apiRequest<ApiEnvelope<RecoveryCaseDto>>(`/recovery-cases/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    auth: true,
+    body: payload
+  });
+  return response.data;
+}
+
+export type WorkOrderDto = {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  assigneeUserId: string | null;
+  assigneeName: string | null;
+  createdByName: string | null;
+  dueAt: string | null;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listWorkOrders(): Promise<WorkOrderDto[]> {
+  const response = await apiRequest<ApiEnvelope<WorkOrderDto[]>>('/work-orders', { auth: true });
+  return response.data;
+}
+
+export async function createWorkOrder(payload: {
+  title: string;
+  description?: string;
+  priority?: string;
+  dueAt?: string;
+}): Promise<WorkOrderDto> {
+  const response = await apiRequest<ApiEnvelope<WorkOrderDto>>('/work-orders', {
+    method: 'POST',
+    auth: true,
+    body: payload
+  });
+  return response.data;
+}
+
+export async function updateWorkOrder(
+  id: string,
+  payload: { status?: string; notes?: string; priority?: string }
+): Promise<WorkOrderDto> {
+  const response = await apiRequest<ApiEnvelope<WorkOrderDto>>(`/work-orders/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    auth: true,
+    body: payload
+  });
+  return response.data;
+}
+
+export type AlarmRuleDto = {
+  id: string;
+  organisationId: string;
+  siteId: string | null;
+  name: string;
+  description: string | null;
+  metricKey: string;
+  comparator: string;
+  threshold: number;
+  severity: string;
+  enabled: boolean;
+  cooldownSeconds: number;
+  updatedAt: string;
+};
+
+export async function fetchAlarmRules(): Promise<AlarmRuleDto[]> {
+  const response = await apiRequest<ApiEnvelope<AlarmRuleDto[]>>('/alarm-rules', { auth: true });
+  return response.data;
+}
+
+export async function createAlarmRule(payload: {
+  organisationId: string;
+  siteId?: string;
+  name: string;
+  description?: string;
+  metricKey: string;
+  comparator?: string;
+  threshold: number;
+  severity?: string;
+  enabled?: boolean;
+  cooldownSeconds?: number;
+}): Promise<AlarmRuleDto> {
+  const response = await apiRequest<ApiEnvelope<AlarmRuleDto>>('/alarm-rules', {
+    method: 'POST',
+    auth: true,
+    body: payload
+  });
+  return response.data;
+}
+
+export async function updateAlarmRule(
+  ruleId: string,
+  payload: Partial<{
+    name: string;
+    description: string | null;
+    metricKey: string;
+    comparator: string;
+    threshold: number;
+    severity: string;
+    enabled: boolean;
+    cooldownSeconds: number;
+  }>
+): Promise<AlarmRuleDto> {
+  const response = await apiRequest<ApiEnvelope<AlarmRuleDto>>(
+    `/alarm-rules/${encodeURIComponent(ruleId)}`,
+    { method: 'PATCH', auth: true, body: payload }
+  );
+  return response.data;
+}
+
+export async function clearAlarmEvent(alarmEventId: string, note?: string): Promise<unknown> {
+  const response = await apiRequest<ApiEnvelope<unknown>>(
+    `/alarm-events/${encodeURIComponent(alarmEventId)}/clear`,
+    { method: 'POST', auth: true, body: note ? { note } : {} }
+  );
   return response.data;
 }
 
@@ -1955,6 +2131,8 @@ export type PlatformHealth = {
     gitSha: string | null;
     imageDigest: string | null;
   };
+  releaseIdentityRequired?: boolean;
+  releaseIdentityValid?: boolean;
   dependencies?: {
     database: string;
     redis: string;

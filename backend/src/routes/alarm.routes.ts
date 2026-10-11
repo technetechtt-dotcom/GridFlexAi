@@ -5,9 +5,11 @@ import {
   getAlarmEventsHandler,
   getAlarmRulesHandler,
   getIncidentsHandler,
+  patchAlarmRuleHandler,
   postAcknowledgeAlarmEventHandler,
   postAlarmEventHandler,
   postAlarmRuleHandler,
+  postClearAlarmEventHandler,
   postIncidentHandler,
   postIncidentTimelineHandler
 } from "../controllers/alarm.controller.js";
@@ -85,6 +87,16 @@ router.post(
   validateRequest({ body: alarmRuleBodySchema }),
   postAlarmRuleHandler
 );
+router.patch(
+  "/alarm-rules/:ruleId",
+  ...scoped,
+  requireRoles("admin", "developer", "manager"),
+  validateRequest({
+    params: z.object({ ruleId: z.string().min(1) }),
+    body: alarmRuleBodySchema.partial().omit({ organisationId: true })
+  }),
+  patchAlarmRuleHandler
+);
 
 router.get(
   "/alarm-events",
@@ -105,6 +117,13 @@ router.post(
   requireRoles("admin", "developer", "manager", "operator"),
   validateRequest({ body: acknowledgeBodySchema }),
   postAcknowledgeAlarmEventHandler
+);
+router.post(
+  "/alarm-events/:alarmEventId/clear",
+  ...scoped,
+  requireRoles("admin", "developer", "manager", "operator"),
+  validateRequest({ body: acknowledgeBodySchema }),
+  postClearAlarmEventHandler
 );
 
 router.get("/incidents", ...scoped, getIncidentsHandler);

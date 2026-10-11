@@ -246,6 +246,87 @@ export const acknowledgeAlarmEvent = async (
   return acknowledgement;
 };
 
+export const clearAlarmEvent = async (
+  alarmEventId: string,
+  actor: AlarmActor,
+  resolutionNote?: string
+) => {
+  const scope = await loadScope(actor);
+  const event = await prisma.alarmEvent.findUnique({ where: { id: alarmEventId } });
+  if (!event) throw new AppError("Alarm event not found.", 404);
+  assertOrganisationAccess(scope, event.organisationId);
+  await assertSiteAccess(scope, event.siteId);
+
+  const updated = await prisma.alarmEvent.update({
+    where: { id: alarmEventId },
+    data: {
+      status: "cleared",
+      clearedAt: new Date(),
+      metadata: {
+        ...((event.metadata as Record<string, unknown> | null) ?? {}),
+        resolutionNote: resolutionNote ?? null,
+        clearedByUserId: actor.id
+      }
+    }
+  });
+
+  await recordAuditLog({
+    action: "alarm_event.clear",
+    entityType: "AlarmEvent",
+    entityId: alarmEventId,
+    message: resolutionNote ?? "Cleared",
+    userId: actor.id,
+    organisationId: event.organisationId,
+    siteId: event.siteId
+  });
+
+  return updated;
+};
+
+export const updateAlarmRule = async (
+  ruleId: string,
+  input: {
+    name?: string;
+    description?: string | null;
+    metricKey?: string;
+    comparator?: "gt" | "gte" | "lt" | "lte" | "eq" | "neq";
+    threshold?: number;
+    severity?: "info" | "warning" | "major" | "critical";
+    enabled?: boolean;
+    cooldownSeconds?: number;
+    metadata?: Prisma.InputJsonValue;
+  },
+  actor: AlarmActor
+) => {
+  const scope = await loadScope(actor);
+  const existing = await prisma.alarmRule.findUnique({ where: { id: ruleId } });
+  if (!existing) throw new AppError("Alarm rule not found.", 404);
+  assertOrganisationAccess(scope, existing.organisationId);
+
+  const data: Prisma.AlarmRuleUncheckedUpdateInput = {};
+  if (input.name !== undefined) data.name = input.name;
+  if (input.description !== undefined) data.description = input.description;
+  if (input.metricKey !== undefined) data.metricKey = input.metricKey;
+  if (input.comparator !== undefined) data.comparator = input.comparator;
+  if (input.threshold !== undefined) data.threshold = input.threshold;
+  if (input.severity !== undefined) data.severity = input.severity;
+  if (input.enabled !== undefined) data.enabled = input.enabled;
+  if (input.cooldownSeconds !== undefined) data.cooldownSeconds = input.cooldownSeconds;
+  if (input.metadata !== undefined) data.metadata = input.metadata;
+
+  const rule = await prisma.alarmRule.update({ where: { id: ruleId }, data });
+  await recordAuditLog({
+    action: "alarm_rule.update",
+    entityType: "AlarmRule",
+    entityId: rule.id,
+    message: `Updated alarm rule ${rule.name}`,
+    userId: actor.id,
+    organisationId: rule.organisationId,
+    siteId: rule.siteId ?? undefined
+  });
+  return rule;
+};
+
 export const listIncidents = async (actor: AlarmActor) => {
   const scope = await loadScope(actor);
   return prisma.incident.findMany({

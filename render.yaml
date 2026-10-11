@@ -107,6 +107,10 @@ services:
         sync: false
       - key: RELEASE_IMAGE_DIGEST
         sync: false
+      - key: REQUIRE_RELEASE_IDENTITY
+        value: "true"
+      - key: INVITE_ONLY_REGISTRATION
+        value: "true"
       - key: OTEL_SERVICE_NAME
         value: gridflex-api
       - key: FORECAST_CIRCUIT_FAILURE_THRESHOLD

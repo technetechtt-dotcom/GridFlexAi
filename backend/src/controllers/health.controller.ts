@@ -16,17 +16,28 @@ type ReleaseIdentity = {
 };
 
 type HealthResponse = {
-  status: "ok";
+  status: "ok" | "degraded";
   uptime: number;
   timestamp: string;
   release: ReleaseIdentity;
   dependencies: DependencyStatus;
+  releaseIdentityRequired?: boolean;
+  releaseIdentityValid?: boolean;
 };
 
 const releaseIdentity = (): ReleaseIdentity => ({
   gitSha: env.RELEASE_GIT_SHA?.trim() || null,
   imageDigest: env.RELEASE_IMAGE_DIGEST?.trim() || null
 });
+
+const releaseIdentityRequired = (): boolean => {
+  if (env.NODE_ENV === "test") return false;
+  if (typeof env.REQUIRE_RELEASE_IDENTITY === "boolean") return env.REQUIRE_RELEASE_IDENTITY;
+  return env.NODE_ENV === "production";
+};
+
+const releaseIdentityValid = (release: ReleaseIdentity): boolean =>
+  Boolean(release.gitSha && release.imageDigest);
 
 export const getLiveness = asyncHandler(async (
   _req: Request<Record<string, never>, Omit<HealthResponse, "dependencies">>,
@@ -63,14 +74,24 @@ export const getHealth = asyncHandler(async (
     }
   }
 
-  res.status(200).json({
-    status: "ok",
+  const release = releaseIdentity();
+  const required = releaseIdentityRequired();
+  const valid = releaseIdentityValid(release);
+  const identityOk = !required || valid;
+
+  const payload: HealthResponse = {
+    status: identityOk ? "ok" : "degraded",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    release: releaseIdentity(),
+    release,
     dependencies: {
       database: "up",
       redis: redisStatus
-    }
-  });
+    },
+    releaseIdentityRequired: required,
+    releaseIdentityValid: valid
+  };
+
+  // Fail closed for readiness probes when production requires digest-pinned identity.
+  res.status(identityOk ? 200 : 503).json(payload);
 });

@@ -85,8 +85,17 @@ const RecoveryCaseManagementPage = lazy(() =>
 const ModelReviewPage = lazy(() =>
   import('./pages/ModelReviewPage').then((module) => ({ default: module.ModelReviewPage }))
 );
-const WorkflowStubPage = lazy(() =>
-  import('./pages/WorkflowStubPage').then((module) => ({ default: module.WorkflowStubPage }))
+const PilotOnboardingPage = lazy(() =>
+  import('./pages/PilotOnboardingPage').then((module) => ({ default: module.PilotOnboardingPage }))
+);
+const DataQualityPage = lazy(() =>
+  import('./pages/DataQualityPage').then((module) => ({ default: module.DataQualityPage }))
+);
+const OperatorTasksPage = lazy(() =>
+  import('./pages/OperatorTasksPage').then((module) => ({ default: module.OperatorTasksPage }))
+);
+const PilotResultsPage = lazy(() =>
+  import('./pages/PilotResultsPage').then((module) => ({ default: module.PilotResultsPage }))
 );
 
 const pageToPath: Record<Page, string> = {
@@ -110,6 +119,7 @@ const pageToPath: Record<Page, string> = {
   'recovery-history': '/recovery/history',
   'recovery-cases': '/recovery/cases',
   diagnostics: '/diagnostics',
+  alarms: '/alarms',
   approvals: '/approvals',
   reports: '/reports',
   'pilot-onboarding': '/pilot-onboarding',
@@ -140,6 +150,7 @@ function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/dispatch-status')) return 'dispatch-status';
   if (pathname.startsWith('/dispatch')) return 'dispatch';
   if (pathname.startsWith('/diagnostics')) return 'diagnostics';
+  if (pathname.startsWith('/alarms')) return 'alarms';
   if (pathname.startsWith('/approvals')) return 'approvals';
   if (pathname.startsWith('/reports')) return 'reports';
   if (pathname.startsWith('/pilot-onboarding')) return 'pilot-onboarding';
@@ -278,75 +289,10 @@ function AppRoutes() {
           <Route path="/approvals" element={<ApprovalQueuePage />} />
           <Route path="/reports" element={<ReportCentrePage />} />
           <Route path="/model-review" element={<ModelReviewPage />} />
-          <Route
-            path="/pilot-onboarding"
-            element={
-              <WorkflowStubPage
-                title="Pilot onboarding"
-                description="Guided organisation → site → plant → edge node → credential → telemetry verify path"
-                bullets={[
-                  'Create organisation and site records',
-                  'Register plant nameplate and export limit',
-                  'Provision edge credentials (vault-backed)',
-                  'Verify first signed telemetry packet',
-                  'Approve commissioning with physical execution still locked'
-                ]}
-                linkedPath="/plants"
-                linkedLabel="Open plant portfolio"
-              />
-            }
-          />
-          <Route
-            path="/data-quality"
-            element={
-              <WorkflowStubPage
-                title="Data provenance and quality"
-                description="Separate measured, forecast and synthetic feeds; quarantine poor samples"
-                bullets={[
-                  'Provenance labels on every series',
-                  'Quality flags and delay monitoring',
-                  'Quarantine review queue',
-                  'Retention controls for pilot datasets'
-                ]}
-                linkedPath="/provider-diagnostics"
-                linkedLabel="Open provider diagnostics"
-              />
-            }
-          />
-          <Route
-            path="/operator-tasks"
-            element={
-              <WorkflowStubPage
-                title="Operator tasks and work orders"
-                description="Maintenance and advisory task board for the pilot crew"
-                bullets={[
-                  'Create work order from node alert',
-                  'Assign technician and due time',
-                  'Record work notes and close-out',
-                  'Link to recovery cases when relevant'
-                ]}
-                linkedPath="/recovery/cases"
-                linkedLabel="Open recovery cases"
-              />
-            }
-          />
-          <Route
-            path="/pilot-results"
-            element={
-              <WorkflowStubPage
-                title="Pilot results and verified impact"
-                description="Compare predicted advisory savings with realised measured outcomes"
-                bullets={[
-                  'Baseline period definition',
-                  'Predicted vs realised recovery',
-                  'Evidence attachments',
-                  'Never claim synthetic demo numbers as customer savings'
-                ]}
-                linkedPath="/kpi"
-                linkedLabel="Open KPI reporting"
-              />
-            }
-          />
+          <Route path="/pilot-onboarding" element={<PilotOnboardingPage />} />
+          <Route path="/data-quality" element={<DataQualityPage />} />
+          <Route path="/operator-tasks" element={<OperatorTasksPage />} />
+          <Route path="/pilot-results" element={<PilotResultsPage />} />
           <Route path="/environment-release" element={<EnvironmentReleasePage />} />
           <Route path="/privacy" element={<PrivacyNoticePage />} />
           <Route path="/terms" element={<TermsOfUsePage />} />

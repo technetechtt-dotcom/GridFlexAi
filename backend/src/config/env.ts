@@ -143,7 +143,14 @@ const envSchema = z.object({
   RELEASE_IMAGE_DIGEST: z
     .string()
     .regex(/^sha256:[a-f0-9]{64}$/i, "RELEASE_IMAGE_DIGEST must be sha256:<64 hex>")
-    .optional()
+    .optional(),
+  /**
+   * When true (default in production), /api/health returns 503 unless both
+   * RELEASE_GIT_SHA and RELEASE_IMAGE_DIGEST are set. Liveness stays 200.
+   */
+  REQUIRE_RELEASE_IDENTITY: envBoolean.optional(),
+  /** Disable public self-registration; require invite token (default true in production). */
+  INVITE_ONLY_REGISTRATION: envBoolean.optional()
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -257,6 +264,17 @@ const validateProductionSafety = (config: z.infer<typeof envSchema>) => {
     problems.push(
       "GRIDFLEX_OPERATING_MODE=SIMULATION is forbidden in production unless ALLOW_SIMULATION_IN_PRODUCTION=true (written authorisation required)."
     );
+  }
+
+  if (config.REQUIRE_RELEASE_IDENTITY !== false) {
+    if (!config.RELEASE_GIT_SHA?.trim()) {
+      problems.push("RELEASE_GIT_SHA is required in production (set REQUIRE_RELEASE_IDENTITY=false only for emergency source builds).");
+    }
+    if (!config.RELEASE_IMAGE_DIGEST?.trim()) {
+      problems.push(
+        "RELEASE_IMAGE_DIGEST is required in production (digest-pin the signed image; do not rebuild from source)."
+      );
+    }
   }
 
   if (problems.length > 0) {

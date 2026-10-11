@@ -19,7 +19,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, inviteToken?: string) => Promise<void>;
   logout: () => Promise<void>;
   isLoading: boolean;
 }
@@ -135,10 +135,10 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
       setIsLoading(false);
     }
   };
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string, inviteToken?: string) => {
     setIsLoading(true);
     try {
-      const auth = await registerWithPassword(name, email, password);
+      const auth = await registerWithPassword(name, email, password, inviteToken);
       const apiUser: User = {
         id: auth.user.id,
         name: auth.user.name,

@@ -156,16 +156,22 @@ export function AllRecommendations({ onNavigate }: AllRecommendationsProps) {
     reason: string,
     expectedOutcome: string
   ) => {
-    await persistDecision({
-      entityType: 'recommendation',
-      entityId: String(rec.id),
-      title: rec.title,
-      stage,
-      actorName: actor,
-      actorRole: user?.role ?? 'operator',
-      reason,
-      expectedOutcome
-    });
+    try {
+      await persistDecision({
+        entityType: 'recommendation',
+        entityId: String(rec.id),
+        title: rec.title,
+        stage,
+        actorName: actor,
+        actorRole: user?.role ?? 'operator',
+        reason,
+        expectedOutcome,
+        previousState: rec.status,
+        newState: stage
+      });
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not persist decision', 'error');
+    }
     setTick((v) => v + 1);
   };
 
