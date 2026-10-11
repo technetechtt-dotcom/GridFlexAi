@@ -103,12 +103,14 @@ services:
         sync: false
       - key: ALERT_WEBHOOK_TOKEN
         sync: false
+      # Source-built Node service: identity is optional. Set REQUIRE_RELEASE_IDENTITY=true
+      # only on a digest-pinned Docker service that actually runs the Cosign image.
       - key: RELEASE_GIT_SHA
         sync: false
       - key: RELEASE_IMAGE_DIGEST
         sync: false
       - key: REQUIRE_RELEASE_IDENTITY
-        value: "true"
+        value: "false"
       - key: INVITE_ONLY_REGISTRATION
         value: "true"
       - key: OTEL_SERVICE_NAME
