@@ -22,7 +22,7 @@
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.124",
+    "@ai-sdk/openai": "^4.0.89",
     "@aws-sdk/client-kms": "^3.1090.0",
     "@prisma/client": "^7.9.1",
     "@socket.io/redis-adapter": "^8.3.0",
