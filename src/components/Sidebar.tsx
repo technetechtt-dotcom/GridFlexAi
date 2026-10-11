@@ -45,6 +45,14 @@ export type Page =
   | 'curtailment-detail'
   | 'recovery'
   | 'recovery-history'
+  | 'recovery-cases'
+  | 'diagnostics'
+  | 'approvals'
+  | 'reports'
+  | 'pilot-onboarding'
+  | 'data-quality'
+  | 'operator-tasks'
+  | 'pilot-results'
   | 'revenue-detail'
   | 'forecast-accuracy'
   | 'generation-vs-forecast'
@@ -131,6 +139,10 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
   const navItems: Array<{ id: Page; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'gcip', label: 'GCIP Showcase', icon: Trophy },
+    { id: 'curtailment-detail', label: 'Curtailment', icon: AlertTriangle },
+    { id: 'recovery', label: 'Recovery Centre', icon: Recycle },
+    { id: 'blueprint', label: 'Platform Blueprint', icon: Grid },
+    { id: 'kpi', label: 'KPI & Reporting', icon: BarChart3 },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'nodes', label: 'Nodes', icon: Server },
     { id: 'plants', label: 'Plants', icon: Leaf },
@@ -150,12 +162,12 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
       : []),
     { id: 'congestion', label: 'Congestion Forecast', icon: Zap },
     { id: 'dispatch', label: 'Dispatch Optimization', icon: Activity },
+    { id: 'diagnostics', label: 'Diagnostics', icon: Activity },
+    { id: 'approvals', label: 'Approvals', icon: Users },
+    { id: 'recovery-cases', label: 'Recovery Cases', icon: Recycle },
     { id: 'hyshift', label: 'HyShift Control', icon: Droplet },
     { id: 'sector-coupling', label: 'Sector Coupling', icon: Factory },
     { id: 'scenario', label: 'Scenario Simulation', icon: Sliders },
-    { id: 'curtailment-detail', label: 'Curtailment', icon: AlertTriangle },
-    { id: 'recovery', label: 'Recovery Centre', icon: Recycle },
-    { id: 'kpi', label: 'KPI & Reporting', icon: BarChart3 },
     { id: 'help', label: 'Help', icon: HelpCircle }
   ];
 

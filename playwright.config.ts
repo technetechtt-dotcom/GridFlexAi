@@ -13,6 +13,21 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] }
+    },
+    {
+      name: "tablet",
+      testMatch: "**/gcip-responsive.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 768, height: 1024 },
+        isMobile: true,
+        hasTouch: true
+      }
+    },
+    {
+      name: "mobile",
+      testMatch: "**/gcip-responsive.spec.ts",
+      use: { ...devices["Pixel 5"] }
     }
   ],
   webServer: {

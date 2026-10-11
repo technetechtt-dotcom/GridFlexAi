@@ -37,6 +37,8 @@ import { Page } from '../components/Sidebar';
 import { usePilotStore } from '../store/pilotStore';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
 import { SimulationBanner } from '../components/SimulationBanner';
+import { useAuth } from '../context/AuthContext';
+import { recordDecision } from '../lib/decisionLog';
 interface DispatchOptimizationProps {
   onNavigate: (page: Page) => void;
 }
@@ -125,6 +127,7 @@ export function DispatchOptimization({
   onNavigate
 }: DispatchOptimizationProps) {
   const { submitPrompt } = usePilotStore();
+  const { user } = useAuth();
   const [readings, setReadings] = useState<BackendReading[]>([]);
   const [recommendations, setRecommendations] = useState<DispatchRecommendation[]>([]);
   const [advisorySchedule, setAdvisorySchedule] = useState<AdvisoryDispatchInterval[]>([]);
@@ -155,6 +158,16 @@ export function DispatchOptimization({
     setRecommendations((prev) =>
       prev.map((row) => (row.id === rec.id ? { ...row, status: 'approved' as const } : row))
     );
+    recordDecision({
+      entityType: 'recommendation',
+      entityId: String(rec.id),
+      title: rec.title,
+      stage: 'proposed',
+      actorName: user?.name ?? 'Operator',
+      actorRole: user?.role ?? 'operator',
+      reason: 'Propose only from Dispatch Optimisation',
+      expectedOutcome: rec.impact
+    });
     setProposeBanner(
       `Proposal recorded for "${rec.title}". Advisory-only mode — physical plant execution remains locked.`
     );
@@ -384,16 +397,14 @@ export function DispatchOptimization({
                 <p className="text-xs text-slate-400 mb-3">{rec.description}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-emerald-400">{rec.impact}</span>
-                  {rec.status === 'pending' &&
-                <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        type="button"
-                        onClick={() => handleProposeOnly(rec)}
-                        className="rounded bg-emerald-500/80 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-emerald-600">
-                        Propose only
-                      </button>
-                    </div>
-                }
+                  {rec.status === 'pending' && (
+                    <button
+                      type="button"
+                      onClick={() => handleProposeOnly(rec)}
+                      className="rounded bg-emerald-500/80 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                      Propose only
+                    </button>
+                  )}
                 </div>
               </div>
             )}

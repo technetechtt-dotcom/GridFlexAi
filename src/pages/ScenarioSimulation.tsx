@@ -41,6 +41,7 @@ export function ScenarioSimulation({ onNavigate }: ScenarioSimulationProps) {
   const [topologyFlex, setTopologyFlex] = useState(40);
   const [getResult, setGetResult] = useState<Awaited<ReturnType<typeof optimizeGETTopology>> | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [resetNote, setResetNote] = useState<string | null>(null);
   useEffect(() => {
     void optimizeGETTopology().then(setGetResult);
   }, []);
@@ -53,6 +54,7 @@ export function ScenarioSimulation({ onNavigate }: ScenarioSimulationProps) {
     setTopologyFlex(40);
     setIsSimulating(false);
     void optimizeGETTopology().then(setGetResult);
+    setResetNote('Scenario controls reset to defaults (150 MWh BESS, 0% solar/wind/H₂ deltas, GET on).');
   };
 
   const runSimulation = () => {
@@ -140,9 +142,15 @@ export function ScenarioSimulation({ onNavigate }: ScenarioSimulationProps) {
             onClick: () => onNavigate('forecast-accuracy'),
             icon: TrendingUp
           },
-          { label: 'Reset', onClick: resetSimulation, icon: RotateCcw }
+          { label: 'Reset', onClick: resetSimulation, icon: RotateCcw, title: 'Reset sliders and GET inputs to defaults' }
         ]}
       />
+
+      {resetNote && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-100">
+          {resetNote}
+        </div>
+      )}
 
       {/* AI Prompt */}
       <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-800">

@@ -80,13 +80,16 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
           fetchGridConstraints().catch(() => [])
         ]);
         if (!active) return;
-        setDlrRows(dlr);
-        setBaseHeatmapData(nodes.map((node) => ({
+        const constraintRows = Array.isArray(constraints) ? constraints : [];
+        const congestionNodes = Array.isArray(nodes) ? nodes : [];
+        const dlrList = Array.isArray(dlr) ? dlr : [];
+        setDlrRows(dlrList);
+        setBaseHeatmapData(congestionNodes.map((node) => ({
           node: node.name,
           values: node.forecast24h
         })));
-        const exportConstraint = constraints.find((row) => row.constraintType === 'export' || row.constraintType === 'feeder');
-        const hasMeasuredConstraint = constraints.some(
+        const exportConstraint = constraintRows.find((row) => row.constraintType === 'export' || row.constraintType === 'feeder');
+        const hasMeasuredConstraint = constraintRows.some(
           (row) => row.sourceType === 'measured' || row.sourceType === 'operator_entered'
         );
         setConstraintsSimulated(!hasMeasuredConstraint);
@@ -138,8 +141,20 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
         values: row.values.map((v) => Math.max(0, Math.round(v * 0.88)))
       }));
     }
+    if (horizon72) {
+      // 24h feed extended to a 72h demonstration horizon (labelled in page description).
+      next = next.map((row) => {
+        const day = row.values;
+        const extended = [
+          ...day,
+          ...day.map((v) => Math.max(0, Math.round(v * 0.96))),
+          ...day.map((v) => Math.max(0, Math.round(v * 0.93)))
+        ];
+        return { ...row, values: extended };
+      });
+    }
     return next;
-  }, [showHyShift, enableDlr, baseHeatmapData]);
+  }, [showHyShift, enableDlr, baseHeatmapData, horizon72]);
   useEffect(() => {
     const rows = displayData.map((row) => {
       const peak = Math.max(...row.values);
@@ -221,16 +236,26 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
             icon: Activity
           },
           {
-            label: horizon72 ? '24h view' : 'Next 72 Hours',
-            onClick: () => setHorizon72((v) => !v),
-            icon: Calendar
+            label: horizon72 ? 'Show 24 Hours' : 'Next 72 Hours',
+            onClick: () => {
+              setHorizon72((v) => !v);
+              setExportNote((prev) =>
+                horizon72
+                  ? 'Switched to 24-hour congestion view.'
+                  : 'Switched to 72-hour demonstration horizon (extrapolated from 24h feed).'
+              );
+            },
+            icon: Calendar,
+            title: horizon72
+              ? 'Return to the measured 24-hour forecast window'
+              : 'Extend the heatmap to a 72-hour demonstration horizon'
           },
           {
             label: 'Export',
             onClick: handleExportCsv,
             icon: Download,
             disabled: !trendData.length && !riskRows.length,
-            title: !trendData.length && !riskRows.length ? 'Load forecast data first' : undefined
+            title: !trendData.length && !riskRows.length ? 'Load forecast data first' : 'Download CSV of visible trend and risk rows'
           }
         ]}
       />

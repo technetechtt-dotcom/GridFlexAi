@@ -159,8 +159,9 @@ export function DispatchStatus({ onNavigate }: DispatchStatusProps) {
         secondaryActions={[
           {
             label: 'Run Diagnostics',
-            onClick: () => navigate('/provider-diagnostics'),
-            icon: RotateCcw
+            onClick: () => navigate('/diagnostics'),
+            icon: RotateCcw,
+            title: 'Open diagnostics results (connectivity, telemetry, providers, Redis)'
           }
         ]}
       />

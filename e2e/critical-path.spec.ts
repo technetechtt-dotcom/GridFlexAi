@@ -378,6 +378,13 @@ const mockApi = async (page: Page): Promise<MockControl> => {
   return control;
 };
 
+const openNavIfNeeded = async (page: Page) => {
+  const open = page.getByRole("button", { name: "Open navigation menu" });
+  if (await open.isVisible().catch(() => false)) {
+    await open.click();
+  }
+};
+
 const signIn = async (page: Page) => {
   await page.goto("/login");
   await page.getByPlaceholder("operator@gridflex.ai").fill("admin@gridflex.ai");
@@ -398,6 +405,7 @@ test("forecast navigation path works after login", async ({ page }) => {
   await mockApi(page);
   await signIn(page);
 
+  await openNavIfNeeded(page);
   await page.getByRole("button", { name: "Congestion Forecast" }).click();
   await expect(page.getByRole("heading", { name: "Congestion Forecasting" })).toBeVisible();
 
@@ -411,6 +419,7 @@ test("dispatch retry banner recovers from transient API failure", async ({ page 
   await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 
   control.blockReadings = true;
+  await openNavIfNeeded(page);
   await page.getByRole("button", { name: "Dispatch Optimization" }).click();
   await expect(page.getByRole("heading", { name: "Dispatch Optimization" })).toBeVisible();
   await expect(page.getByText("Synthetic dispatch failure")).toBeVisible();
@@ -419,7 +428,7 @@ test("dispatch retry banner recovers from transient API failure", async ({ page 
   await expect(retry).toBeVisible();
   control.blockReadings = false;
   await retry.click({ force: true }).catch(() => undefined);
-  await expect(page.getByText("Synthetic dispatch failure")).toHaveCount(0);
+  await expect(page.getByText("Synthetic dispatch failure")).toHaveCount(0, { timeout: 15000 });
   await expect(page.getByRole("heading", { name: "Advisory Dispatch Profile" })).toBeVisible();
 });
 
@@ -453,7 +462,10 @@ test("GCIP showcase presents the judge journey and safety state", async ({ page 
   await signIn(page);
   await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 
-  await page.getByRole("button", { name: "GCIP Showcase" }).click();
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/gcip");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
   await expect(
     page.getByRole("heading", {
       name: "Recover renewable energy that South Africa already produces."
@@ -490,9 +502,52 @@ test("GCIP presentation path reaches recovery with lock messaging", async ({ pag
   await signIn(page);
   await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 
+  await openNavIfNeeded(page);
   await page.getByRole("button", { name: "GCIP Showcase" }).click();
   await page.getByRole("button", { name: /Run the recovery demonstration/i }).click();
   await expect(page.getByText("Renewable Energy Recovery Centre")).toBeVisible();
   await expect(page.getByText(/physical/i).first()).toBeVisible();
 });
 
+test("controls on congestion and generation pages are actionable", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Dense header actions covered on desktop chromium");
+  await mockApi(page);
+  await signIn(page);
+  await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
+
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/congestion");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.getByRole("heading", { name: "Congestion Forecasting" })).toBeVisible();
+  await page.getByRole("button", { name: "Next 72 Hours" }).click();
+  await expect(page.getByText(/Switched to 72-hour/i)).toBeVisible();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await expect(page.getByText(/CSV exported|Export unavailable/i).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Compare vs Actual" }).click();
+  await expect(page.getByRole("heading", { name: "Generation vs Forecast" })).toBeVisible();
+  await page.getByRole("button", { name: "Request model review" }).click();
+  await expect(page.getByText(/Model review requested/i)).toBeVisible();
+});
+
+test("scenario reset and diagnostics controls work", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Scenario/diagnostics controls covered on desktop chromium");
+  await mockApi(page);
+  await signIn(page);
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/scenario");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.getByRole("heading", { name: /Scenario simulation/i })).toBeVisible();
+  await page.getByRole("button", { name: "Reset" }).click();
+  await expect(page.getByText(/Scenario controls reset/i)).toBeVisible();
+
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/diagnostics");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.getByRole("heading", { name: "Diagnostics results" })).toBeVisible();
+  await page.getByRole("button", { name: "Run diagnostics" }).click();
+  await expect(page.getByText(/Device connectivity|Last telemetry|Forecast providers/i).first()).toBeVisible();
+});

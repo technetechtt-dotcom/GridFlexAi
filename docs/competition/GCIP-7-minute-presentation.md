@@ -9,13 +9,15 @@
 | Min | Screen | Spoken point |
 |-----|--------|--------------|
 | 0:00–0:45 | `/gcip` or `/gcip-demo` | Problem: SA already produces clean energy that is wasted at the connection. GridFlex turns loss into a recovery case. |
-| 0:45–1:30 | Safe competition mode card | Data environment labelled demo; decision mode advisory; physical execution locked off. |
-| 1:30–2:30 | Step 01 Detect → Curtailment | Show measured vs expected gap language; keep cause tentative until evidence attached. |
-| 2:30–3:30 | Step 02 Explain → AI Insights | Separate export limit / grid instruction / equipment — confidence and provenance matter. |
-| 3:30–5:00 | Step 03 Recover → Recovery Centre | Run the deterministic Northern Cape solar scenario. Rank flexible load, BESS, hydrogen. Stress: **advisory only**. |
-| 5:00–6:00 | Download recovery report | Open HTML/CSV. Point to assumptions, tariff, CapEx, and `synthetic_demo` environment. |
-| 6:00–6:40 | Step 04 Prove → KPI | Financial + carbon case is illustrative until site tariff and engineering validation. |
-| 6:40–7:00 | Close | Ask: telemetry-only pilot next — no physical control. Hand over pilot request one-pager. |
+| 0:45–1:15 | Safe competition mode card | Data environment labelled demo; decision mode advisory; physical execution locked off. |
+| 1:15–2:30 | Curtailment | Identify where energy is lost; keep cause tentative until evidence attached. |
+| 2:30–4:30 | Recovery Centre | Run Northern Cape solar scenario. Rank options. Stress: **advisory only**. |
+| 4:30–5:15 | Download recovery report | Open HTML. Point to assumptions and `synthetic_demo` — not customer settlement. |
+| 5:15–6:15 | Platform Blueprint | How telemetry, provenance and safety locks fit together. |
+| 6:15–6:45 | KPI & Reporting | Illustrative financial/carbon case only. |
+| 6:45–7:00 | Close | Telemetry-only pilot ask. Hand over pilot request one-pager. |
+
+**Do not tour every dashboard page.** Stick to: GCIP → Curtailment → Recovery → Blueprint → KPI.
 
 ## Must-say lines
 

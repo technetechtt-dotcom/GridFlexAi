@@ -76,6 +76,15 @@ const PrivacyNoticePage = lazy(() =>
 );
 const TermsOfUsePage = lazy(() => import('./pages/TermsOfUsePage').then((module) => ({ default: module.TermsOfUsePage })));
 const GCIPShowcase = lazy(() => import('./pages/GCIPShowcase').then((module) => ({ default: module.GCIPShowcase })));
+const DiagnosticsResultsPage = lazy(() =>
+  import('./pages/DiagnosticsResultsPage').then((module) => ({ default: module.DiagnosticsResultsPage }))
+);
+const RecoveryCaseManagementPage = lazy(() =>
+  import('./pages/RecoveryCaseManagementPage').then((module) => ({ default: module.RecoveryCaseManagementPage }))
+);
+const WorkflowStubPage = lazy(() =>
+  import('./pages/WorkflowStubPage').then((module) => ({ default: module.WorkflowStubPage }))
+);
 
 const pageToPath: Record<Page, string> = {
   dashboard: '/',
@@ -96,6 +105,14 @@ const pageToPath: Record<Page, string> = {
   'curtailment-detail': '/curtailment',
   recovery: '/recovery',
   'recovery-history': '/recovery/history',
+  'recovery-cases': '/recovery/cases',
+  diagnostics: '/diagnostics',
+  approvals: '/approvals',
+  reports: '/reports',
+  'pilot-onboarding': '/pilot-onboarding',
+  'data-quality': '/data-quality',
+  'operator-tasks': '/operator-tasks',
+  'pilot-results': '/pilot-results',
   'revenue-detail': '/revenue',
   'forecast-accuracy': '/forecast-accuracy',
   'generation-vs-forecast': '/generation-vs-forecast',
@@ -119,6 +136,13 @@ function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/congestion')) return 'congestion';
   if (pathname.startsWith('/dispatch-status')) return 'dispatch-status';
   if (pathname.startsWith('/dispatch')) return 'dispatch';
+  if (pathname.startsWith('/diagnostics')) return 'diagnostics';
+  if (pathname.startsWith('/approvals')) return 'approvals';
+  if (pathname.startsWith('/reports')) return 'reports';
+  if (pathname.startsWith('/pilot-onboarding')) return 'pilot-onboarding';
+  if (pathname.startsWith('/data-quality')) return 'data-quality';
+  if (pathname.startsWith('/operator-tasks')) return 'operator-tasks';
+  if (pathname.startsWith('/pilot-results')) return 'pilot-results';
   if (pathname.startsWith('/scenario')) return 'scenario';
   if (pathname.startsWith('/ai-insights')) return 'ai-insights';
   if (pathname.startsWith('/ai')) return 'ai-assistant';
@@ -126,6 +150,7 @@ function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/blueprint')) return 'blueprint';
   if (pathname.startsWith('/total-generation')) return 'total-generation';
   if (pathname.startsWith('/curtailment')) return 'curtailment-detail';
+  if (pathname.startsWith('/recovery/cases')) return 'recovery-cases';
   if (pathname.startsWith('/recovery/history')) return 'recovery-history';
   if (pathname.startsWith('/recovery')) return 'recovery';
   if (pathname.startsWith('/revenue')) return 'revenue-detail';
@@ -244,9 +269,80 @@ function AppRoutes() {
           <Route path="/help" element={<HelpCentrePage />} />
           <Route path="/access-denied" element={<AccessDeniedPage />} />
           <Route path="/recovery/history" element={<RecoveryHistoryPage />} />
+          <Route path="/recovery/cases" element={<RecoveryCaseManagementPage />} />
+          <Route path="/diagnostics" element={<DiagnosticsResultsPage />} />
           <Route path="/alarms" element={<AlarmRulesPage />} />
           <Route path="/approvals" element={<ApprovalQueuePage />} />
           <Route path="/reports" element={<ReportCentrePage />} />
+          <Route
+            path="/pilot-onboarding"
+            element={
+              <WorkflowStubPage
+                title="Pilot onboarding"
+                description="Guided organisation → site → plant → edge node → credential → telemetry verify path"
+                bullets={[
+                  'Create organisation and site records',
+                  'Register plant nameplate and export limit',
+                  'Provision edge credentials (vault-backed)',
+                  'Verify first signed telemetry packet',
+                  'Approve commissioning with physical execution still locked'
+                ]}
+                linkedPath="/plants"
+                linkedLabel="Open plant portfolio"
+              />
+            }
+          />
+          <Route
+            path="/data-quality"
+            element={
+              <WorkflowStubPage
+                title="Data provenance and quality"
+                description="Separate measured, forecast and synthetic feeds; quarantine poor samples"
+                bullets={[
+                  'Provenance labels on every series',
+                  'Quality flags and delay monitoring',
+                  'Quarantine review queue',
+                  'Retention controls for pilot datasets'
+                ]}
+                linkedPath="/provider-diagnostics"
+                linkedLabel="Open provider diagnostics"
+              />
+            }
+          />
+          <Route
+            path="/operator-tasks"
+            element={
+              <WorkflowStubPage
+                title="Operator tasks and work orders"
+                description="Maintenance and advisory task board for the pilot crew"
+                bullets={[
+                  'Create work order from node alert',
+                  'Assign technician and due time',
+                  'Record work notes and close-out',
+                  'Link to recovery cases when relevant'
+                ]}
+                linkedPath="/recovery/cases"
+                linkedLabel="Open recovery cases"
+              />
+            }
+          />
+          <Route
+            path="/pilot-results"
+            element={
+              <WorkflowStubPage
+                title="Pilot results and verified impact"
+                description="Compare predicted advisory savings with realised measured outcomes"
+                bullets={[
+                  'Baseline period definition',
+                  'Predicted vs realised recovery',
+                  'Evidence attachments',
+                  'Never claim synthetic demo numbers as customer savings'
+                ]}
+                linkedPath="/kpi"
+                linkedLabel="Open KPI reporting"
+              />
+            }
+          />
           <Route path="/environment-release" element={<EnvironmentReleasePage />} />
           <Route path="/privacy" element={<PrivacyNoticePage />} />
           <Route path="/terms" element={<TermsOfUsePage />} />

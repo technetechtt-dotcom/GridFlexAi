@@ -23,6 +23,8 @@ import { Breadcrumbs } from '../components/Breadcrumbs';
 import { StatusBadge } from '../components/StatusBadge';
 import { fetchForecast, fetchNodes, fetchReadings, type BackendNode } from '../services/api';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
+import { useAuth } from '../context/AuthContext';
+import { recordDecision } from '../lib/decisionLog';
 interface GenerationVsForecastProps {
   onNavigate: (page: Page) => void;
 }
@@ -45,6 +47,7 @@ type NodeBreakdownRow = {
 export function GenerationVsForecast({
   onNavigate
 }: GenerationVsForecastProps) {
+  const { user } = useAuth();
   const [selectedNodeId, setSelectedNodeId] = useState<string>('all');
   const [nodes, setNodes] = useState<BackendNode[]>([]);
   const [chartRows, setChartRows] = useState<ChartRow[]>([]);
@@ -218,13 +221,25 @@ export function GenerationVsForecast({
         secondaryActions={[
           { label: 'Export Comparison', onClick: exportComparisonCsv, icon: Download },
           {
-            label: 'Retrain Model',
-            onClick: () =>
+            label: 'Request model review',
+            onClick: () => {
+              recordDecision({
+                entityType: 'forecast',
+                entityId: selectedNodeId,
+                title: 'Forecast model review',
+                stage: 'model_review_requested',
+                actorName: user?.name ?? 'Operator',
+                actorRole: user?.role ?? 'operator',
+                reason: 'Operator requested controlled model review',
+                expectedOutcome:
+                  'Dataset selection → evaluation → approval → versioning → deploy/rollback gate'
+              });
               setRetrainNotice(
-                'Retraining requires manager approval — workflow coming soon. Your interest was noted locally.'
-              ),
+                'Model review requested. Dataset selection, evaluation, approval, versioning, deployment and rollback are required before any retrain/deploy. Physical execution remains locked.'
+              );
+            },
             icon: RefreshCw,
-            title: 'Retraining requires manager approval — workflow coming soon'
+            title: 'Opens a controlled model-review request — does not retrain in place'
           }
         ]}
       />

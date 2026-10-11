@@ -19,26 +19,26 @@ interface GCIPShowcaseProps {
 
 const steps = [
   {
-    title: 'Detect',
-    copy: 'Compare measured production with the weather-adjusted expectation.',
+    title: 'Curtailment',
+    copy: 'Identify renewable energy that is being lost and why it happened.',
     icon: Eye,
     page: 'curtailment-detail' as Page
   },
   {
-    title: 'Explain',
-    copy: 'Separate export limits, grid instructions and equipment availability.',
-    icon: Sparkles,
-    page: 'ai-insights' as Page
-  },
-  {
-    title: 'Recover',
-    copy: 'Rank flexible load, battery and green-hydrogen recovery options.',
+    title: 'Recovery Centre',
+    copy: 'Compare safe recovery options and download an advisory evidence pack.',
     icon: Recycle,
     page: 'recovery' as Page
   },
   {
-    title: 'Prove',
-    copy: 'Turn avoided losses into an auditable financial and carbon case.',
+    title: 'Platform Blueprint',
+    copy: 'Show how telemetry, forecasts and advisory decisions stay separated.',
+    icon: Sparkles,
+    page: 'blueprint' as Page
+  },
+  {
+    title: 'KPI & Reporting',
+    copy: 'Present illustrative financial and carbon value — never as customer settlement.',
     icon: BarChart3,
     page: 'kpi' as Page
   }

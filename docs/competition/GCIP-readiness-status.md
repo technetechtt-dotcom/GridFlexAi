@@ -1,6 +1,6 @@
 # GCIP competition readiness status
 
-Updated: 2026-10-11 (UTC)
+Updated: 2026-10-11 afternoon (UTC) — dead-button / workflow sprint on `feat/gcip-dead-buttons-workflows`
 
 ## Done in repo
 

@@ -193,6 +193,11 @@ export function RecoveryCommandCenter({ onNavigate }: RecoveryCommandCenterProps
             {
               label: 'Recovery history',
               onClick: () => onNavigate('recovery-history')
+            },
+            {
+              label: 'Case tracking',
+              onClick: () => onNavigate('recovery-cases'),
+              title: 'Assign owners, attach evidence, track predicted vs realised savings'
             }
           ]}
         />

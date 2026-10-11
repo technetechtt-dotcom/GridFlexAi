@@ -17,6 +17,8 @@ import { useNavigate } from 'react-router-dom';
 import { Page } from '../components/Sidebar';
 import { SimulationBanner } from '../components/SimulationBanner';
 import { useRealTime } from '../context/RealTimeContext';
+import { useAuth } from '../context/AuthContext';
+import { recordDecision } from '../lib/decisionLog';
 import { buildForecastProfilesFromNodes, fetchForecast, fetchForecastProvidersStatus } from '../services/api';
 interface AIInsightsProps {
   onNavigate: (page: Page) => void;
@@ -146,10 +148,12 @@ const filters = [
 
 export function AIInsights({ onNavigate }: AIInsightsProps) {
   const routerNavigate = useNavigate();
+  const { user } = useAuth();
   const { availableNodeNames, selectedNodeNames, toggleSelectedNode, backendNodes } = useRealTime();
   const [activeFilter, setActiveFilter] = useState('All');
   const [insightRows, setInsightRows] = useState(insights);
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(() => new Set());
+  const [actionNote, setActionNote] = useState<string | null>(null);
   const hasSpecificNodeScope = !selectedNodeNames.includes('All Nodes');
   const selectedScopeLabel = hasSpecificNodeScope ? selectedNodeNames.join(', ') : 'All Nodes';
 
@@ -224,13 +228,35 @@ export function AIInsights({ onNavigate }: AIInsightsProps) {
   const filteredInsights =
     activeFilter === 'All' ? visibleInsights : visibleInsights.filter((i) => i.type === activeFilter);
 
-  const dismissInsight = (id: number) => {
+  const dismissInsight = (id: number, title: string) => {
     setDismissedIds((prev) => new Set(prev).add(id));
+    recordDecision({
+      entityType: 'insight',
+      entityId: String(id),
+      title,
+      stage: 'rejected',
+      actorName: user?.name ?? 'Operator',
+      actorRole: user?.role ?? 'operator',
+      reason: 'Dismissed insight card',
+      expectedOutcome: 'Insight hidden for this session'
+    });
+    setActionNote(`Dismissed "${title}".`);
   };
 
   const actOnInsight = (insight: (typeof insights)[0]) => {
     const toDispatch =
       insight.target === 'dispatch' || insight.type === 'Forecast' || insight.type === 'Opportunity';
+    recordDecision({
+      entityType: 'insight',
+      entityId: String(insight.id),
+      title: insight.title,
+      stage: 'reviewed',
+      actorName: user?.name ?? 'Operator',
+      actorRole: user?.role ?? 'operator',
+      reason: 'Act on This',
+      expectedOutcome: toDispatch ? 'Open dispatch optimisation' : 'Open recommendations queue'
+    });
+    setActionNote(`Opening follow-up for "${insight.title}".`);
     if (toDispatch) {
       routerNavigate('/dispatch', { state: { fromInsightId: insight.id, title: insight.title } });
     } else {
@@ -243,6 +269,11 @@ export function AIInsights({ onNavigate }: AIInsightsProps) {
         featureName="Zolt AI example insights"
         detail="The insight cards and confidence values on this page are simulated demonstration content, not conclusions from measured plant telemetry. Zolt AI cannot execute plant-control commands."
       />
+      {actionNote && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-100">
+          {actionNote}
+        </div>
+      )}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
           <button
@@ -397,7 +428,7 @@ export function AIInsights({ onNavigate }: AIInsightsProps) {
               <div className="flex space-x-2">
                 <button
                   type="button"
-                  onClick={() => dismissInsight(insight.id)}
+                  onClick={() => dismissInsight(insight.id, insight.title)}
                   className="flex-1 rounded-lg bg-transparent py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-900/30 hover:text-slate-300">
                   Dismiss
                 </button>
