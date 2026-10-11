@@ -57,6 +57,7 @@ the staging→prod same-digest promotion gate.
 
 | Date (UTC) | Operator | Digest pinned? | Health release match? | Notes |
 |------------|----------|----------------|------------------------|-------|
+| 2026-10-11 | Engineering | **Blocked** | `gridflex-backend.onrender.com` still `release` null; promote run 38138835228 failed (`RENDER_API_KEY` unset) | Frontend public URL also unresolved (`gridflexai.onrender.com` 404). Add secrets then pin RC-2026-10-08b |
 | 2026-10-08 | Engineering | **Blocked** | Live host still source-built (`release` null); no `RENDER_API_KEY` | Prefer RC-2026-10-08b digest `4684d1fa…16fac`; promote workflow ready once secrets exist |
 | 2026-08-12 | Engineering | **No** | Live `gridflex-backend.onrender.com` missing `release.imageDigest` (source rebuild) | RC-2026-08-12 signed `644f623f…378c`; superseded for new deploys |
 | 2026-08-03 late | Engineering | **No** | `release:{gitSha:null,imageDigest:null}` | Multi-VU soak Done |

@@ -2196,7 +2196,11 @@ export async function analyseRecoveryWindow(body: {
     auth: true,
     body
   });
-  return response.data;
+  const data = response.data;
+  if (!data?.provenance?.dataEnvironment || !Array.isArray(data.opportunities)) {
+    throw new Error('Recovery analysis response was incomplete.');
+  }
+  return data;
 }
 
 export type RecoveryAnalysisListItem = {

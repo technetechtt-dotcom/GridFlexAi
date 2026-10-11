@@ -156,8 +156,10 @@ export function GCIPShowcase({ onNavigate }: GCIPShowcaseProps) {
             the team can move from detection to a traceable recovery case in minutes.
           </p>
           <div className="mt-5 rounded-xl border border-sky-500/20 bg-sky-500/5 p-4 text-sm text-sky-100">
-            Competition scenarios use deterministic synthetic inputs. Financial and carbon values are
-            illustrative until validated against a specific site, tariff and engineering design.
+            Competition scenarios use deterministic synthetic inputs labelled{" "}
+            <span className="font-semibold">synthetic_demo</span>. Financial and carbon values are
+            illustrative — not customer settlement results — until validated against a specific site,
+            tariff and engineering design. Physical plant execution remains locked.
           </div>
         </div>
 

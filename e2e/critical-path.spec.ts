@@ -298,6 +298,76 @@ const mockApi = async (page: Page): Promise<MockControl> => {
       return;
     }
 
+    if (path.endsWith("/api/recovery/analyse")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            analysisMode: "advisory_only",
+            algorithmVersion: "recovery-engine-e2e",
+            dominantCause: "export_limit",
+            causeLabel: "Export limit (synthetic demo)",
+            confidence: 0.86,
+            recommendation: "Prioritise flexible load absorption during the constrained window.",
+            expectedEnergyKwh: 4200,
+            actualEnergyKwh: 3366.25,
+            lostEnergyKwh: 833.75,
+            grossGapEnergyKwh: 900,
+            performanceRatioPercent: 80.1,
+            revenueAtRiskZar: 1875.94,
+            carbonOpportunityKg: 708,
+            affectedIntervals: 24,
+            affectedDurationHours: 4,
+            sampleCount: 48,
+            windowDurationHours: 8,
+            intervals: [],
+            evidence: ["Synthetic competition scenario"],
+            opportunities: [
+              {
+                id: "flexible_load",
+                ranking: 1,
+                label: "Flexible load",
+                recoverableEnergyKwh: 420,
+                estimatedGrossValueZar: 945,
+                readiness: "demo_estimate",
+                notes: "Illustrative only"
+              }
+            ],
+            annualFinancialModel: {
+              assumedEventDaysPerYear: 120,
+              annualLostEnergyKwh: 100050,
+              annualRevenueAtRiskZar: 225112.5,
+              annualCarbonOpportunityKg: 84960,
+              topOptionAnnualGrossValueZar: 113400,
+              estimatedCapexZar: 2500000,
+              simplePaybackYears: 22,
+              notes: "Illustrative synthetic_demo sketch — not customer settlement."
+            },
+            provenance: {
+              algorithmVersion: "recovery-engine-e2e",
+              dataEnvironment: "synthetic_demo",
+              sampleCount: 48,
+              expectedSourceSummary: "weather-adjusted forecast",
+              actualSourceSummary: "synthetic measured curve",
+              qualitySummary: "valid synthetic samples",
+              syntheticDemo: true
+            },
+            assumptions: {
+              intervalMinutes: 10,
+              tariffZarPerKwh: 2.25,
+              flexibleLoadCapacityKw: 180,
+              batteryUsableEnergyKwh: 300,
+              electrolyserCapacityKw: 120,
+              emissionFactorKgPerKwh: 0.85
+            },
+            disclaimer: "Advisory only. Physical execution disabled. Synthetic competition data."
+          }
+        })
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -413,5 +483,16 @@ test("GCIP showcase remains usable on a phone-sized screen", async ({ page }) =>
   ).toBeVisible();
   await expect(page.getByText("Safe competition mode")).toBeVisible();
   await expect(page.getByRole("button", { name: /Run the recovery demonstration/i }).first()).toBeVisible();
+});
+
+test("GCIP presentation path reaches recovery with lock messaging", async ({ page }) => {
+  await mockApi(page);
+  await signIn(page);
+  await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
+
+  await page.getByRole("button", { name: "GCIP Showcase" }).click();
+  await page.getByRole("button", { name: /Run the recovery demonstration/i }).click();
+  await expect(page.getByText("Renewable Energy Recovery Centre")).toBeVisible();
+  await expect(page.getByText(/physical/i).first()).toBeVisible();
 });
 

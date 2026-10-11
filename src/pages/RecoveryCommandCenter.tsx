@@ -52,8 +52,8 @@ const zar = new Intl.NumberFormat('en-ZA', {
   maximumFractionDigits: 2
 });
 
-const num = (value: number, digits = 1) =>
-  value.toLocaleString('en-ZA', { maximumFractionDigits: digits, minimumFractionDigits: 0 });
+const num = (value: number | null | undefined, digits = 1) =>
+  Number(value ?? 0).toLocaleString('en-ZA', { maximumFractionDigits: digits, minimumFractionDigits: 0 });
 
 /** Deterministic competition scenarios — always labelled synthetic. */
 function buildCompetitionScenario(scenario: ScenarioId): RecoverySample[] {
@@ -315,7 +315,7 @@ export function RecoveryCommandCenter({ onNavigate }: RecoveryCommandCenterProps
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-slate-500">
-              Algorithm {analysis.algorithmVersion} · {analysis.provenance.dataEnvironment} ·
+              Algorithm {analysis.algorithmVersion} · {analysis.provenance?.dataEnvironment ?? 'unknown'} ·
               material-loss duration {num(analysis.affectedDurationHours, 2)} h
             </p>
             <button
@@ -473,7 +473,7 @@ export function RecoveryCommandCenter({ onNavigate }: RecoveryCommandCenterProps
               Recovery options (gross value ranking)
             </h2>
             <div className="grid gap-3 md:grid-cols-3">
-              {analysis.opportunities.map((option) => {
+              {(analysis.opportunities ?? []).map((option) => {
                 const Icon = opportunityIcon(option.id);
                 return (
                   <div
@@ -538,31 +538,31 @@ export function RecoveryCommandCenter({ onNavigate }: RecoveryCommandCenterProps
                 <div>
                   <div className="text-xs text-slate-500">Annual lost energy</div>
                   <div className="font-semibold text-slate-100">
-                    {num(analysis.annualFinancialModel.annualLostEnergyKwh)} kWh
+                    {num(analysis.annualFinancialModel?.annualLostEnergyKwh)} kWh
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">Annual revenue at risk</div>
                   <div className="font-semibold text-slate-100">
-                    {zar.format(analysis.annualFinancialModel.annualRevenueAtRiskZar)}
+                    {zar.format(analysis.annualFinancialModel?.annualRevenueAtRiskZar ?? 0)}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">Top-option annual gross</div>
                   <div className="font-semibold text-slate-100">
-                    {zar.format(analysis.annualFinancialModel.topOptionAnnualGrossValueZar)}
+                    {zar.format(analysis.annualFinancialModel?.topOptionAnnualGrossValueZar ?? 0)}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-slate-500">Simple payback</div>
                   <div className="font-semibold text-slate-100">
-                    {analysis.annualFinancialModel.simplePaybackYears == null
+                    {analysis.annualFinancialModel?.simplePaybackYears == null
                       ? 'n/a'
                       : `${num(analysis.annualFinancialModel.simplePaybackYears, 1)} years`}
                   </div>
                 </div>
               </div>
-              <p className="mt-3 text-xs text-slate-500">{analysis.annualFinancialModel.notes}</p>
+              <p className="mt-3 text-xs text-slate-500">{analysis.annualFinancialModel?.notes}</p>
             </div>
           </section>
 
@@ -579,7 +579,7 @@ export function RecoveryCommandCenter({ onNavigate }: RecoveryCommandCenterProps
                 </tr>
               </thead>
               <tbody>
-                {analysis.intervals.map((interval) => (
+                {(analysis.intervals ?? []).map((interval) => (
                   <tr
                     key={interval.timestamp}
                     className={interval.material ? 'bg-amber-500/5' : undefined}>
