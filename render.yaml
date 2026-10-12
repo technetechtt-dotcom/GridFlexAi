@@ -136,8 +136,8 @@ services:
     autoDeploy: false
     healthCheckPath: /api/health/live
     image:
-      # Signed image from workflow run 38242990580 (commit 35400d7). Re-pin after each Release Backend Image run.
-      url: ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:a2d8c9b833dedab8ed5b7d7f45dd7288502aa93daf6d22d890c5edab549d7c09
+      # Signed image from workflow run 38247083265 (merge 1f76258). Re-pin after each Release Backend Image run.
+      url: ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:d4921bde8c89d599a0af9d49e7be337cac29b414a216db8383f69f202456fb0d
     envVars:
       - key: NODE_ENV
         value: production
@@ -225,9 +225,9 @@ services:
       - key: ALERT_WEBHOOK_TOKEN
         sync: false
       - key: RELEASE_GIT_SHA
-        value: "35400d704251b5e3577c26a33f7b0ed79ceb09df"
+        value: "1f7625888ffd25e2d588c109741217666486c9d8"
       - key: RELEASE_IMAGE_DIGEST
-        value: "sha256:a2d8c9b833dedab8ed5b7d7f45dd7288502aa93daf6d22d890c5edab549d7c09"
+        value: "sha256:d4921bde8c89d599a0af9d49e7be337cac29b414a216db8383f69f202456fb0d"
       - key: REQUIRE_RELEASE_IDENTITY
         value: "true"
       - key: COSIGN_VERIFIED
