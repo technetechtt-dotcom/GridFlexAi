@@ -245,7 +245,7 @@ services:
     name: gridflex-frontend
     env: static
     rootDir: .
-    buildCommand: npm install --include=dev && npm run build
+    buildCommand: npm install --include=dev && VITE_RELEASE_GIT_SHA=${RENDER_GIT_COMMIT:-unknown} VITE_PUBLIC_ORIGIN=https://gridflex-frontend.onrender.com npm run build
     staticPublishPath: dist
     pullRequestPreviewsEnabled: true
     autoDeploy: true
@@ -261,3 +261,5 @@ services:
         value: /api
       - key: VITE_SOCKET_BASE_URL
         value: https://gridflex-backend.onrender.com
+      - key: VITE_PUBLIC_ORIGIN
+        value: https://gridflex-frontend.onrender.com

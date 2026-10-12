@@ -69,8 +69,9 @@ export function PilotCasePage() {
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-50 sm:text-base">
         <strong>{pilot.modeLabel}</strong>
         <p className="mt-1 text-amber-100/90">
-          Real physical intervention is not claimed. This pack uses a validated historical dataset and never presents
-          invented savings as achieved results.
+          Real physical intervention is not claimed. This pack uses a validated synthetic dataset and never presents
+          invented savings as achieved results. Labels marked <em>Measured (pack)</em> mean measured-within-pack
+          semantics for methodology practice — not third-party meter settlement from a commercial plant.
         </p>
       </div>
 

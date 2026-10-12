@@ -7,6 +7,7 @@ import { Breadcrumbs } from '../components/Breadcrumbs';
 import { DataStateBanner } from '../components/DataFetchState';
 import { useAuth } from '../context/AuthContext';
 import { canAccessOpsCenter } from '../lib/roles';
+import { getFrontendReleaseIdentity } from '../lib/frontendRelease';
 
 export function EnvironmentReleasePage() {
   const navigate = useNavigate();
@@ -139,9 +140,33 @@ export function EnvironmentReleasePage() {
         </dl>
       )}
 
-      <p className="max-w-2xl text-xs text-slate-500">
-        Production deployments must set RELEASE_GIT_SHA and RELEASE_IMAGE_DIGEST to the signed Cosign digest. Readiness
-        (/api/health) returns 503 when identity is required but missing.
+      {!loading && (
+        <dl className="mt-4 max-w-2xl divide-y divide-slate-800 rounded-xl border border-slate-800 bg-slate-900/50">
+          <div className="px-6 py-4">
+            <dt className="text-sm text-slate-500">Frontend VITE_RELEASE_GIT_SHA</dt>
+            <dd className="font-mono text-sm text-slate-100">
+              {getFrontendReleaseIdentity().gitSha ?? 'null — set at static build time'}
+            </dd>
+          </div>
+          <div className="px-6 py-4">
+            <dt className="text-sm text-slate-500">Frontend VITE_RELEASE_BUILD_ID</dt>
+            <dd className="font-mono text-sm text-slate-100">
+              {getFrontendReleaseIdentity().buildId ?? 'null'}
+            </dd>
+          </div>
+          <div className="px-6 py-4">
+            <dt className="text-sm text-slate-500">Frontend VITE_PUBLIC_ORIGIN</dt>
+            <dd className="break-all font-mono text-sm text-slate-100">
+              {getFrontendReleaseIdentity().publicOrigin ?? 'null'}
+            </dd>
+          </div>
+        </dl>
+      )}
+
+      <p className="mt-4 max-w-2xl text-xs text-slate-500">
+        Backend production must set RELEASE_GIT_SHA and RELEASE_IMAGE_DIGEST to the signed Cosign digest. Frontend static
+        builds should set VITE_RELEASE_GIT_SHA (and optional VITE_RELEASE_BUILD_ID / VITE_PUBLIC_ORIGIN) so the demo UI
+        can show FE release identity. /api/health returns 503 when backend identity is required but missing.
       </p>
     </div>
   );

@@ -46,3 +46,5 @@ if (errors.length) {
 console.log(`OK frozen demo pack ${FROZEN_DEMO_PACK_VERSION}`);
 console.log("Site claim: synthetic NC demo plant only (no third-party brand).");
 console.log("Reviewer claim: internal GridFlex pilot desk (not independent auditor).");
+console.log('Measured (pack): means synthetic pack semantics — not commercial meter settlement.');
+console.log("Funding ask (product): R 1,950,000 for 90-day telemetry-only pilot.");

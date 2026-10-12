@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { DEMO_JOURNEY_STEPS, demoStepFromPath, FROZEN_PACK_BADGE } from '../lib/demoJourney';
+import { FrontendReleaseBadge } from './FrontendReleaseBadge';
 import type { Page } from './Sidebar';
 
 type Props = {
@@ -18,7 +19,10 @@ export function DemoProgressBar({ onNavigate }: Props) {
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-400">
           Demonstration progress
         </p>
-        <p className="font-mono text-[11px] text-slate-500">Frozen pack {FROZEN_PACK_BADGE}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="font-mono text-[11px] text-slate-500">Frozen pack {FROZEN_PACK_BADGE}</p>
+          <FrontendReleaseBadge />
+        </div>
       </div>
       <ol className="grid grid-cols-5 gap-1.5 sm:gap-2">
         {DEMO_JOURNEY_STEPS.map((step) => {

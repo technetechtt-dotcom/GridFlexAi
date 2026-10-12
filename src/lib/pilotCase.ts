@@ -166,21 +166,24 @@ export const FROZEN_RETROSPECTIVE_PILOT: PilotCase = {
     'Expected generation uses site capacity × resource model calibrated to the monitoring window.',
     'Tariff R1.55/kWh is an illustrative applicable offtake rate for value estimation — not a billed invoice.',
     'Emissions factor 0.95 kgCO₂e/kWh is an illustrative SA grid displacement factor for demonstration; replace with a certified factor for customer claims.',
-    'Recoverable energy assumes flexible load / storage availability during constrained intervals.'
+    'Recoverable energy assumes flexible load / storage availability during constrained intervals.',
+    'Within this synthetic pack, “measured” means the pack treats the value as if it were measured export (for methodology drill) — not a third-party meter reading from a commercial plant.'
   ],
   limitations: [
     'No physical intervention was executed on a live plant during this retrospective pilot.',
     'Financial and carbon figures are estimated from recoverable energy, not settled customer savings.',
     'Dataset is synthetic / demonstration — not a claim of telemetry from a named commercial operator.',
+    '“Measured” labels inside the pack are pack-semantics only; they are not independent settlement or audited site meters.',
     'Internal reviewer confirmation is not an independent external audit.'
   ],
   baselineMethodology:
-    'Baseline loss = modelled expected generation − measured actual export during healthy inverter intervals. Remaining loss = post-recommendation residual. Recovered/recoverable = baseline loss − remaining loss.',
+    'Baseline loss = modelled expected generation − pack-“measured” actual export during healthy inverter intervals. Remaining loss = post-recommendation residual. Recovered/recoverable = baseline loss − remaining loss.',
   evidenceNotes: [
     'Arithmetic check: 12860 − 11240 = 1620 MWh identified loss.',
     'Arithmetic check: 1620 − 410 = 1210 MWh recoverable.',
     'Financial check: 1210 × 1000 × 1.55 = R1,875,500.',
     'Carbon check: 1210 × 1000 × 0.95 / 1000 = 1149.5 tCO₂e.',
+    'Measured (pack): actual generation 11,240 MWh is synthetic but classed measured for methodology practice.',
     `Frozen pack version: ${FROZEN_DEMO_PACK_VERSION}.`
   ]
 };
@@ -189,10 +192,19 @@ export const FROZEN_RETROSPECTIVE_PILOT: PilotCase = {
 export const PRIESKA_RETROSPECTIVE_PILOT = FROZEN_RETROSPECTIVE_PILOT;
 
 export const IMPACT_CLASS_LABEL: Record<ImpactClass, string> = {
-  measured: 'Measured',
+  measured: 'Measured (pack)',
   modelled: 'Modelled',
   estimated: 'Estimated',
   potential: 'Potential future'
+};
+
+/** Short judge-facing definitions for impact classes. */
+export const IMPACT_CLASS_HELP: Record<ImpactClass, string> = {
+  measured:
+    'In this synthetic pack: treated as measured export for methodology drill — not a commercial meter settlement.',
+  modelled: 'Derived from a resource / capacity model for the same window.',
+  estimated: 'Calculated from recoverable energy × illustrative tariff or emissions factor.',
+  potential: 'Recoverable if flexible load / storage is available — not yet achieved savings.'
 };
 
 export function computeClimateImpact(input: {

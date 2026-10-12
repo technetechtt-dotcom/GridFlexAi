@@ -21,7 +21,7 @@
 
 | Metric | Class |
 |--------|--------|
-| Actual generation | Measured (within demo pack semantics) |
+| Actual generation | **Measured (pack)** — synthetic value treated as measured for methodology; not commercial meter settlement |
 | Expected generation | Modelled |
 | Loss cause | Modelled |
 | Recoverable energy | Potential future |
