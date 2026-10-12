@@ -246,7 +246,7 @@ function AuthShell() {
         <DemoEnvironmentBanner />
         {pilotMode &&
         <div className="relative flex items-center justify-center border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-sm text-amber-400">
-            <span className="font-medium">PILOT MODE — Northern Cape Demonstration (Prieska • Kathu • Boegoebaai)</span>
+            <span className="font-medium">PILOT MODE — Northern Cape synthetic demonstration portfolio</span>
             <button onClick={togglePilotMode} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 hover:bg-amber-500/20">
               <X className="h-3 w-3" />
             </button>

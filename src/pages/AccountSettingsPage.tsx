@@ -36,8 +36,8 @@ export function AccountSettingsPage() {
         listAuthSessions(),
         fetchLoginHistory(30)
       ]);
-      setSessions(sessionRows);
-      setHistory(historyRows);
+      setSessions(Array.isArray(sessionRows) ? sessionRows : []);
+      setHistory(Array.isArray(historyRows) ? historyRows : []);
     } catch {
       setSessions([]);
       setHistory([]);

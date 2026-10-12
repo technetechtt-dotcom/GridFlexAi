@@ -8,6 +8,12 @@ jest.mock("../src/lib/prisma.js", () => ({
 
 import { createApp } from "../src/app.js";
 
+/** CI may inject GITHUB_SHA → RELEASE_GIT_SHA; digest stays unset in unit tests. */
+const expectReleaseIdentity = (release: { gitSha: unknown; imageDigest: unknown }) => {
+  expect(release.imageDigest).toBeNull();
+  expect(release.gitSha === null || typeof release.gitSha === "string").toBe(true);
+};
+
 describe("Health route", () => {
   const app = createApp();
 
@@ -18,7 +24,7 @@ describe("Health route", () => {
     expect(response.body.status).toBe("ok");
     expect(typeof response.body.uptime).toBe("number");
     expect(typeof response.body.timestamp).toBe("string");
-    expect(response.body.release).toEqual({ gitSha: null, imageDigest: null });
+    expectReleaseIdentity(response.body.release);
   });
 
   it("returns service status payload", async () => {
@@ -28,7 +34,7 @@ describe("Health route", () => {
     expect(response.body.status).toBe("ok");
     expect(typeof response.body.uptime).toBe("number");
     expect(typeof response.body.timestamp).toBe("string");
-    expect(response.body.release).toEqual({ gitSha: null, imageDigest: null });
+    expectReleaseIdentity(response.body.release);
     expect(response.body.dependencies?.database).toBe("up");
   });
 });

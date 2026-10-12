@@ -1,12 +1,23 @@
 /**
- * Canonical GCIP retrospective pilot case.
- * Labelled clearly: historical / validated dataset — not a live physical intervention.
+ * Frozen GCIP demonstration pilot case.
+ *
+ * Data freeze: FROZEN_DEMO_PACK_VERSION below. Do not edit numbers for a live talk
+ * without bumping the version and regenerating evidence under docs/competition/evidence/.
+ *
+ * Site naming: this is a **synthetic demonstration plant**. No commercial affiliation
+ * with any real plant operator (including any similarly named Northern Cape sites) is
+ * claimed. Permission to use third-party brand names has not been confirmed — therefore
+ * no real plant brand is used.
  */
 
 export type ImpactClass = 'measured' | 'modelled' | 'estimated' | 'potential';
 
+/** Bump when demonstration numbers or methodology text change. */
+export const FROZEN_DEMO_PACK_VERSION = 'gcip-demo-2026-10-12.1';
+
 export type PilotCase = {
   id: string;
+  frozenVersion: string;
   title: string;
   mode: 'retrospective_pilot';
   modeLabel: string;
@@ -69,20 +80,28 @@ export type PilotCase = {
   assumptions: string[];
   limitations: string[];
   baselineMethodology: string;
+  evidenceNotes: string[];
 };
 
-/** Validated Northern Cape historical curtailment window used for GCIP demonstration. */
-export const PRIESKA_RETROSPECTIVE_PILOT: PilotCase = {
-  id: 'gcip-prieska-2024-q4-retrospective',
-  title: 'Prieska Solar — retrospective curtailment recovery pilot',
+/**
+ * Synthetic Northern Cape–style retrospective window for GCIP demonstration.
+ * Figures are internally consistent with the climate-impact formulas and are
+ * labelled measured / modelled / estimated / potential. They are not customer
+ * settlement results and are not tied to a named commercial plant.
+ */
+export const FROZEN_RETROSPECTIVE_PILOT: PilotCase = {
+  id: 'gcip-nc-demo-2024-q4-retrospective',
+  frozenVersion: FROZEN_DEMO_PACK_VERSION,
+  title: 'Northern Cape demo plant — retrospective curtailment recovery pilot',
   mode: 'retrospective_pilot',
-  modeLabel: 'Retrospective pilot — validated historical dataset (not a live plant intervention)',
+  modeLabel:
+    'Retrospective pilot — synthetic demonstration dataset (not a live plant intervention; not a named commercial site)',
   site: {
-    name: 'Prieska Solar (demonstration portfolio site)',
-    region: 'Northern Cape',
+    name: 'GridFlex NC Demo Plant (synthetic portfolio)',
+    region: 'Northern Cape (illustrative)',
     country: 'South Africa',
     installedCapacityMWp: 75,
-    technology: 'Utility PV · single-axis tracking'
+    technology: 'Utility PV · single-axis tracking (demonstration profile)'
   },
   monitoring: {
     start: '2024-10-01',
@@ -121,8 +140,8 @@ export const PRIESKA_RETROSPECTIVE_PILOT: PilotCase = {
   },
   action: {
     taken:
-      'Operator approved the advisory recommendation and opened a recovery work order. Physical plant execution remained locked (PILOT_LOCK_PHYSICAL_EXECUTION=true).',
-    approvedBy: 'Technical reviewer — GridFlex pilot desk',
+      'Internal GridFlex pilot desk approved the advisory recommendation and opened a recovery work order. Physical plant execution remained locked (PILOT_LOCK_PHYSICAL_EXECUTION=true).',
+    approvedBy: 'GridFlex internal technical reviewer (pilot desk)',
     approvedAt: '2024-11-04T14:22:00Z',
     status: 'advisory_approved'
   },
@@ -137,26 +156,37 @@ export const PRIESKA_RETROSPECTIVE_PILOT: PilotCase = {
     carbonClass: 'estimated'
   },
   reviewer: {
-    name: 'Technical reviewer (pilot desk)',
-    role: 'Independent technical confirmation for GCIP demonstration pack',
+    name: 'GridFlex internal technical reviewer',
+    role: 'Internal pilot-desk confirmation (not an independent third-party auditor)',
     confirmation:
-      'Confirmed that numbers are derived from the labelled retrospective dataset, that physical execution was not claimed, and that measured vs modelled vs estimated classes are correctly marked.',
+      'Internal review confirmed that numbers are derived from the frozen synthetic demonstration dataset, that physical execution was not claimed, that measured vs modelled vs estimated classes are correctly marked, and that no real commercial site brand is asserted.',
     confirmedAt: '2024-11-05T09:10:00Z'
   },
   assumptions: [
     'Expected generation uses site capacity × resource model calibrated to the monitoring window.',
     'Tariff R1.55/kWh is an illustrative applicable offtake rate for value estimation — not a billed invoice.',
-    'Emissions factor 0.95 kgCO₂e/kWh is an approved illustrative SA grid displacement factor for demonstration; replace with certified factor for customer claims.',
+    'Emissions factor 0.95 kgCO₂e/kWh is an illustrative SA grid displacement factor for demonstration; replace with a certified factor for customer claims.',
     'Recoverable energy assumes flexible load / storage availability during constrained intervals.'
   ],
   limitations: [
     'No physical intervention was executed on a live plant during this retrospective pilot.',
     'Financial and carbon figures are estimated from recoverable energy, not settled customer savings.',
-    'Synthetic demo streams elsewhere in the product must not be mixed into these measured/modelled series.'
+    'Dataset is synthetic / demonstration — not a claim of telemetry from a named commercial operator.',
+    'Internal reviewer confirmation is not an independent external audit.'
   ],
   baselineMethodology:
-    'Baseline loss = modelled expected generation − measured actual export during healthy inverter intervals. Remaining loss = post-recommendation residual. Recovered/recoverable = baseline loss − remaining loss.'
+    'Baseline loss = modelled expected generation − measured actual export during healthy inverter intervals. Remaining loss = post-recommendation residual. Recovered/recoverable = baseline loss − remaining loss.',
+  evidenceNotes: [
+    'Arithmetic check: 12860 − 11240 = 1620 MWh identified loss.',
+    'Arithmetic check: 1620 − 410 = 1210 MWh recoverable.',
+    'Financial check: 1210 × 1000 × 1.55 = R1,875,500.',
+    'Carbon check: 1210 × 1000 × 0.95 / 1000 = 1149.5 tCO₂e.',
+    `Frozen pack version: ${FROZEN_DEMO_PACK_VERSION}.`
+  ]
 };
+
+/** @deprecated Use FROZEN_RETROSPECTIVE_PILOT. Alias retained for older imports; not a brand claim. */
+export const PRIESKA_RETROSPECTIVE_PILOT = FROZEN_RETROSPECTIVE_PILOT;
 
 export const IMPACT_CLASS_LABEL: Record<ImpactClass, string> = {
   measured: 'Measured',
@@ -210,4 +240,32 @@ export function computeCommercialValue(input: {
       performanceFeeZar: performanceFee
     }
   };
+}
+
+/** Runtime validation of frozen pack arithmetic — used by unit checks and offline rehearsal. */
+export function validateFrozenPilotCase(pilot: PilotCase = FROZEN_RETROSPECTIVE_PILOT): string[] {
+  const errors: string[] = [];
+  const identified = pilot.generation.expectedMWh - pilot.generation.actualMWh;
+  if (Math.abs(identified - pilot.loss.identifiedMWh) > 0.01) {
+    errors.push(`identified loss mismatch: expected ${identified}, got ${pilot.loss.identifiedMWh}`);
+  }
+  const recoverable = pilot.loss.identifiedMWh - pilot.loss.remainingMWh;
+  if (Math.abs(recoverable - pilot.impact.recoveredOrRecoverableMWh) > 0.01) {
+    errors.push(
+      `recoverable mismatch: expected ${recoverable}, got ${pilot.impact.recoveredOrRecoverableMWh}`
+    );
+  }
+  const financial = pilot.impact.recoveredOrRecoverableMWh * 1000 * pilot.impact.tariffZarPerKwh;
+  if (Math.abs(financial - pilot.impact.financialValueZar) > 1) {
+    errors.push(`financial mismatch: expected ${financial}, got ${pilot.impact.financialValueZar}`);
+  }
+  const carbon =
+    (pilot.impact.recoveredOrRecoverableMWh * 1000 * pilot.impact.emissionsFactorKgPerKwh) / 1000;
+  if (Math.abs(carbon - pilot.impact.avoidedCo2t) > 0.05) {
+    errors.push(`carbon mismatch: expected ${carbon}, got ${pilot.impact.avoidedCo2t}`);
+  }
+  if (pilot.frozenVersion !== FROZEN_DEMO_PACK_VERSION) {
+    errors.push(`frozen version mismatch: ${pilot.frozenVersion} vs ${FROZEN_DEMO_PACK_VERSION}`);
+  }
+  return errors;
 }

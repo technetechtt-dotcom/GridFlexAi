@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ProvenanceBadge } from '../components/ProvenanceBadge';
-import { PRIESKA_RETROSPECTIVE_PILOT } from '../lib/pilotCase';
+import { FROZEN_RETROSPECTIVE_PILOT } from '../lib/pilotCase';
 import { loadOfflineDemoPack } from '../lib/offlineDemoPack';
 
 export function AiEvidencePage() {
   const navigate = useNavigate();
-  const pilot = PRIESKA_RETROSPECTIVE_PILOT;
+  const pilot = FROZEN_RETROSPECTIVE_PILOT;
   const offline = loadOfflineDemoPack();
 
   return (

@@ -33,7 +33,11 @@ const productionBaseline = (): Record<string, string> => ({
   AWS_KMS_KEY_ID: "arn:aws:kms:eu-west-1:123456789012:key/example",
   AWS_REGION: "eu-west-1",
   GRIDFLEX_OPERATING_MODE: "PILOT_LIVE",
-  ALLOW_SIMULATION_IN_PRODUCTION: "false"
+  ALLOW_SIMULATION_IN_PRODUCTION: "false",
+  // Production baseline assumes a digest-pinned release (not an emergency source build).
+  REQUIRE_RELEASE_IDENTITY: "true",
+  RELEASE_GIT_SHA: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  RELEASE_IMAGE_DIGEST: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 });
 
 const loadEnvModule = () => {
@@ -47,6 +51,14 @@ describe("production safety env", () => {
 
   beforeEach(() => {
     savedEnv = snapshotEnv();
+    // Prevent host CI/Render injects from satisfying or confusing release identity checks.
+    delete process.env.RENDER_GIT_COMMIT;
+    delete process.env.GIT_COMMIT;
+    delete process.env.GITHUB_SHA;
+    delete process.env.SOURCE_VERSION;
+    delete process.env.RELEASE_GIT_SHA;
+    delete process.env.RELEASE_IMAGE_DIGEST;
+    delete process.env.REQUIRE_RELEASE_IDENTITY;
     jest.resetModules();
   });
 
@@ -168,5 +180,22 @@ describe("production safety env", () => {
     });
     const mod = loadEnvModule();
     expect(mod.env.GRIDFLEX_OPERATING_MODE).toBe("PILOT_LIVE");
+  });
+
+  it("rejects production startup without release identity when required", () => {
+    Object.assign(process.env, productionBaseline());
+    delete process.env.RELEASE_GIT_SHA;
+    delete process.env.RELEASE_IMAGE_DIGEST;
+    expect(() => loadEnvModule()).toThrow(/RELEASE_GIT_SHA is required/);
+  });
+
+  it("allows emergency source builds when REQUIRE_RELEASE_IDENTITY=false", () => {
+    Object.assign(process.env, productionBaseline(), {
+      REQUIRE_RELEASE_IDENTITY: "false"
+    });
+    delete process.env.RELEASE_GIT_SHA;
+    delete process.env.RELEASE_IMAGE_DIGEST;
+    const mod = loadEnvModule();
+    expect(mod.env.REQUIRE_RELEASE_IDENTITY).toBe(false);
   });
 });

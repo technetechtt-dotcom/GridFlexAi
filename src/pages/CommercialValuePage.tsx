@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ProvenanceBadge } from '../components/ProvenanceBadge';
-import { computeCommercialValue, PRIESKA_RETROSPECTIVE_PILOT } from '../lib/pilotCase';
+import { computeCommercialValue, FROZEN_RETROSPECTIVE_PILOT } from '../lib/pilotCase';
 
 export function CommercialValuePage() {
   const navigate = useNavigate();
-  const pilot = PRIESKA_RETROSPECTIVE_PILOT;
+  const pilot = FROZEN_RETROSPECTIVE_PILOT;
   const defaultLossKwh = pilot.loss.identifiedMWh * 1000;
 
   const [lossKwh, setLossKwh] = useState(String(defaultLossKwh));

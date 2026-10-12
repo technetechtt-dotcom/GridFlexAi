@@ -260,6 +260,27 @@ const mockApi = async (page: Page): Promise<MockControl> => {
       return;
     }
 
+    if (path.endsWith("/api/operator-decisions") && request.method() === "POST") {
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            id: "decision-e2e-1",
+            entityType: "forecast",
+            entityId: "upington-node",
+            title: "Forecast model review",
+            decision: "model_review_requested",
+            reason: "Operator opened controlled model-review workflow",
+            createdAt: nowIso,
+            actorName: "GridFlex Admin",
+            actorRole: "admin"
+          }
+        })
+      });
+      return;
+    }
+
     if (path.endsWith("/api/readings")) {
       if (control.blockReadings) {
         await route.fulfill({
@@ -368,10 +389,19 @@ const mockApi = async (page: Page): Promise<MockControl> => {
       return;
     }
 
+    if (path.endsWith("/api/auth/sessions") || path.includes("/api/auth/login-history")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [] })
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ data: {} })
+      body: JSON.stringify({ data: [] })
     });
   });
 
@@ -406,7 +436,7 @@ test("forecast navigation path works after login", async ({ page }) => {
   await signIn(page);
 
   await openNavIfNeeded(page);
-  await page.getByRole("button", { name: "Congestion Forecast" }).click();
+  await page.getByRole("button", { name: "Congestion", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Congestion Forecasting" })).toBeVisible();
 
   await page.getByRole("button", { name: "Compare vs Actual" }).click();
@@ -420,7 +450,7 @@ test("dispatch retry banner recovers from transient API failure", async ({ page 
 
   control.blockReadings = true;
   await openNavIfNeeded(page);
-  await page.getByRole("button", { name: "Dispatch Optimization" }).click();
+  await page.getByRole("button", { name: "Dispatch", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Dispatch Optimization" })).toBeVisible();
   await expect(page.getByText("Synthetic dispatch failure")).toBeVisible();
 
@@ -453,8 +483,10 @@ test("settings icon opens account settings", async ({ page }) => {
   await signIn(page);
   await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Account settings" }).click();
-  await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible();
+  await openNavIfNeeded(page);
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "Profile summary" })).toBeVisible();
 });
 
 test("GCIP showcase presents the judge journey and safety state", async ({ page }) => {
@@ -471,10 +503,10 @@ test("GCIP showcase presents the judge journey and safety state", async ({ page 
       name: "Recover renewable energy that South Africa already produces."
     })
   ).toBeVisible();
-  await expect(page.getByText("Physical execution")).toBeVisible();
-  await expect(page.getByText("Locked off")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Run the recovery demonstration/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "One problem. Four clear steps." })).toBeVisible();
+  await expect(page.getByText("Physical execution", { exact: true })).toBeVisible();
+  await expect(page.getByText("Locked off", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Open the pilot case/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Six working demonstration steps/i })).toBeVisible();
 });
 
 test("GCIP showcase remains usable on a phone-sized screen", async ({ page }) => {
@@ -494,19 +526,26 @@ test("GCIP showcase remains usable on a phone-sized screen", async ({ page }) =>
     })
   ).toBeVisible();
   await expect(page.getByText("Safe competition mode")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Run the recovery demonstration/i }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Open the pilot case/i }).first()).toBeVisible();
 });
 
-test("GCIP presentation path reaches recovery with lock messaging", async ({ page }) => {
+test("GCIP presentation path reaches pilot case with lock messaging", async ({ page }) => {
   await mockApi(page);
   await signIn(page);
   await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 
   await openNavIfNeeded(page);
+  const demoSwitch = page.getByRole("switch");
+  if ((await demoSwitch.getAttribute("aria-checked")) !== "true") {
+    await demoSwitch.click();
+  }
+  await expect(page.getByRole("button", { name: "GCIP Showcase" })).toBeVisible();
   await page.getByRole("button", { name: "GCIP Showcase" }).click();
-  await page.getByRole("button", { name: /Run the recovery demonstration/i }).click();
-  await expect(page.getByText("Renewable Energy Recovery Centre")).toBeVisible();
-  await expect(page.getByText(/physical/i).first()).toBeVisible();
+  await page.getByRole("button", { name: /Open the pilot case/i }).click();
+  await expect(page.getByRole("heading", { name: /Pilot case evidence/i })).toBeVisible();
+  await expect(
+    page.getByText(/Physical plant execution remained locked|Physical execution/i).first()
+  ).toBeVisible();
 });
 
 test("controls on congestion and generation pages are actionable", async ({ page }, testInfo) => {
@@ -528,7 +567,9 @@ test("controls on congestion and generation pages are actionable", async ({ page
   await page.getByRole("button", { name: "Compare vs Actual" }).click();
   await expect(page.getByRole("heading", { name: "Generation vs Forecast" })).toBeVisible();
   await page.getByRole("button", { name: "Request model review" }).click();
-  await expect(page.getByText(/Model review requested/i)).toBeVisible();
+  await expect(
+    page.getByText(/Opening model review workflow|Model review requested|Model review workflow/i).first()
+  ).toBeVisible({ timeout: 15000 });
 });
 
 test("scenario reset and diagnostics controls work", async ({ page }, testInfo) => {

@@ -1,7 +1,7 @@
-import { PRIESKA_RETROSPECTIVE_PILOT, IMPACT_CLASS_LABEL, type PilotCase } from './pilotCase';
+import { FROZEN_RETROSPECTIVE_PILOT, IMPACT_CLASS_LABEL, type PilotCase } from './pilotCase';
 
 /** Build a print-ready HTML report suitable for solar-farm managers / investors / municipalities. */
-export function buildVerifiedPilotReportHtml(pilot: PilotCase = PRIESKA_RETROSPECTIVE_PILOT): string {
+export function buildVerifiedPilotReportHtml(pilot: PilotCase = FROZEN_RETROSPECTIVE_PILOT): string {
   const generatedAt = new Date().toISOString();
   const cls = (c: string) => IMPACT_CLASS_LABEL[c as keyof typeof IMPACT_CLASS_LABEL] ?? c;
 
@@ -34,9 +34,10 @@ export function buildVerifiedPilotReportHtml(pilot: PilotCase = PRIESKA_RETROSPE
 <body>
   <h1>GridFlex AI — Verified Pilot Report</h1>
   <p class="meta">${pilot.title}</p>
-  <p class="meta">Generated ${generatedAt}</p>
+  <p class="meta">Frozen pack ${pilot.frozenVersion} · Generated ${generatedAt}</p>
 
   <div class="banner"><strong>Data mode:</strong> ${pilot.modeLabel}</div>
+  <div class="banner"><strong>Reviewer note:</strong> Confirmation is from an <em>internal</em> GridFlex pilot-desk reviewer — not an independent third-party auditor. No real commercial site brand is asserted.</div>
 
   <h2>1. Executive summary</h2>
   <p>
@@ -127,7 +128,7 @@ export function buildVerifiedPilotReportHtml(pilot: PilotCase = PRIESKA_RETROSPE
 </html>`;
 }
 
-export function openVerifiedPilotReport(pilot: PilotCase = PRIESKA_RETROSPECTIVE_PILOT) {
+export function openVerifiedPilotReport(pilot: PilotCase = FROZEN_RETROSPECTIVE_PILOT) {
   const html = buildVerifiedPilotReportHtml(pilot);
   const win = window.open('', '_blank', 'noopener,noreferrer,width=960,height=720');
   if (win) {

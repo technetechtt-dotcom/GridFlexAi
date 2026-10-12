@@ -68,8 +68,8 @@ const insights = [
 },
 {
   id: 8,
-  title: 'LCOH Below Target at Prieska',
-  desc: 'Capturing 80% of curtailed energy at Prieska node yields LCOH of R38.50/kg — 14% below target. Recommend increasing electrolyzer capacity allocation.',
+  title: 'LCOH Below Target at NC Demo Node',
+  desc: 'Capturing 80% of curtailed energy at the synthetic NC demo node yields LCOH of R38.50/kg — 14% below target. Recommend increasing electrolyzer capacity allocation.',
   type: 'Pattern',
   color: 'text-cyan-400',
   bg: 'bg-cyan-500/10',
@@ -83,7 +83,7 @@ const insights = [
 {
   id: 3,
   title: 'Maintenance Anomaly',
-  desc: 'Inverter 3 at Cookhouse showing 5% efficiency drop compared to peer units. Possible dust accumulation or cooling fault.',
+  desc: 'Inverter 3 at NC Demo Plant showing 5% efficiency drop compared to peer units. Possible dust accumulation or cooling fault.',
   type: 'Anomaly',
   color: 'text-amber-400',
   bg: 'bg-amber-500/10',
@@ -111,7 +111,7 @@ const insights = [
 {
   id: 5,
   title: 'Contract Compliance Risk',
-  desc: 'Cookhouse wind output trending 8% below PPA minimum for this billing period. 3 days remaining to recover.',
+  desc: 'NC Demo Plant wind output trending 8% below illustrative PPA minimum for this billing period. 3 days remaining to recover.',
   type: 'Risk',
   color: 'text-red-400',
   bg: 'bg-red-500/10',

@@ -1088,7 +1088,7 @@ model DataQualityException {
   history          Json          @default("[]")
   releaseGitSha    String?
   createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  updatedAt        DateTime      @default(now()) @updatedAt
 
   @@index([organisationId, status, updatedAt])
   @@index([exceptionType, status])
@@ -1110,7 +1110,7 @@ model PilotOnboardingProgress {
   updatedBy      User?         @relation("OnboardingUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
   completedAt    DateTime?
   createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  updatedAt      DateTime      @default(now()) @updatedAt
 
   @@unique([organisationId, stepId])
   @@index([organisationId, status])

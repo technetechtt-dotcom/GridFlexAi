@@ -1,0 +1,32 @@
+[
+  {
+    "route": "/login",
+    "file": "C:\\Users\\ivanj\\Downloads\\Final Edits\\Grid Flex\\Grid Flex\\docs\\competition\\evidence\\screens\\login.png",
+    "ok": true
+  },
+  {
+    "route": "/gcip?demo=1",
+    "file": "C:\\Users\\ivanj\\Downloads\\Final Edits\\Grid Flex\\Grid Flex\\docs\\competition\\evidence\\screens\\gcip_demo_1.png",
+    "ok": true
+  },
+  {
+    "route": "/pilot-case",
+    "file": "C:\\Users\\ivanj\\Downloads\\Final Edits\\Grid Flex\\Grid Flex\\docs\\competition\\evidence\\screens\\pilot-case.png",
+    "ok": true
+  },
+  {
+    "route": "/climate-impact",
+    "file": "C:\\Users\\ivanj\\Downloads\\Final Edits\\Grid Flex\\Grid Flex\\docs\\competition\\evidence\\screens\\climate-impact.png",
+    "ok": true
+  },
+  {
+    "route": "/commercial-value",
+    "file": "C:\\Users\\ivanj\\Downloads\\Final Edits\\Grid Flex\\Grid Flex\\docs\\competition\\evidence\\screens\\commercial-value.png",
+    "ok": true
+  },
+  {
+    "route": "/ai-evidence",
+    "file": "C:\\Users\\ivanj\\Downloads\\Final Edits\\Grid Flex\\Grid Flex\\docs\\competition\\evidence\\screens\\ai-evidence.png",
+    "ok": true
+  }
+]

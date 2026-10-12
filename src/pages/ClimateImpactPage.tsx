@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ProvenanceBadge } from '../components/ProvenanceBadge';
-import { computeClimateImpact, PRIESKA_RETROSPECTIVE_PILOT } from '../lib/pilotCase';
+import { computeClimateImpact, FROZEN_RETROSPECTIVE_PILOT } from '../lib/pilotCase';
 
 export function ClimateImpactPage() {
   const navigate = useNavigate();
-  const pilot = PRIESKA_RETROSPECTIVE_PILOT;
+  const pilot = FROZEN_RETROSPECTIVE_PILOT;
   const [baselineLossMwh, setBaselineLossMwh] = useState(String(pilot.loss.identifiedMWh));
   const [remainingLossMwh, setRemainingLossMwh] = useState(String(pilot.loss.remainingMWh));
   const [tariff, setTariff] = useState(String(pilot.impact.tariffZarPerKwh));
@@ -128,7 +128,7 @@ export function ClimateImpactPage() {
 
       <p className="rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/10 px-4 py-3 text-sm text-fuchsia-100">
         Do not present these calculator outputs as achieved / settled customer results unless a measured verification
-        record exists on the Pilot Results page. Defaults come from the retrospective Prieska pilot pack.
+        record exists on the Pilot Results page. Defaults come from the frozen synthetic NC demo pack.
       </p>
     </div>
   );

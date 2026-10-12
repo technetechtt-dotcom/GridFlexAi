@@ -29,6 +29,8 @@
     "verify:staging-digest": "node scripts/verify-staging-digest.mjs",
     "verify:cosign-image": "node scripts/verify-cosign-image.mjs",
     "test:routes": "node scripts/test-protected-routes.mjs",
+    "validate:demo-pack": "node scripts/validate-frozen-demo-pack.mjs",
+    "capture:gcip-demo": "node scripts/capture-gcip-demo-screens.mjs",
     "demo:recovery-solar": "node scripts/recovery-solar-demo.mjs",
     "demo:recovery-solar:engine": "npm --prefix backend exec -- tsx scripts/run-recovery-solar-demo.ts",
     "warmup:staging": "node scripts/warmup-staging.mjs",

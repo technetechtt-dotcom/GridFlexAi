@@ -53,7 +53,7 @@ const initialRecommendations: Recommendation[] = [
     id: 3,
     type: 'dispatch',
     title: 'Increase Wind Dispatch',
-    description: 'Ramp up Cookhouse wind farm to 95% capacity for evening peak demand.',
+    description: 'Ramp up NC Demo Plant wind capacity to 95% for evening peak demand (illustrative).',
     impact: 'Meet contract obligation (illustrative)',
     status: 'reviewed'
   },
@@ -69,7 +69,7 @@ const initialRecommendations: Recommendation[] = [
     id: 5,
     type: 'maintenance',
     title: 'Schedule Inverter Check',
-    description: 'Schedule maintenance for Inverter 3 at Cookhouse due to efficiency drop.',
+    description: 'Schedule maintenance for Inverter 3 at NC Demo Plant due to efficiency drop.',
     impact: 'Prevent potential failure',
     status: 'proposed'
   },

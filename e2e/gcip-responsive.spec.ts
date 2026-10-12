@@ -116,6 +116,6 @@ test("GCIP showcase is usable on constrained viewports", async ({ page }) => {
       name: "Recover renewable energy that South Africa already produces."
     })
   ).toBeVisible();
-  await expect(page.getByText("Locked off")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Run the recovery demonstration/i }).first()).toBeVisible();
+  await expect(page.getByText("Locked off", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Open the pilot case/i }).first()).toBeVisible();
 });

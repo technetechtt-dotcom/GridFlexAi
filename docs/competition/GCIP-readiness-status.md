@@ -6,7 +6,7 @@
 | Release identity (production) | Required | `gridflex-backend-prod` digest-pinned Docker, Cosign verify, `REQUIRE_RELEASE_IDENTITY=true` |
 | Deployment records | Done | `DeploymentRecord` written on boot |
 | Login wording | Done | No military-grade claim; invite-only messaging |
-| Clear pilot case | Done | `/pilot-case` — Prieska retrospective evidence pack |
+| Clear pilot case | Done | `/pilot-case` — synthetic NC Demo Plant retrospective pack (no third-party brand) |
 | Climate-impact calculator | Done | `/climate-impact` measured/modelled/estimated/potential |
 | Commercial dashboard | Done | `/commercial-value` fee + payback model |
 | AI evidence | Done | `/ai-evidence` methodology (not threshold-as-AI) |

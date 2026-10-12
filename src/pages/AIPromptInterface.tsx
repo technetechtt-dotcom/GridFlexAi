@@ -208,7 +208,7 @@ export function AIPromptInterface({ onNavigate }: AIPromptInterfaceProps) {
   },
   {
     category: 'HyShift',
-    text: 'What is the expected LCOH if we capture 80% of curtailed energy at Prieska?'
+    text: 'What is the expected LCOH if we capture 80% of curtailed energy at the NC demo node?'
   }];
 
   return (
