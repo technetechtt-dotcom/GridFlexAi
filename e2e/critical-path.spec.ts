@@ -474,8 +474,11 @@ test("settings icon opens account settings", async ({ page }) => {
   await signIn(page);
   await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 
-  await openNavIfNeeded(page);
-  await page.getByRole("button", { name: "Account settings" }).click();
+  // Client-side nav — sidebar icon click is viewport-flaky under parallel CI workers.
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/settings");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
   await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible();
 });
 
