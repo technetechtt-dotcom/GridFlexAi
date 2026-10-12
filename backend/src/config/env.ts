@@ -5,6 +5,18 @@ import { buildJwtKeyring } from "../utils/jwt-keyring.js";
 
 config();
 
+// Honest source-build identity on Render / CI when operators did not pin RELEASE_*.
+if (!process.env.RELEASE_GIT_SHA?.trim()) {
+  const injected =
+    process.env.RENDER_GIT_COMMIT?.trim() ||
+    process.env.GIT_COMMIT?.trim() ||
+    process.env.GITHUB_SHA?.trim() ||
+    process.env.SOURCE_VERSION?.trim();
+  if (injected) {
+    process.env.RELEASE_GIT_SHA = injected;
+  }
+}
+
 const envBoolean = z.preprocess((value) => {
   if (typeof value === "boolean") {
     return value;

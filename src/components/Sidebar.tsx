@@ -12,8 +12,6 @@ import {
   Menu,
   X,
   AlertTriangle,
-  Droplet,
-  Factory,
   Users,
   Server,
   Recycle,
@@ -57,6 +55,10 @@ export type Page =
   | 'data-quality'
   | 'operator-tasks'
   | 'pilot-results'
+  | 'pilot-case'
+  | 'climate-impact'
+  | 'commercial-value'
+  | 'ai-evidence'
   | 'revenue-detail'
   | 'forecast-accuracy'
   | 'generation-vs-forecast'
@@ -236,9 +238,12 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
       label: 'Presentation',
       items: [
         { id: 'gcip', label: 'GCIP Showcase', icon: Trophy },
-        { id: 'hyshift', label: 'HyShift (demo)', icon: Droplet },
-        { id: 'sector-coupling', label: 'Sector coupling (demo)', icon: Factory },
-        { id: 'blueprint', label: 'Platform blueprint', icon: Grid }
+        { id: 'pilot-case', label: 'Pilot case', icon: FileText },
+        { id: 'climate-impact', label: 'Climate impact', icon: BarChart3 },
+        { id: 'commercial-value', label: 'Commercial value', icon: BarChart3 },
+        { id: 'ai-evidence', label: 'AI evidence', icon: MessageSquareMore },
+        { id: 'pilot-results', label: 'Verified PDF / results', icon: FileText },
+        { id: 'blueprint', label: 'Platform / IP blueprint', icon: Grid }
       ]
     });
   }

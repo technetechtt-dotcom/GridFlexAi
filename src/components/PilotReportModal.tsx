@@ -13,6 +13,7 @@ import {
 import { generatePilotReport, PilotReport } from '../services/api';
 import { cn } from '../lib/utils';
 import { SimulationBanner } from './SimulationBanner';
+import { openVerifiedPilotReport } from '../lib/verifiedPilotReport';
 interface PilotReportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -207,58 +208,11 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
                 </button>
                 <button
                 type="button"
-                disabled={!report}
-                onClick={() => {
-                  if (!report) return;
-                  const generatedAt = new Date().toISOString();
-                  const html = `<!doctype html><html><head><meta charset="utf-8"/><title>GridFlex GCIP Pilot Report</title>
-<style>
-body{font-family:Georgia,serif;margin:28px;color:#0f172a;line-height:1.45}
-h1{color:#065f46;font-size:22px}h2{font-size:16px;margin-top:20px}
-.banner{background:#fff7ed;border:1px solid #fdba74;padding:12px;margin:16px 0}
-table{border-collapse:collapse;width:100%;margin-top:12px}
-th,td{border:1px solid #cbd5e1;padding:8px;text-align:left;font-size:13px}
-th{background:#f1f5f9}.meta{color:#64748b;font-size:12px}
-@media print{button{display:none}body{margin:12mm}}
-</style></head>
-<body>
-<h1>GridFlex AI — GCIP Pilot Performance Report</h1>
-<p class="meta">Period: ${report.date} · Sites: Prieska, Kathu, Boegoebaai (demo portfolio)</p>
-<div class="banner"><strong>Provenance:</strong> Simulated and calculated demonstration values. Not measured customer performance. Estimated carbon uses an illustrative factor. Physical execution remains locked.</div>
-<h2>Results summary</h2>
-<table>
-<tr><th>Metric</th><th>Value</th><th>Class</th></tr>
-<tr><td>Verified energy / curtailment shifted</td><td>${report.curtailmentSaved} MWh</td><td>Simulated</td></tr>
-<tr><td>Financial value / revenue uplift</td><td>R ${report.revenueUplift.toLocaleString()}</td><td>Calculated (demo)</td></tr>
-<tr><td>Peak-demand / stability score</td><td>${report.gridStabilityScore}/100</td><td>Simulated</td></tr>
-<tr><td>Green-hydrogen opportunity</td><td>${report.h2Produced.toLocaleString()} kg</td><td>Simulated</td></tr>
-<tr><td>Carbon reduction opportunity</td><td>${report.co2Avoided} tCO₂e</td><td>Estimated</td></tr>
-</table>
-<h2>Baseline &amp; completeness</h2>
-<p class="meta">Baseline methodology: advisory comparison vs no-action case for the pilot window. Confirm data completeness and model version from Environment / Release and Forecast Accuracy before any customer claim.</p>
-<p class="meta">Measured versus estimated: rows above are labelled Simulated / Calculated / Estimated — never claim as verified customer savings without metered approval on the Pilot Results page.</p>
-<p class="meta">Customer approval: advisory demonstration only until recorded on Pilot Results. Generated ${generatedAt}.</p>
-<button onclick="window.print()" style="margin-top:20px;padding:10px 16px;background:#059669;color:#fff;border:0;border-radius:8px;font-size:14px">Print / Save as PDF</button>
-</body></html>`;
-                  const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
-                  if (printWindow) {
-                    printWindow.document.write(html);
-                    printWindow.document.close();
-                    printWindow.focus();
-                  } else {
-                    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `gridflex-gcip-pilot-report-${report.date}.html`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }
-                }}
-                className="flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400">
+                onClick={() => openVerifiedPilotReport()}
+                className="flex items-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400">
 
                   <FileDown className="w-4 h-4 mr-2" />
-                  Download / print PDF
+                  Verified pilot PDF
                 </button>
               </div>
             </div>

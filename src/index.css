@@ -60,3 +60,27 @@
     max-width: 100% !important;
   }
 }
+
+/* Projector / GCIP presentation readability */
+html.gf-projector {
+  font-size: 17px;
+}
+
+html.gf-projector .gf-projector-text,
+html.gf-projector .gf-page {
+  line-height: 1.55;
+}
+
+html.gf-projector h1,
+html.gf-projector .gf-page-header-title {
+  font-size: clamp(1.6rem, 2.4vw, 2.2rem) !important;
+}
+
+html.gf-projector table,
+html.gf-projector .text-xs {
+  font-size: 0.95rem !important;
+}
+
+html.gf-projector .text-sm {
+  font-size: 1.05rem !important;
+}

@@ -1,40 +1,34 @@
 import React from 'react';
 import { cn } from '../lib/utils';
-import {
-  DATA_SOURCE_LABELS,
-  provenanceTooltip,
-  type DataQuality,
-  type DataSourceType
-} from '../lib/dataProvenance';
+import type { ImpactClass } from '../lib/pilotCase';
+import { IMPACT_CLASS_LABEL } from '../lib/pilotCase';
 
-const toneBySource: Record<DataSourceType, string> = {
-  measured: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
-  calculated: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300',
-  forecast: 'border-sky-500/40 bg-sky-500/10 text-sky-300',
-  estimated: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
-  simulated: 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-300',
-  operator_entered: 'border-slate-500/40 bg-slate-500/10 text-slate-300',
-  imported: 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300'
+const STYLES: Record<ImpactClass | 'live' | 'simulated', string> = {
+  measured: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200',
+  modelled: 'border-sky-500/40 bg-sky-500/15 text-sky-200',
+  estimated: 'border-amber-500/40 bg-amber-500/15 text-amber-200',
+  potential: 'border-violet-500/40 bg-violet-500/15 text-violet-200',
+  live: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200',
+  simulated: 'border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-200'
 };
 
-interface ProvenanceBadgeProps {
-  sourceType: DataSourceType;
-  quality?: DataQuality;
+export function ProvenanceBadge({
+  kind,
+  className
+}: {
+  kind: ImpactClass | 'live' | 'simulated';
   className?: string;
-}
-
-export function ProvenanceBadge({ sourceType, quality, className }: ProvenanceBadgeProps) {
+}) {
+  const label =
+    kind === 'live' ? 'Live' : kind === 'simulated' ? 'Simulated' : IMPACT_CLASS_LABEL[kind];
   return (
     <span
-      title={provenanceTooltip(sourceType, quality)}
       className={cn(
-        'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-        toneBySource[sourceType],
+        'inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
+        STYLES[kind],
         className
-      )}
-    >
-      {DATA_SOURCE_LABELS[sourceType]}
-      {quality ? ` · ${quality}` : ''}
+      )}>
+      {label}
     </span>
   );
 }

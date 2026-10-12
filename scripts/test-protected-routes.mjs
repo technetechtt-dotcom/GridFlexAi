@@ -29,6 +29,10 @@ const SPA_ROUTES = [
   "/settings",
   "/help",
   "/gcip",
+  "/pilot-case",
+  "/climate-impact",
+  "/commercial-value",
+  "/ai-evidence",
   "/dispatch",
   "/scenario",
   "/ai-assistant"

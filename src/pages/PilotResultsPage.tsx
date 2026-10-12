@@ -7,6 +7,7 @@ import { persistDecision } from '../lib/decisionLog';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { PilotReportModal } from '../components/PilotReportModal';
+import { openVerifiedPilotReport } from '../lib/verifiedPilotReport';
 
 type MetricRow = {
   id: string;
@@ -176,10 +177,16 @@ export function PilotResultsPage() {
         </button>
         <button
           type="button"
+          onClick={() => openVerifiedPilotReport()}
+          className="inline-flex min-h-11 items-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950">
+          <FileDown className="mr-2 h-4 w-4" />
+          Verified pilot PDF
+        </button>
+        <button
+          type="button"
           onClick={() => setReportOpen(true)}
           className="inline-flex min-h-11 items-center rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200">
-          <FileDown className="mr-2 h-4 w-4" />
-          Open GCIP pilot PDF export
+          Simulation demo report
         </button>
         <button
           type="button"

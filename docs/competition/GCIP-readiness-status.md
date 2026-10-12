@@ -2,22 +2,25 @@
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Release identity (staging) | Temporary | Source-built `gridflex-backend` may set `REQUIRE_RELEASE_IDENTITY=false` |
+| Release identity (staging) | Improved | Source builds auto-pick `RENDER_GIT_COMMIT` / `GITHUB_SHA` into `RELEASE_GIT_SHA`; digest still optional |
 | Release identity (production) | Required | `gridflex-backend-prod` digest-pinned Docker, Cosign verify, `REQUIRE_RELEASE_IDENTITY=true` |
-| Deployment records | Done | `DeploymentRecord` written on boot (SHA, digest, migration, time) |
+| Deployment records | Done | `DeploymentRecord` written on boot |
 | Login wording | Done | No military-grade claim; invite-only messaging |
-| Operator decisions | Done | PostgreSQL `OperatorDecision` |
-| Recovery cases | Done | PostgreSQL `RecoveryCaseRecord` |
-| Alarm management | Done | Rules, thresholds, destinations, ack, assign, escalate, resolve, reopen, history, create task |
-| Work orders | Done | Assign, priority, due, evidence, escalate overdue, complete, approve/reject |
-| Pilot onboarding | Done | 9-step Postgres workflow including physical-execution lock |
-| Data quality | Done | Exception types + resolution/approval history in Postgres |
-| Pilot results + PDF | Done | Metrics page + GCIP print/PDF export with provenance |
-| Navigation IA | Done | Overview / Monitor / Operate / Analyse / Administration; GCIP in presentation mode |
-| Account workflow | Partial | Invite create/resend/revoke, sessions, logout-all, suspend, force password reset, MFA ack; self-serve email reset still admin-mediated |
-| Responsive | In progress | Shared CSS helpers + alarm/work-order/onboarding/DQ forms touch-sized |
-| Lint / Playwright / pen-test | Remaining | Run `npm run lint`, `npm run e2e:install && npm run e2e`, route smoke `npm run test:routes` |
+| Clear pilot case | Done | `/pilot-case` — Prieska retrospective evidence pack |
+| Climate-impact calculator | Done | `/climate-impact` measured/modelled/estimated/potential |
+| Commercial dashboard | Done | `/commercial-value` fee + payback model |
+| AI evidence | Done | `/ai-evidence` methodology (not threshold-as-AI) |
+| Verified pilot PDF | Done | Manager/investor HTML→PDF with approval record |
+| IP positioning | Done | `docs/competition/IP-positioning.md` |
+| Offline demo fallback | Done | Embedded pack + `/gcip` warmup |
+| Demo account | Documented | `docs/competition/GCIP-demo-account.md` |
+| Operator decisions / recovery | Done | PostgreSQL |
+| Alarm / work-order / onboarding / DQ | Done | Prior release |
+| Navigation IA | Done | Presentation pack under demo mode; GCIP banner |
+| Projector readability | Done | `html.gf-projector` larger type |
+| Account workflow | Partial | Invite/session/suspend; self-serve email reset still admin-mediated |
+| Lint / Playwright / pen-test | Remaining | `npm run lint`, `npm run e2e`, `npm run test:routes` |
 
-## Production deploy gate
+## Judge entry point
 
-See `docs/runbooks/production-digest-deploy.md` and `npm run verify:cosign-image`.
+`/gcip?demo=1` → Pilot case → Climate → Commercial → AI evidence → Verified PDF.

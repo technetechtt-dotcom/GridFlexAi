@@ -11,6 +11,7 @@ import { RealTimeProvider, useRealTime } from './context/RealTimeContext';
 import { canAccessOpsCenter, isPlantManager } from './lib/roles';
 import { PilotReportModal } from './components/PilotReportModal';
 import { OperatingModeBanner } from './components/OperatingModeBanner';
+import { DemoEnvironmentBanner } from './components/DemoEnvironmentBanner';
 import { ToastProvider } from './components/Toast';
 import { LoginPage } from './pages/LoginPage';
 import { usePilotStore } from './store/pilotStore';
@@ -97,6 +98,18 @@ const OperatorTasksPage = lazy(() =>
 const PilotResultsPage = lazy(() =>
   import('./pages/PilotResultsPage').then((module) => ({ default: module.PilotResultsPage }))
 );
+const PilotCasePage = lazy(() =>
+  import('./pages/PilotCasePage').then((module) => ({ default: module.PilotCasePage }))
+);
+const ClimateImpactPage = lazy(() =>
+  import('./pages/ClimateImpactPage').then((module) => ({ default: module.ClimateImpactPage }))
+);
+const CommercialValuePage = lazy(() =>
+  import('./pages/CommercialValuePage').then((module) => ({ default: module.CommercialValuePage }))
+);
+const AiEvidencePage = lazy(() =>
+  import('./pages/AiEvidencePage').then((module) => ({ default: module.AiEvidencePage }))
+);
 
 const pageToPath: Record<Page, string> = {
   dashboard: '/',
@@ -126,6 +139,10 @@ const pageToPath: Record<Page, string> = {
   'data-quality': '/data-quality',
   'operator-tasks': '/operator-tasks',
   'pilot-results': '/pilot-results',
+  'pilot-case': '/pilot-case',
+  'climate-impact': '/climate-impact',
+  'commercial-value': '/commercial-value',
+  'ai-evidence': '/ai-evidence',
   'revenue-detail': '/revenue',
   'forecast-accuracy': '/forecast-accuracy',
   'generation-vs-forecast': '/generation-vs-forecast',
@@ -157,6 +174,10 @@ function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/data-quality')) return 'data-quality';
   if (pathname.startsWith('/operator-tasks')) return 'operator-tasks';
   if (pathname.startsWith('/pilot-results')) return 'pilot-results';
+  if (pathname.startsWith('/pilot-case')) return 'pilot-case';
+  if (pathname.startsWith('/climate-impact')) return 'climate-impact';
+  if (pathname.startsWith('/commercial-value')) return 'commercial-value';
+  if (pathname.startsWith('/ai-evidence')) return 'ai-evidence';
   if (pathname.startsWith('/scenario')) return 'scenario';
   if (pathname.startsWith('/ai-insights')) return 'ai-insights';
   if (pathname.startsWith('/ai')) return 'ai-assistant';
@@ -222,8 +243,9 @@ function AuthShell() {
       <Sidebar activePage={activePage} onNavigate={onNavigate} />
       <main className="relative min-h-screen transition-all duration-300 lg:pl-64">
         <OperatingModeBanner isLiveStreamConnected={isConnected} metricsStale={metricsStale} />
+        <DemoEnvironmentBanner />
         {pilotMode &&
-        <div className="relative flex items-center justify-center border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-400">
+        <div className="relative flex items-center justify-center border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-sm text-amber-400">
             <span className="font-medium">PILOT MODE — Northern Cape Demonstration (Prieska • Kathu • Boegoebaai)</span>
             <button onClick={togglePilotMode} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 hover:bg-amber-500/20">
               <X className="h-3 w-3" />
@@ -293,6 +315,10 @@ function AppRoutes() {
           <Route path="/data-quality" element={<DataQualityPage />} />
           <Route path="/operator-tasks" element={<OperatorTasksPage />} />
           <Route path="/pilot-results" element={<PilotResultsPage />} />
+          <Route path="/pilot-case" element={<PilotCasePage />} />
+          <Route path="/climate-impact" element={<ClimateImpactPage />} />
+          <Route path="/commercial-value" element={<CommercialValuePage />} />
+          <Route path="/ai-evidence" element={<AiEvidencePage />} />
           <Route path="/environment-release" element={<EnvironmentReleasePage />} />
           <Route path="/privacy" element={<PrivacyNoticePage />} />
           <Route path="/terms" element={<TermsOfUsePage />} />
