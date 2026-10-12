@@ -505,8 +505,9 @@ test("GCIP showcase presents the judge journey and safety state", async ({ page 
   ).toBeVisible();
   await expect(page.getByText("Physical execution", { exact: true })).toBeVisible();
   await expect(page.getByText("Locked off", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Open the pilot case/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Six working demonstration steps/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Start demonstration/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Five working demonstration steps/i })).toBeVisible();
+  await expect(page.getByText("Demonstration progress")).toBeVisible();
 });
 
 test("GCIP showcase remains usable on a phone-sized screen", async ({ page }) => {
@@ -526,7 +527,7 @@ test("GCIP showcase remains usable on a phone-sized screen", async ({ page }) =>
     })
   ).toBeVisible();
   await expect(page.getByText("Safe competition mode")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Open the pilot case/i }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Start demonstration/i }).first()).toBeVisible();
 });
 
 test("GCIP presentation path reaches pilot case with lock messaging", async ({ page }) => {
@@ -541,7 +542,7 @@ test("GCIP presentation path reaches pilot case with lock messaging", async ({ p
   }
   await expect(page.getByRole("button", { name: "GCIP Showcase" })).toBeVisible();
   await page.getByRole("button", { name: "GCIP Showcase" }).click();
-  await page.getByRole("button", { name: /Open the pilot case/i }).click();
+  await page.getByRole("button", { name: /Start demonstration/i }).click();
   await expect(page.getByRole("heading", { name: /Pilot case evidence/i })).toBeVisible();
   await expect(
     page.getByText(/Physical plant execution remained locked|Physical execution/i).first()

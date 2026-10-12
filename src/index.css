@@ -84,3 +84,18 @@ html.gf-projector .text-xs {
 html.gf-projector .text-sm {
   font-size: 1.05rem !important;
 }
+/* Larger chart labels for projectors */
+html.gf-projector .recharts-cartesian-axis-tick text,
+html.gf-projector .recharts-text,
+html.gf-projector .recharts-legend-item-text,
+html.gf-projector .recharts-label {
+  font-size: 14px !important;
+}
+
+html.gf-projector .recharts-cartesian-axis-tick-value {
+  font-size: 13px !important;
+}
+
+html.gf-projector .gf-chart-legend {
+  font-size: 0.95rem !important;
+}

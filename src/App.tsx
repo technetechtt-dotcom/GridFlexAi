@@ -12,6 +12,8 @@ import { canAccessOpsCenter, isPlantManager } from './lib/roles';
 import { PilotReportModal } from './components/PilotReportModal';
 import { OperatingModeBanner } from './components/OperatingModeBanner';
 import { DemoEnvironmentBanner } from './components/DemoEnvironmentBanner';
+import { DemoProgressBar } from './components/DemoProgressBar';
+import { PresentationTimer } from './components/PresentationTimer';
 import { ToastProvider } from './components/Toast';
 import { LoginPage } from './pages/LoginPage';
 import { usePilotStore } from './store/pilotStore';
@@ -77,6 +79,10 @@ const PrivacyNoticePage = lazy(() =>
 );
 const TermsOfUsePage = lazy(() => import('./pages/TermsOfUsePage').then((module) => ({ default: module.TermsOfUsePage })));
 const GCIPShowcase = lazy(() => import('./pages/GCIPShowcase').then((module) => ({ default: module.GCIPShowcase })));
+const GcipAskPage = lazy(() => import('./pages/GcipAskPage').then((module) => ({ default: module.GcipAskPage })));
+const ProductInfoPage = lazy(() =>
+  import('./pages/ProductInfoPage').then((module) => ({ default: module.ProductInfoPage }))
+);
 const DiagnosticsResultsPage = lazy(() =>
   import('./pages/DiagnosticsResultsPage').then((module) => ({ default: module.DiagnosticsResultsPage }))
 );
@@ -143,6 +149,7 @@ const pageToPath: Record<Page, string> = {
   'climate-impact': '/climate-impact',
   'commercial-value': '/commercial-value',
   'ai-evidence': '/ai-evidence',
+  'gcip-ask': '/gcip/ask',
   'revenue-detail': '/revenue',
   'forecast-accuracy': '/forecast-accuracy',
   'generation-vs-forecast': '/generation-vs-forecast',
@@ -157,6 +164,7 @@ const pageToPath: Record<Page, string> = {
 function mapPathToPage(pathname: string): Page {
   if (pathname.startsWith('/ops')) return 'admin-dashboard';
   if (pathname.startsWith('/admin')) return 'admin-dashboard';
+  if (pathname.startsWith('/gcip/ask')) return 'gcip-ask';
   if (pathname.startsWith('/gcip')) return 'gcip';
   if (pathname.startsWith('/plants')) return 'plants';
   if (pathname.startsWith('/nodes')) return 'nodes';
@@ -233,6 +241,14 @@ function AuthShell() {
   const activePage = mapPathToPage(location.pathname);
   const { pilotMode, togglePilotMode, reportOpen, setReportOpen } = usePilotStore();
   const { isConnected, metricsStale } = useRealTime();
+  const demoChrome =
+    localStorage.getItem('gridflex_demo_mode_v1') === '1' ||
+    location.search.includes('demo=1') ||
+    location.pathname.startsWith('/gcip') ||
+    location.pathname.startsWith('/pilot-case') ||
+    location.pathname.startsWith('/climate-impact') ||
+    location.pathname.startsWith('/commercial-value') ||
+    location.pathname.startsWith('/ai-evidence');
 
   const onNavigate = (page: Page) => {
     navigate(pageToPath[page] ?? '/');
@@ -244,6 +260,7 @@ function AuthShell() {
       <main className="relative min-h-screen transition-all duration-300 lg:pl-64">
         <OperatingModeBanner isLiveStreamConnected={isConnected} metricsStale={metricsStale} />
         <DemoEnvironmentBanner />
+        {demoChrome && <DemoProgressBar onNavigate={onNavigate} />}
         {pilotMode &&
         <div className="relative flex items-center justify-center border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-sm text-amber-400">
             <span className="font-medium">PILOT MODE — Northern Cape synthetic demonstration portfolio</span>
@@ -267,6 +284,7 @@ function AuthShell() {
             </AnimatePresence>
           </Suspense>
         </ErrorBoundary>
+        {demoChrome && <PresentationTimer />}
 
         {pilotMode &&
         <button
@@ -292,12 +310,14 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route path="/product-info" element={<ProductInfoPage />} />
 
       <Route element={<RequireAuth />}>
         <Route element={<AuthShell />}>
           <Route path="/" element={<Dashboard onNavigate={routeNavigate} />} />
           <Route path="/gcip" element={<GCIPShowcase onNavigate={routeNavigate} />} />
           <Route path="/gcip-demo" element={<GCIPShowcase onNavigate={routeNavigate} />} />
+          <Route path="/gcip/ask" element={<GcipAskPage onNavigate={routeNavigate} />} />
           <Route path="/nodes" element={<NodeDashboard />} />
           <Route path="/plants" element={<PlantPortfolioPage />} />
           <Route path="/settings" element={<AccountSettingsPage />} />

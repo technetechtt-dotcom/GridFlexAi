@@ -199,7 +199,9 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end space-x-3">
+              <div className="flex flex-col gap-3 border-t border-slate-800 bg-slate-900/50 p-6 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[11px] text-slate-500">Techne Tech · GridFlex AI · Advisory only</p>
+                <div className="flex justify-end space-x-3">
                 <button
                 onClick={onClose}
                 className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors">
@@ -214,6 +216,7 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
                   <FileDown className="w-4 h-4 mr-2" />
                   Verified pilot PDF
                 </button>
+                </div>
               </div>
             </div>
           </motion.div>

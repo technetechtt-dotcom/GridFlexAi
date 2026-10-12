@@ -124,6 +124,11 @@ export function buildVerifiedPilotReportHtml(pilot: PilotCase = FROZEN_RETROSPEC
   <button onclick="window.print()" style="margin-top:24px;padding:12px 18px;background:#059669;color:#fff;border:0;border-radius:8px;font-size:14px;cursor:pointer">
     Print / Save as PDF
   </button>
+
+  <footer style="margin-top:36px;padding-top:14px;border-top:1px solid #cbd5e1;font-size:11px;color:#64748b;">
+    <strong>Techne Tech</strong> · GridFlex AI · Frozen pack ${pilot.frozenVersion} · Advisory only · Physical execution locked ·
+    Synthetic demonstration dataset (no third-party plant brand claimed)
+  </footer>
 </body>
 </html>`;
 }

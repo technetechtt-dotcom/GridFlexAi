@@ -59,6 +59,7 @@ export type Page =
   | 'climate-impact'
   | 'commercial-value'
   | 'ai-evidence'
+  | 'gcip-ask'
   | 'revenue-detail'
   | 'forecast-accuracy'
   | 'generation-vs-forecast'
@@ -242,6 +243,7 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
         { id: 'climate-impact', label: 'Climate impact', icon: BarChart3 },
         { id: 'commercial-value', label: 'Commercial value', icon: BarChart3 },
         { id: 'ai-evidence', label: 'AI evidence', icon: MessageSquareMore },
+        { id: 'gcip-ask', label: 'Ask & next milestone', icon: Leaf },
         { id: 'pilot-results', label: 'Verified PDF / results', icon: FileText },
         { id: 'blueprint', label: 'Platform / IP blueprint', icon: Grid }
       ]

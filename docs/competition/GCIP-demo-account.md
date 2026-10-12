@@ -17,7 +17,8 @@ Admin steps:
 2. Register with invitation token on `/login`.
 3. Confirm sessions on `/settings`.
 4. Bookmark `/gcip?demo=1` as the cold-start entry.
-5. Walk: Pilot case → Climate → Commercial → AI evidence → Verified PDF.
+5. Click **Start demonstration** (starts 7:00 timer) → Pilot → Climate → Commercial → AI evidence → Ask & next → Verified PDF.
+6. Confirm the progress bar shows frozen pack `gcip-demo-2026-10-12.1`.
 
 ## Claims allowed in the talk
 

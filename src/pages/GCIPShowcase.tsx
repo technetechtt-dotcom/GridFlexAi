@@ -4,28 +4,33 @@ import {
   ArrowRight,
   CheckCircle2,
   Eye,
-  FileDown,
   Leaf,
-  Recycle,
   ShieldCheck,
   Sparkles,
   Zap,
   Calculator,
   Brain,
-  Briefcase
+  Briefcase,
+  Landmark
 } from 'lucide-react';
 import type { Page } from '../components/Sidebar';
-import { openVerifiedPilotReport } from '../lib/verifiedPilotReport';
 import { loadOfflineDemoPack } from '../lib/offlineDemoPack';
+import { ProductInfoQr } from '../components/ProductInfoQr';
+import {
+  DEMO_JOURNEY_STEPS,
+  DEMO_TIMER_SECONDS,
+  DEMO_TIMER_STORAGE_KEY,
+  FROZEN_PACK_BADGE
+} from '../lib/demoJourney';
 
 interface GCIPShowcaseProps {
   onNavigate: (page: Page) => void;
 }
 
-const steps = [
+const stepCards = [
   {
     title: 'Pilot case',
-    copy: 'One solar site: capacity, period, loss, cause, action, value and reviewer confirmation.',
+    copy: 'One synthetic site: capacity, period, loss, cause, action, value and internal reviewer confirmation.',
     icon: Eye,
     page: 'pilot-case' as Page
   },
@@ -48,17 +53,10 @@ const steps = [
     page: 'ai-evidence' as Page
   },
   {
-    title: 'Recovery centre',
-    copy: 'Live advisory workflow on the same retrospective story.',
-    icon: Recycle,
-    page: 'recovery' as Page
-  },
-  {
-    title: 'Verified PDF',
-    copy: 'Hand a manager/investor-ready report — print or save as PDF.',
-    icon: FileDown,
-    page: 'pilot-case' as Page,
-    openPdf: true
+    title: 'Ask & next milestone',
+    copy: 'Funding request, telemetry-only pilot path, and QR to sanitized product information.',
+    icon: Landmark,
+    page: 'gcip-ask' as Page
   }
 ];
 
@@ -78,7 +76,6 @@ export function GCIPShowcase({ onNavigate }: GCIPShowcaseProps) {
   useEffect(() => {
     localStorage.setItem('gridflex_demo_mode_v1', '1');
     document.documentElement.classList.add('gf-projector');
-    // Warm API in the background to reduce Render cold-start blanks during the talk.
     const base = import.meta.env.VITE_API_BASE_URL || '/api';
     const roots = [base.replace(/\/$/, ''), 'https://gridflex-backend.onrender.com/api'];
     for (const root of roots) {
@@ -86,15 +83,24 @@ export function GCIPShowcase({ onNavigate }: GCIPShowcaseProps) {
     }
   }, []);
 
+  const startDemonstration = () => {
+    const deadline = Date.now() + DEMO_TIMER_SECONDS * 1000;
+    localStorage.setItem(DEMO_TIMER_STORAGE_KEY, String(deadline));
+    onNavigate('pilot-case');
+  };
+
   return (
-    <div className="gf-projector-text space-y-8 p-4 pb-16 sm:p-6 lg:p-8">
+    <div className="gf-projector-text space-y-8 p-4 pb-24 sm:p-6 lg:p-8">
       <section className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/80 via-slate-900 to-slate-950 p-6 sm:p-8 lg:p-10">
         <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" />
         <div className="relative grid gap-8 lg:grid-cols-[1.45fr_0.75fr] lg:items-center">
           <div>
+            <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300/90">
+              Techne Tech · GridFlex AI
+            </div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200 sm:text-sm">
               <Leaf className="h-3.5 w-3.5" />
-              GCIP Demonstration
+              GCIP Demonstration · pack {FROZEN_PACK_BADGE}
             </div>
             <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
               Recover renewable energy that South Africa already produces.
@@ -103,21 +109,17 @@ export function GCIPShowcase({ onNavigate }: GCIPShowcaseProps) {
               One clear pilot case. Defensible impact math. A commercial model judges can follow. Evidence for what the
               AI does — without claiming ordinary alarms as advanced intelligence.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-7">
               <button
                 type="button"
-                onClick={() => onNavigate('pilot-case')}
-                className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-slate-950 transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-slate-950">
-                Open the pilot case
-                <ArrowRight className="h-4 w-4" />
+                onClick={startDemonstration}
+                className="inline-flex min-h-14 items-center gap-2 rounded-xl bg-emerald-400 px-7 py-4 text-lg font-semibold text-slate-950 transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-slate-950">
+                Start demonstration
+                <ArrowRight className="h-5 w-5" />
               </button>
-              <button
-                type="button"
-                onClick={() => openVerifiedPilotReport()}
-                className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/70 px-5 py-3 font-medium text-slate-100 transition hover:border-emerald-400/50 hover:bg-slate-800">
-                <FileDown className="h-4 w-4" />
-                Verified pilot PDF
-              </button>
+              <p className="mt-3 text-sm text-slate-400">
+                Starts the 7:00 timer and opens step 1 of {DEMO_JOURNEY_STEPS.length}.
+              </p>
             </div>
           </div>
 
@@ -147,20 +149,14 @@ export function GCIPShowcase({ onNavigate }: GCIPShowcaseProps) {
       <section>
         <div className="mb-4">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-400">The judge journey</p>
-          <h2 className="mt-1 text-2xl font-semibold text-slate-50 sm:text-3xl">Six working demonstration steps.</h2>
+          <h2 className="mt-1 text-2xl font-semibold text-slate-50 sm:text-3xl">Five working demonstration steps.</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {steps.map((step, index) => (
+          {stepCards.map((step, index) => (
             <motion.button
               key={step.title}
               type="button"
-              onClick={() => {
-                if ('openPdf' in step && step.openPdf) {
-                  openVerifiedPilotReport();
-                  return;
-                }
-                onNavigate(step.page);
-              }}
+              onClick={() => onNavigate(step.page)}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
@@ -218,20 +214,13 @@ export function GCIPShowcase({ onNavigate }: GCIPShowcaseProps) {
         </div>
       </section>
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-6 sm:flex-row sm:items-center sm:justify-between">
+      <section className="flex flex-col gap-6 rounded-2xl border border-slate-700 bg-slate-900/70 p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-300">Ready for the live demo</p>
-          <h2 className="mt-1 text-xl font-semibold text-white sm:text-2xl">
-            Show the loss, explain it, price it, then hand over the PDF.
-          </h2>
-          <p className="mt-1 text-sm text-slate-400 sm:text-base">Pilot case → climate → commercial → AI evidence → PDF.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Techne Tech</p>
+          <h2 className="mt-1 text-xl font-semibold text-white">Scan for sanitized product information</h2>
+          <p className="mt-1 text-sm text-slate-400">Public one-pager for judges — no customer brands, no live control.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => onNavigate('pilot-case')}
-          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400">
-          Start demonstration <ArrowRight className="h-4 w-4" />
-        </button>
+        <ProductInfoQr size={132} />
       </section>
     </div>
   );

@@ -117,5 +117,5 @@ test("GCIP showcase is usable on constrained viewports", async ({ page }) => {
     })
   ).toBeVisible();
   await expect(page.getByText("Locked off", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Open the pilot case/i }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Start demonstration/i }).first()).toBeVisible();
 });

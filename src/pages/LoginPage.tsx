@@ -56,6 +56,9 @@ export function LoginPage() {
           <div className="bg-emerald-500/10 p-3 rounded-xl inline-flex mb-4">
             <Grid className="w-8 h-8 text-emerald-500" />
           </div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-400">
+            Techne Tech
+          </p>
           <h1 className="text-3xl font-bold text-slate-100 mb-2">
             GridFlex AI
           </h1>
@@ -241,6 +244,9 @@ export function LoginPage() {
               Access is restricted to authorised GridFlex operators.
               <br />
               New accounts require an administrator invitation.
+            </p>
+            <p className="mt-3 text-[11px] text-slate-600">
+              A Techne Tech product · GridFlex AI
             </p>
           </div>
         </div>
