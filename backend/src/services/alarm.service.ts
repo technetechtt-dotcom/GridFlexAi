@@ -86,6 +86,7 @@ export const createAlarmRule = async (
     severity?: "info" | "warning" | "major" | "critical";
     enabled?: boolean;
     cooldownSeconds?: number;
+    notificationDestinations?: Prisma.InputJsonValue;
     metadata?: Prisma.InputJsonValue;
   },
   actor: AlarmActor
@@ -110,6 +111,9 @@ export const createAlarmRule = async (
   if (input.plantId) data.plantId = input.plantId;
   if (input.assetId) data.assetId = input.assetId;
   if (input.description) data.description = input.description;
+  if (input.notificationDestinations !== undefined) {
+    data.notificationDestinations = input.notificationDestinations;
+  }
   if (input.metadata !== undefined) data.metadata = input.metadata;
 
   const rule = await prisma.alarmRule.create({ data });
@@ -149,6 +153,7 @@ export const listAlarmEvents = async (
     orderBy: [{ startedAt: "desc" }],
     take: 200,
     include: {
+      assignee: { select: { id: true, name: true, email: true } },
       acknowledgements: {
         orderBy: { acknowledgedAt: "desc" },
         take: 5,
@@ -262,6 +267,7 @@ export const clearAlarmEvent = async (
     data: {
       status: "cleared",
       clearedAt: new Date(),
+      resolutionNotes: resolutionNote ?? event.resolutionNotes,
       metadata: {
         ...((event.metadata as Record<string, unknown> | null) ?? {}),
         resolutionNote: resolutionNote ?? null,
@@ -283,6 +289,142 @@ export const clearAlarmEvent = async (
   return updated;
 };
 
+export const assignAlarmEvent = async (
+  alarmEventId: string,
+  assigneeUserId: string,
+  actor: AlarmActor,
+  note?: string
+) => {
+  const scope = await loadScope(actor);
+  const event = await prisma.alarmEvent.findUnique({ where: { id: alarmEventId } });
+  if (!event) throw new AppError("Alarm event not found.", 404);
+  assertOrganisationAccess(scope, event.organisationId);
+  await assertSiteAccess(scope, event.siteId);
+
+  const assignee = await prisma.user.findUnique({ where: { id: assigneeUserId } });
+  if (!assignee) throw new AppError("Assignee user not found.", 404);
+
+  const updated = await prisma.alarmEvent.update({
+    where: { id: alarmEventId },
+    data: {
+      assigneeUserId,
+      metadata: {
+        ...((event.metadata as Record<string, unknown> | null) ?? {}),
+        assignmentNote: note ?? null,
+        assignedByUserId: actor.id,
+        assignedAt: new Date().toISOString()
+      }
+    },
+    include: {
+      assignee: { select: { id: true, name: true, email: true } },
+      acknowledgements: { orderBy: { acknowledgedAt: "desc" }, take: 5 }
+    }
+  });
+
+  await recordAuditLog({
+    action: "alarm_event.assign",
+    entityType: "AlarmEvent",
+    entityId: alarmEventId,
+    message: note ?? `Assigned to ${assignee.name}`,
+    userId: actor.id,
+    organisationId: event.organisationId,
+    siteId: event.siteId
+  });
+
+  return updated;
+};
+
+export const escalateAlarmEvent = async (alarmEventId: string, actor: AlarmActor, note?: string) => {
+  const scope = await loadScope(actor);
+  const event = await prisma.alarmEvent.findUnique({ where: { id: alarmEventId } });
+  if (!event) throw new AppError("Alarm event not found.", 404);
+  assertOrganisationAccess(scope, event.organisationId);
+  await assertSiteAccess(scope, event.siteId);
+
+  const nextLevel = event.escalationLevel + 1;
+  const nextSeverity =
+    event.severity === "info"
+      ? "warning"
+      : event.severity === "warning"
+        ? "major"
+        : event.severity === "major"
+          ? "critical"
+          : "critical";
+
+  const updated = await prisma.alarmEvent.update({
+    where: { id: alarmEventId },
+    data: {
+      escalationLevel: nextLevel,
+      severity: nextSeverity,
+      metadata: {
+        ...((event.metadata as Record<string, unknown> | null) ?? {}),
+        lastEscalationNote: note ?? null,
+        lastEscalatedBy: actor.id,
+        lastEscalatedAt: new Date().toISOString()
+      }
+    },
+    include: {
+      assignee: { select: { id: true, name: true, email: true } },
+      acknowledgements: { orderBy: { acknowledgedAt: "desc" }, take: 5 }
+    }
+  });
+
+  await recordAuditLog({
+    action: "alarm_event.escalate",
+    entityType: "AlarmEvent",
+    entityId: alarmEventId,
+    message: note ?? `Escalated to level ${nextLevel}`,
+    userId: actor.id,
+    organisationId: event.organisationId,
+    siteId: event.siteId
+  });
+
+  return updated;
+};
+
+export const reopenAlarmEvent = async (alarmEventId: string, actor: AlarmActor, note?: string) => {
+  const scope = await loadScope(actor);
+  const event = await prisma.alarmEvent.findUnique({ where: { id: alarmEventId } });
+  if (!event) throw new AppError("Alarm event not found.", 404);
+  assertOrganisationAccess(scope, event.organisationId);
+  await assertSiteAccess(scope, event.siteId);
+
+  if (event.status !== "cleared" && event.status !== "suppressed") {
+    throw new AppError("Only cleared or suppressed alarms can be reopened.", 400);
+  }
+
+  const updated = await prisma.alarmEvent.update({
+    where: { id: alarmEventId },
+    data: {
+      status: "active",
+      clearedAt: null,
+      reopenedAt: new Date(),
+      resolutionNotes: null,
+      metadata: {
+        ...((event.metadata as Record<string, unknown> | null) ?? {}),
+        reopenNote: note ?? null,
+        reopenedByUserId: actor.id
+      }
+    },
+    include: {
+      assignee: { select: { id: true, name: true, email: true } },
+      acknowledgements: { orderBy: { acknowledgedAt: "desc" }, take: 5 }
+    }
+  });
+
+  await recordAuditLog({
+    action: "alarm_event.reopen",
+    entityType: "AlarmEvent",
+    entityId: alarmEventId,
+    message: note ?? "Reopened incorrectly closed alarm",
+    userId: actor.id,
+    organisationId: event.organisationId,
+    siteId: event.siteId
+  });
+
+  return updated;
+};
+
 export const updateAlarmRule = async (
   ruleId: string,
   input: {
@@ -294,6 +436,7 @@ export const updateAlarmRule = async (
     severity?: "info" | "warning" | "major" | "critical";
     enabled?: boolean;
     cooldownSeconds?: number;
+    notificationDestinations?: Prisma.InputJsonValue;
     metadata?: Prisma.InputJsonValue;
   },
   actor: AlarmActor
@@ -312,6 +455,9 @@ export const updateAlarmRule = async (
   if (input.severity !== undefined) data.severity = input.severity;
   if (input.enabled !== undefined) data.enabled = input.enabled;
   if (input.cooldownSeconds !== undefined) data.cooldownSeconds = input.cooldownSeconds;
+  if (input.notificationDestinations !== undefined) {
+    data.notificationDestinations = input.notificationDestinations;
+  }
   if (input.metadata !== undefined) data.metadata = input.metadata;
 
   const rule = await prisma.alarmRule.update({ where: { id: ruleId }, data });

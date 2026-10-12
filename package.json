@@ -27,6 +27,8 @@
     "bootstrap:aws-kms": "node scripts/bootstrap-aws-kms.mjs",
     "bootstrap:aws-kms:self-test": "node scripts/bootstrap-aws-kms.mjs --self-test",
     "verify:staging-digest": "node scripts/verify-staging-digest.mjs",
+    "verify:cosign-image": "node scripts/verify-cosign-image.mjs",
+    "test:routes": "node scripts/test-protected-routes.mjs",
     "demo:recovery-solar": "node scripts/recovery-solar-demo.mjs",
     "demo:recovery-solar:engine": "npm --prefix backend exec -- tsx scripts/run-recovery-solar-demo.ts",
     "warmup:staging": "node scripts/warmup-staging.mjs",
@@ -46,10 +48,10 @@
     "e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
-    "@ai-sdk/react": "^3.0.166",
+    "@ai-sdk/react": "^4.0.140",
     "@emotion/react": "^11.13.3",
     "@neondatabase/serverless": "^1.1.0",
-    "ai": "^6.0.164",
+    "ai": "^7.0.137",
     "clsx": "latest",
     "framer-motion": "^11.5.4",
     "lucide-react": "0.522.0",

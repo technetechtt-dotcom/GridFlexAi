@@ -28,11 +28,22 @@ const hashToken = (value: string): string => {
   return createHash("sha256").update(value).digest("hex");
 };
 
-const toSafeUser = (user: { id: string; email: string; name: string; role: Role; createdAt: Date; lastLoginAt: Date | null }) => ({
+const toSafeUser = (user: {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  createdAt: Date;
+  lastLoginAt: Date | null;
+  status?: string;
+  mustResetPassword?: boolean;
+}) => ({
   id: user.id,
   email: user.email,
   name: user.name,
   role: user.role,
+  status: user.status ?? "active",
+  mustResetPassword: Boolean(user.mustResetPassword),
   lastLoginAt: user.lastLoginAt,
   createdAt: user.createdAt
 });
@@ -141,6 +152,10 @@ export const loginUser = async ({ email, password }: LoginInput) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     throw new AppError("Invalid email or password.", 401);
+  }
+
+  if (user.status === "suspended") {
+    throw new AppError("This account has been suspended. Contact an administrator.", 403);
   }
 
   const isPasswordValid = await comparePassword(password, user.password);
@@ -279,7 +294,7 @@ export const changePassword = async (
   const hashedPassword = await hashPassword(newPassword);
   await prisma.user.update({
     where: { id: userId },
-    data: { password: hashedPassword }
+    data: { password: hashedPassword, mustResetPassword: false }
   });
 
   // Force re-auth on other devices after password change.

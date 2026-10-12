@@ -4,6 +4,10 @@ services:
     plan: starter
     ipAllowList: []
 
+  # ---------------------------------------------------------------------------
+  # STAGING / DEV — source-built Node service (auto-deploy from git).
+  # Not production. Release identity is optional here.
+  # ---------------------------------------------------------------------------
   - type: web
     name: gridflex-backend
     env: node
@@ -103,14 +107,130 @@ services:
         sync: false
       - key: ALERT_WEBHOOK_TOKEN
         sync: false
-      # Source-built Node service: identity is optional. Set REQUIRE_RELEASE_IDENTITY=true
-      # only on a digest-pinned Docker service that actually runs the Cosign image.
+      # Staging source build: identity optional. Production uses gridflex-backend-prod.
       - key: RELEASE_GIT_SHA
         sync: false
       - key: RELEASE_IMAGE_DIGEST
         sync: false
       - key: REQUIRE_RELEASE_IDENTITY
         value: "false"
+      - key: INVITE_ONLY_REGISTRATION
+        value: "true"
+      - key: OTEL_SERVICE_NAME
+        value: gridflex-api-staging
+      - key: FORECAST_CIRCUIT_FAILURE_THRESHOLD
+        value: "3"
+      - key: FORECAST_CIRCUIT_OPEN_MS
+        value: "180000"
+
+  # ---------------------------------------------------------------------------
+  # PRODUCTION — digest-pinned Docker image (no source rebuild, no autoDeploy).
+  # Operators must Cosign-verify the image, then set RELEASE_* to match.
+  # Pin the image URL to the SHA-256 digest that passed CI + staging.
+  # See docs/runbooks/production-digest-deploy.md
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: gridflex-backend-prod
+    runtime: image
+    plan: starter
+    autoDeploy: false
+    healthCheckPath: /api/health/live
+    image:
+      url: ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:4684d1faec5352949e40414f0e6a3fcc8b9c3dba9a85774103814fcaf7816fac
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: gridflex-redis
+          property: connectionString
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_ACTIVE_KID
+        value: v1
+      - key: JWT_SECRETS_JSON
+        sync: false
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: CORS_ORIGIN
+        sync: false
+      - key: ADMIN_ALLOWED_EMAILS
+        sync: false
+      - key: ADMIN_ALLOWED_IPS
+        value: ""
+      - key: ADMIN_REQUIRE_HTTPS
+        value: "true"
+      - key: ADMIN_MAX_TOKEN_AGE_MINUTES
+        value: "30"
+      - key: EDGE_INGEST_SHARED_SECRET
+        sync: false
+      - key: EDGE_INGEST_MAX_SKEW_SECONDS
+        value: "300"
+      - key: EDGE_RATE_LIMIT_MAX_PER_MINUTE
+        value: "30"
+      - key: EDGE_ALLOW_LEGACY_SHARED_SECRET
+        value: "false"
+      - key: EDGE_REPLAY_REQUIRE_REDIS
+        value: "true"
+      - key: EDGE_ALLOW_MEMORY_REPLAY
+        value: "false"
+      - key: PHYSICAL_COMMAND_EXECUTION_ENABLED
+        value: "false"
+      - key: HIL_PLANT_APPROVAL_CONFIRMED
+        value: "false"
+      - key: PILOT_LOCK_PHYSICAL_EXECUTION
+        value: "true"
+      - key: DEVICE_SECRET_VAULT_PROVIDER
+        value: aws_kms
+      - key: AWS_KMS_KEY_ID
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: GRIDFLEX_OPERATING_MODE
+        value: PILOT_LIVE
+      - key: ALLOW_SIMULATION_IN_PRODUCTION
+        value: "false"
+      - key: FORECAST_RATE_LIMIT_MAX_PER_MINUTE
+        value: "20"
+      - key: FORECAST_CRON_ENABLED
+        value: "true"
+      - key: FORECAST_CRON_SCHEDULE
+        value: "*/30 * * * *"
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: ACCUWEATHER_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: METRICS_SCRAPE_TOKEN
+        sync: false
+      - key: ALERT_WEBHOOK_ENABLED
+        value: "true"
+      - key: ALERT_WEBHOOK_URL
+        sync: false
+      - key: ALERT_WEBHOOK_TOKEN
+        sync: false
+      - key: RELEASE_GIT_SHA
+        value: "0efaea5e6dc417932e02319622865b80115c7265"
+      - key: RELEASE_IMAGE_DIGEST
+        value: "sha256:4684d1faec5352949e40414f0e6a3fcc8b9c3dba9a85774103814fcaf7816fac"
+      - key: REQUIRE_RELEASE_IDENTITY
+        value: "true"
+      - key: COSIGN_VERIFIED
+        value: "true"
       - key: INVITE_ONLY_REGISTRATION
         value: "true"
       - key: OTEL_SERVICE_NAME
@@ -127,6 +247,7 @@ services:
     buildCommand: npm install --include=dev && npm run build
     staticPublishPath: dist
     pullRequestPreviewsEnabled: true
+    autoDeploy: true
     routes:
       - type: rewrite
         source: /api/*

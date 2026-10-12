@@ -167,6 +167,8 @@ process.on("unhandledRejection", (reason) => {
     });
 
     await prisma.$connect();
+    const { recordDeploymentBoot } = await import("./services/deployment-record.service.js");
+    await recordDeploymentBoot();
     startSimulationPublisher();
     forecastCronTask = startForecastCron();
     telemetryRetentionTask = startTelemetryRetentionCron();
@@ -182,7 +184,9 @@ process.on("unhandledRejection", (reason) => {
         physicalCommandExecutionEnabled: env.PHYSICAL_COMMAND_EXECUTION_ENABLED,
         hilPlantApprovalConfirmed: env.HIL_PLANT_APPROVAL_CONFIRMED,
         pilotLockPhysicalExecution: env.PILOT_LOCK_PHYSICAL_EXECUTION,
-        operatingMode: env.GRIDFLEX_OPERATING_MODE
+        operatingMode: env.GRIDFLEX_OPERATING_MODE,
+        releaseGitSha: env.RELEASE_GIT_SHA ?? null,
+        releaseImageDigest: env.RELEASE_IMAGE_DIGEST ?? null
       });
     });
   } catch (err: unknown) {

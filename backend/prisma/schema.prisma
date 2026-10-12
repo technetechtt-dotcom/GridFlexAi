@@ -322,6 +322,7 @@ model User {
   name                     String
   role                     Role                          @default(operator)
   status                   String                        @default("active")
+  mustResetPassword        Boolean                       @default(false)
   lastLoginAt              DateTime?
   createdAt                DateTime                      @default(now())
   siteId                   String?
@@ -349,10 +350,14 @@ model User {
   workOrdersAssigned       WorkOrder[]                @relation("WorkOrderAssignee")
   workOrdersCreated        WorkOrder[]                @relation("WorkOrderCreator")
   invitationsSent          UserInvitation[]           @relation("InvitationSender")
+  alarmsAssigned           AlarmEvent[]               @relation("AlarmAssignee")
+  dataQualityResolved      DataQualityException[]     @relation("DataQualityResolver")
+  onboardingUpdated        PilotOnboardingProgress[]  @relation("OnboardingUpdater")
 
   @@index([managedById])
   @@index([role])
   @@index([siteId])
+  @@index([status])
 }
 
 model ManagerOperatorProvisioning {
@@ -393,6 +398,9 @@ model Organisation {
   recoveryCases       RecoveryCaseRecord[]
   workOrders          WorkOrder[]
   invitations         UserInvitation[]
+  dataQualityExceptions DataQualityException[]
+  onboardingProgress  PilotOnboardingProgress[]
+  deploymentRecords   DeploymentRecord[]
 
   @@index([status])
 }
@@ -1042,15 +1050,92 @@ model WorkOrder {
   createdBy      User?         @relation("WorkOrderCreator", fields: [createdById], references: [id], onDelete: SetNull)
   dueAt          DateTime?
   closedAt       DateTime?
+  escalatedAt    DateTime?
   relatedEntityType String?
   relatedEntityId   String?
   notes          String        @default("")
+  completionNotes String       @default("")
+  evidence       Json          @default("[]")
+  approvalStatus String        @default("none")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@index([organisationId, status, updatedAt])
   @@index([assigneeUserId, status])
   @@index([createdById, createdAt])
+  @@index([approvalStatus, updatedAt])
+}
+
+/// Durable data-quality exception queue (missing/stale/invalid telemetry, etc.).
+model DataQualityException {
+  id               String        @id @default(cuid())
+  organisationId   String?
+  organisation     Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  siteId           String?
+  plantId          String?
+  exceptionType    String
+  title            String
+  detail           String        @default("")
+  provenance       String        @default("measured")
+  quality          String        @default("uncertain")
+  status           String        @default("open")
+  resolutionNotes  String        @default("")
+  resolvedById     String?
+  resolvedBy       User?         @relation("DataQualityResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt       DateTime?
+  approvedByName   String?
+  approvedAt       DateTime?
+  history          Json          @default("[]")
+  releaseGitSha    String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([organisationId, status, updatedAt])
+  @@index([exceptionType, status])
+  @@index([siteId, updatedAt])
+}
+
+/// Server-side pilot onboarding checklist progress (not browser localStorage).
+model PilotOnboardingProgress {
+  id             String        @id @default(cuid())
+  organisationId String?
+  organisation   Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  siteId         String?
+  stepId         String
+  title          String
+  status         String        @default("open")
+  notes          String        @default("")
+  evidence       Json          @default("{}")
+  updatedById    String?
+  updatedBy      User?         @relation("OnboardingUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  completedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([organisationId, stepId])
+  @@index([organisationId, status])
+  @@index([updatedById, updatedAt])
+}
+
+/// Immutable deploy identity record (git SHA, image digest, migration, deploy time).
+model DeploymentRecord {
+  id                String        @id @default(cuid())
+  organisationId    String?
+  organisation      Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  environment       String
+  gitSha            String?
+  imageDigest       String?
+  migrationVersion  String?
+  cosignVerified    Boolean       @default(false)
+  requireIdentity   Boolean       @default(true)
+  serviceName       String?
+  notes             String        @default("")
+  deployedAt        DateTime      @default(now())
+  createdAt         DateTime      @default(now())
+
+  @@index([environment, deployedAt])
+  @@index([gitSha, deployedAt])
+  @@index([imageDigest])
 }
 
 /// Invite-only registration tokens.
@@ -1504,6 +1589,7 @@ model AlarmRule {
   severity        AlarmSeverity   @default(warning)
   enabled         Boolean         @default(true)
   cooldownSeconds Int             @default(300)
+  notificationDestinations Json   @default("[]")
   metadata        Json?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -1536,8 +1622,13 @@ model AlarmEvent {
   metricKey        String?
   metricValue      Float?
   threshold        Float?
+  assigneeUserId   String?
+  assignee         User?                  @relation("AlarmAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  escalationLevel  Int                    @default(0)
+  resolutionNotes  String?
   startedAt        DateTime               @default(now())
   clearedAt        DateTime?
+  reopenedAt       DateTime?
   metadata         Json?
   acknowledgements AlarmAcknowledgement[]
 
@@ -1545,6 +1636,7 @@ model AlarmEvent {
   @@index([siteId, status, startedAt])
   @@index([ruleId, startedAt])
   @@index([incidentId])
+  @@index([assigneeUserId, status])
 }
 
 model AlarmAcknowledgement {

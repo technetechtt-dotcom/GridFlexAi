@@ -38,6 +38,15 @@ import {
   postDeviceCredentialHandler,
   postRevokeDeviceCredentialHandler
 } from "../controllers/telemetry.controller.js";
+import {
+  getDeploymentRecordsHandler,
+  getInvitationsHandler,
+  postForcePasswordResetHandler,
+  postInvitationHandler,
+  postResendInvitationHandler,
+  postRevokeInvitationHandler,
+  postSuspendUserHandler
+} from "../controllers/invitation.controller.js";
 import { authenticate, authorizeRoles } from "../middleware/auth.js";
 import { validateRequest } from "../middleware/validateRequest.js";
 import {
@@ -55,6 +64,7 @@ import {
   siteBodySchema,
   siteUpdateBodySchema } from
 "../schemas/request.schemas.js";
+import { z } from "zod";
 
 const router = Router();
 
@@ -65,6 +75,28 @@ router.get("/users", getAdminUsersHandler);
 router.patch("/users/:id/role", validateRequest({ body: adminUserRoleUpdateBodySchema }), patchAdminUserRoleHandler);
 router.patch("/users/:id/site", validateRequest({ body: adminUserSiteUpdateBodySchema }), patchAdminUserSiteHandler);
 router.patch("/users/:id/password", validateRequest({ body: adminUserPasswordResetBodySchema }), patchUserPassword);
+router.post(
+  "/users/:id/suspend",
+  validateRequest({ body: z.object({ suspended: z.boolean().optional() }) }),
+  postSuspendUserHandler
+);
+router.post("/users/:id/force-password-reset", postForcePasswordResetHandler);
+router.get("/invitations", getInvitationsHandler);
+router.post(
+  "/invitations",
+  validateRequest({
+    body: z.object({
+      email: z.string().email(),
+      role: z.enum(["admin", "developer", "manager", "operator"]).optional(),
+      organisationId: z.string().optional(),
+      expiresInHours: z.number().int().min(1).max(720).optional()
+    })
+  }),
+  postInvitationHandler
+);
+router.post("/invitations/:id/resend", postResendInvitationHandler);
+router.post("/invitations/:id/revoke", postRevokeInvitationHandler);
+router.get("/deployments", getDeploymentRecordsHandler);
 router.patch(
   "/users/:id/operator-provisioning",
   validateRequest({ body: managerOperatorProvisioningBodySchema }),

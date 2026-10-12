@@ -154,13 +154,17 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [isMobile, isOpen]);
 
+  const role = user?.role;
+  const canOperate = role === 'admin' || role === 'developer' || role === 'manager' || role === 'operator';
+  const canAdmin = role === 'admin' || role === 'developer' || role === 'manager';
+
   const groups: NavGroup[] = [
     {
       id: 'overview',
       label: 'Overview',
       items: [
         { id: 'dashboard', label: 'Portfolio overview', icon: LayoutDashboard },
-        { id: 'kpi', label: 'Executive dashboard', icon: BarChart3 }
+        { id: 'kpi', label: 'KPIs', icon: BarChart3 }
       ]
     },
     {
@@ -169,40 +173,37 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
       items: [
         { id: 'plants', label: 'Plants', icon: Leaf },
         { id: 'nodes', label: 'Nodes', icon: Server },
+        { id: 'dispatch-status', label: 'Telemetry', icon: Activity },
         { id: 'congestion', label: 'Congestion', icon: Zap },
-        { id: 'curtailment-detail', label: 'Curtailment', icon: AlertTriangle },
-        { id: 'alarms', label: 'Alarms', icon: AlertTriangle },
-        { id: 'dispatch-status', label: 'Live dispatch status', icon: Activity }
+        { id: 'alarms', label: 'Alarms', icon: AlertTriangle }
       ]
     },
-    {
-      id: 'operate',
-      label: 'Operate',
-      items: [
-        { id: 'all-recommendations', label: 'Recommendations', icon: ClipboardList },
-        { id: 'dispatch', label: 'Dispatch', icon: Activity },
-        { id: 'approvals', label: 'Approvals', icon: Users },
-        { id: 'diagnostics', label: 'Diagnostics', icon: Activity },
-        { id: 'recovery', label: 'Recovery centre', icon: Recycle },
-        { id: 'recovery-cases', label: 'Recovery cases', icon: Recycle },
-        { id: 'operator-tasks', label: 'Work orders', icon: ClipboardList }
-      ]
-    },
+    ...(canOperate
+      ? ([
+          {
+            id: 'operate',
+            label: 'Operate',
+            items: [
+              { id: 'all-recommendations', label: 'Recommendations', icon: ClipboardList },
+              { id: 'dispatch', label: 'Dispatch', icon: Activity },
+              { id: 'approvals', label: 'Approvals', icon: Users },
+              { id: 'diagnostics', label: 'Diagnostics', icon: Activity },
+              { id: 'recovery', label: 'Recovery', icon: Recycle },
+              { id: 'operator-tasks', label: 'Work orders', icon: ClipboardList }
+            ]
+          } as NavGroup
+        ] as NavGroup[])
+      : []),
     {
       id: 'analyse',
       label: 'Analyse',
       items: [
         { id: 'generation-vs-forecast', label: 'Forecasts', icon: BarChart3 },
-        { id: 'scenario', label: 'Scenario modelling', icon: Sliders },
+        { id: 'scenario', label: 'Scenarios', icon: Sliders },
+        { id: 'kpi', label: 'KPIs', icon: BarChart3 },
         { id: 'reports', label: 'Reports', icon: FileText },
-        { id: 'ai-assistant', label: 'Zolt AI', icon: MessageSquareMore },
-        ...(demoMode
-          ? ([
-              { id: 'hyshift', label: 'HyShift (demo)', icon: Droplet },
-              { id: 'sector-coupling', label: 'Sector coupling (demo)', icon: Factory },
-              { id: 'blueprint', label: 'Platform blueprint', icon: Grid }
-            ] as NavItem[])
-          : [])
+        { id: 'pilot-results', label: 'Pilot results', icon: BarChart3 },
+        { id: 'ai-assistant', label: 'Zolt AI', icon: MessageSquareMore }
       ]
     },
     {
@@ -210,25 +211,35 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
       label: 'Administration',
       items: [
         ...(canAccessOpsCenter(user?.role)
-          ? ([{ id: 'admin-dashboard', label: 'Ops Center', icon: Shield }] as NavItem[])
+          ? ([{ id: 'admin-dashboard', label: 'System status', icon: Shield }] as NavItem[])
           : []),
         ...(isPlantManager(user?.role)
-          ? ([{ id: 'manager-team', label: 'Users & access', icon: Users }] as NavItem[])
+          ? ([{ id: 'manager-team', label: 'Users', icon: Users }] as NavItem[])
           : []),
-        { id: 'pilot-onboarding', label: 'Pilot onboarding', icon: ClipboardList },
-        { id: 'data-quality', label: 'Data quality', icon: FileText },
-        { id: 'pilot-results', label: 'Verified impact', icon: BarChart3 },
+        ...(canAdmin
+          ? ([
+              { id: 'nodes', label: 'Devices', icon: Server },
+              { id: 'pilot-onboarding', label: 'Pilot onboarding', icon: ClipboardList },
+              { id: 'data-quality', label: 'Integrations / data quality', icon: FileText }
+            ] as NavItem[])
+          : []),
         { id: 'settings', label: 'Settings', icon: Settings },
         { id: 'help', label: 'Help', icon: HelpCircle }
       ]
     }
   ];
 
+  // GCIP showcase is presentation mode only — not permanent production nav.
   if (demoMode) {
     groups.unshift({
       id: 'demo',
       label: 'Presentation',
-      items: [{ id: 'gcip', label: 'GCIP Showcase', icon: Trophy }]
+      items: [
+        { id: 'gcip', label: 'GCIP Showcase', icon: Trophy },
+        { id: 'hyshift', label: 'HyShift (demo)', icon: Droplet },
+        { id: 'sector-coupling', label: 'Sector coupling (demo)', icon: Factory },
+        { id: 'blueprint', label: 'Platform blueprint', icon: Grid }
+      ]
     });
   }
 

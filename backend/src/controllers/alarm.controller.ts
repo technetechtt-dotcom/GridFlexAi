@@ -3,13 +3,16 @@ import type { Request, Response } from "express";
 import {
   acknowledgeAlarmEvent,
   appendIncidentTimeline,
+  assignAlarmEvent,
   clearAlarmEvent,
   createAlarmRule,
   createIncident,
+  escalateAlarmEvent,
   listAlarmEvents,
   listAlarmRules,
   listIncidents,
   raiseAlarmEvent,
+  reopenAlarmEvent,
   updateAlarmRule,
   type AlarmActor
 } from "../services/alarm.service.js";
@@ -43,6 +46,9 @@ export const postAlarmRuleHandler = asyncHandler(async (req: Request, res: Respo
   if (typeof req.body.severity === "string") payload.severity = req.body.severity;
   if (typeof req.body.enabled === "boolean") payload.enabled = req.body.enabled;
   if (typeof req.body.cooldownSeconds === "number") payload.cooldownSeconds = req.body.cooldownSeconds;
+  if (req.body.notificationDestinations !== undefined) {
+    payload.notificationDestinations = req.body.notificationDestinations;
+  }
   if (req.body.metadata !== undefined) payload.metadata = req.body.metadata;
 
   const data = await createAlarmRule(payload, requireActor(req));
@@ -92,6 +98,32 @@ export const postClearAlarmEventHandler = asyncHandler(async (req: Request, res:
   if (!alarmEventId) throw new AppError("alarmEventId is required.", 400);
   const note = typeof req.body.note === "string" ? req.body.note : undefined;
   const data = await clearAlarmEvent(alarmEventId, requireActor(req), note);
+  res.status(200).json({ data });
+});
+
+export const postAssignAlarmEventHandler = asyncHandler(async (req: Request, res: Response) => {
+  const alarmEventId = req.params.alarmEventId;
+  if (!alarmEventId) throw new AppError("alarmEventId is required.", 400);
+  const assigneeUserId = typeof req.body.assigneeUserId === "string" ? req.body.assigneeUserId : "";
+  if (!assigneeUserId) throw new AppError("assigneeUserId is required.", 400);
+  const note = typeof req.body.note === "string" ? req.body.note : undefined;
+  const data = await assignAlarmEvent(alarmEventId, assigneeUserId, requireActor(req), note);
+  res.status(200).json({ data });
+});
+
+export const postEscalateAlarmEventHandler = asyncHandler(async (req: Request, res: Response) => {
+  const alarmEventId = req.params.alarmEventId;
+  if (!alarmEventId) throw new AppError("alarmEventId is required.", 400);
+  const note = typeof req.body.note === "string" ? req.body.note : undefined;
+  const data = await escalateAlarmEvent(alarmEventId, requireActor(req), note);
+  res.status(200).json({ data });
+});
+
+export const postReopenAlarmEventHandler = asyncHandler(async (req: Request, res: Response) => {
+  const alarmEventId = req.params.alarmEventId;
+  if (!alarmEventId) throw new AppError("alarmEventId is required.", 400);
+  const note = typeof req.body.note === "string" ? req.body.note : undefined;
+  const data = await reopenAlarmEvent(alarmEventId, requireActor(req), note);
   res.status(200).json({ data });
 });
 

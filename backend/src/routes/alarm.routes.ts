@@ -9,9 +9,12 @@ import {
   postAcknowledgeAlarmEventHandler,
   postAlarmEventHandler,
   postAlarmRuleHandler,
+  postAssignAlarmEventHandler,
   postClearAlarmEventHandler,
+  postEscalateAlarmEventHandler,
   postIncidentHandler,
-  postIncidentTimelineHandler
+  postIncidentTimelineHandler,
+  postReopenAlarmEventHandler
 } from "../controllers/alarm.controller.js";
 import { authenticate, requireRoles } from "../middleware/auth.js";
 import { attachAccessScope } from "../middleware/permissions.js";
@@ -30,6 +33,14 @@ const alarmRuleBodySchema = z.object({
   severity: z.enum(["info", "warning", "major", "critical"]).optional(),
   enabled: z.boolean().optional(),
   cooldownSeconds: z.coerce.number().int().min(0).max(86400).optional(),
+  notificationDestinations: z
+    .array(
+      z.object({
+        channel: z.enum(["email", "webhook", "sms", "ops_channel"]),
+        target: z.string().min(1).max(320)
+      })
+    )
+    .optional(),
   metadata: z.unknown().optional()
 });
 
@@ -124,6 +135,32 @@ router.post(
   requireRoles("admin", "developer", "manager", "operator"),
   validateRequest({ body: acknowledgeBodySchema }),
   postClearAlarmEventHandler
+);
+router.post(
+  "/alarm-events/:alarmEventId/assign",
+  ...scoped,
+  requireRoles("admin", "developer", "manager", "operator"),
+  validateRequest({
+    body: z.object({
+      assigneeUserId: z.string().min(1),
+      note: z.string().max(1000).optional()
+    })
+  }),
+  postAssignAlarmEventHandler
+);
+router.post(
+  "/alarm-events/:alarmEventId/escalate",
+  ...scoped,
+  requireRoles("admin", "developer", "manager", "operator"),
+  validateRequest({ body: acknowledgeBodySchema }),
+  postEscalateAlarmEventHandler
+);
+router.post(
+  "/alarm-events/:alarmEventId/reopen",
+  ...scoped,
+  requireRoles("admin", "developer", "manager", "operator"),
+  validateRequest({ body: acknowledgeBodySchema }),
+  postReopenAlarmEventHandler
 );
 
 router.get("/incidents", ...scoped, getIncidentsHandler);

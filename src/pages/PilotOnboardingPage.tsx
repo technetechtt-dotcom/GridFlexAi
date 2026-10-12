@@ -1,100 +1,149 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, Ban } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
-import { persistDecision } from '../lib/decisionLog';
-import { useAuth } from '../context/AuthContext';
+import { listOnboardingSteps, updateOnboardingStep, type OnboardingStepDto } from '../services/api';
 import { useToast } from '../components/Toast';
+import { DataStateBanner } from '../components/DataFetchState';
 
-type Step = { id: string; title: string; detail: string; href: string };
-
-const STEPS: Step[] = [
-  { id: 'org', title: 'Organisation & site', detail: 'Confirm tenant records exist', href: '/plants' },
-  { id: 'plant', title: 'Plant nameplate', detail: 'Register capacity and export limit', href: '/plants' },
-  { id: 'edge', title: 'Edge credentials', detail: 'Provision vault-backed device credentials', href: '/nodes' },
-  { id: 'telemetry', title: 'First telemetry packet', detail: 'Verify signed ingest and provenance', href: '/nodes' },
-  { id: 'commission', title: 'Commissioning sign-off', detail: 'Approve advisory-only go-live; execution stays locked', href: '/approvals' }
-];
-
-const STORAGE_KEY = 'gridflex_pilot_onboarding_steps_v1';
+const HREF: Record<string, string> = {
+  organisation: '/plants',
+  site: '/plants',
+  plants_devices: '/plants',
+  inverters: '/nodes',
+  tariffs: '/settings',
+  baseline: '/data-quality',
+  telemetry_test: '/nodes',
+  go_live: '/approvals',
+  physical_lock: '/environment-release'
+};
 
 export function PilotOnboardingPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { showToast } = useToast();
-  const [done, setDone] = useState<string[]>(() => {
+  const [steps, setSteps] = useState<OnboardingStepDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') as string[];
-    } catch {
-      return [];
+      setSteps(await listOnboardingSteps());
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load onboarding');
+    } finally {
+      setLoading(false);
     }
-  });
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(done));
-  }, [done]);
+    void load();
+  }, [load]);
 
-  const toggle = async (step: Step) => {
-    const next = done.includes(step.id) ? done.filter((id) => id !== step.id) : [...done, step.id];
-    setDone(next);
-    await persistDecision({
-      entityType: 'diagnostics',
-      entityId: `pilot-onboarding-${step.id}`,
-      title: step.title,
-      stage: 'completed',
-      actorName: user?.name ?? 'Operator',
-      actorRole: user?.role ?? 'operator',
-      reason: next.includes(step.id) ? 'Marked onboarding step complete' : 'Reopened onboarding step',
-      expectedOutcome: 'Track pilot commissioning without physical actuation',
-      newState: next.includes(step.id) ? 'complete' : 'open'
-    });
-    showToast(`${step.title} updated`, 'success');
+  const setStatus = async (step: OnboardingStepDto, status: 'open' | 'complete' | 'blocked') => {
+    setBusy(step.stepId);
+    try {
+      const notes =
+        status === 'complete'
+          ? window.prompt('Completion notes (audited)') || 'Marked complete'
+          : status === 'blocked'
+            ? window.prompt('Blocked reason') || 'Blocked'
+            : 'Reopened';
+      await updateOnboardingStep({ stepId: step.stepId, status, notes });
+      showToast(`${step.title} → ${status}`, 'success');
+      await load();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Update failed', 'error');
+    } finally {
+      setBusy(null);
+    }
   };
 
   return (
-    <div className="space-y-6 p-6 pb-20">
+    <div className="space-y-6 p-4 sm:p-6 pb-20">
       <PageHeader
         title="Pilot onboarding"
-        description="Organisation → site → plant → edge → telemetry → commissioning. Completion is audited."
+        description="Organisation → site → plants/devices → inverters → tariffs → baseline → telemetry → go-live → physical-execution lock"
         breadcrumbs={
-          <Breadcrumbs items={[{ label: 'Overview', onClick: () => navigate('/') }, { label: 'Pilot onboarding' }]} />
+          <Breadcrumbs
+            items={[
+              { label: 'Administration', onClick: () => navigate('/') },
+              { label: 'Pilot onboarding' }
+            ]}
+          />
         }
       />
+
+      <DataStateBanner
+        loading={loading}
+        error={error}
+        empty={false}
+        emptyMessage=""
+        tone="operations"
+        onRetry={() => void load()}
+      />
+
       <ol className="space-y-3">
-        {STEPS.map((step, index) => {
-          const complete = done.includes(step.id);
+        {steps.map((step, index) => {
+          const complete = step.status === 'complete';
+          const blocked = step.status === 'blocked';
           return (
-            <li key={step.id} className="flex flex-wrap items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-              <div className="mt-0.5 text-emerald-400">
-                {complete ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5 text-slate-600" />}
+            <li
+              key={step.stepId}
+              className="flex flex-wrap items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+              <div className="mt-0.5">
+                {complete ? (
+                  <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                ) : blocked ? (
+                  <Ban className="h-5 w-5 text-amber-400" />
+                ) : (
+                  <Circle className="h-5 w-5 text-slate-600" />
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-slate-100">
                   {index + 1}. {step.title}
                 </p>
                 <p className="text-sm text-slate-400">{step.detail}</p>
+                {step.notes ? <p className="mt-1 text-xs text-slate-500">{step.notes}</p> : null}
+                {step.updatedByName ? (
+                  <p className="text-xs text-slate-600">Last update by {step.updatedByName}</p>
+                ) : null}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate(step.href)}
-                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200">
+                  onClick={() => navigate(HREF[step.stepId] ?? '/plants')}
+                  className="min-h-10 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200">
                   Open
                 </button>
                 <button
                   type="button"
-                  onClick={() => void toggle(step)}
-                  className="rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-medium text-slate-950">
-                  {complete ? 'Reopen' : 'Mark complete'}
+                  disabled={busy === step.stepId}
+                  onClick={() => void setStatus(step, complete ? 'open' : 'complete')}
+                  className="min-h-10 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-medium text-slate-950 disabled:opacity-50">
+                  {complete ? 'Reopen' : 'Complete'}
                 </button>
+                {!complete && (
+                  <button
+                    type="button"
+                    disabled={busy === step.stepId}
+                    onClick={() => void setStatus(step, 'blocked')}
+                    className="min-h-10 rounded-lg border border-amber-700/40 px-3 py-1.5 text-xs text-amber-200">
+                    Block
+                  </button>
+                )}
               </div>
             </li>
           );
         })}
       </ol>
       <p className="text-xs text-slate-500">
-        Step checkmarks are a local progress aid; each change writes a PostgreSQL operator decision / audit record.
+        Progress is stored in PostgreSQL and each change writes an operator decision / audit record. Local browser
+        checklists are not used.
       </p>
     </div>
   );

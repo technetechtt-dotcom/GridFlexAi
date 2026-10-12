@@ -21,6 +21,10 @@ const toDto = (row: {
   relatedEntityType: string | null;
   relatedEntityId: string | null;
   notes: string;
+  completionNotes: string;
+  evidence: Prisma.JsonValue;
+  approvalStatus: string;
+  escalatedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   assignee?: { id: string; name: string; email: string } | null;
@@ -39,9 +43,13 @@ const toDto = (row: {
   createdByName: row.createdBy?.name ?? null,
   dueAt: row.dueAt?.toISOString() ?? null,
   closedAt: row.closedAt?.toISOString() ?? null,
+  escalatedAt: row.escalatedAt?.toISOString() ?? null,
   relatedEntityType: row.relatedEntityType,
   relatedEntityId: row.relatedEntityId,
   notes: row.notes,
+  completionNotes: row.completionNotes,
+  evidence: Array.isArray(row.evidence) ? row.evidence : [],
+  approvalStatus: row.approvalStatus,
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString()
 });
@@ -69,6 +77,8 @@ export const createWorkOrder = async (
     siteId?: string;
     relatedEntityType?: string;
     relatedEntityId?: string;
+    notes?: string;
+    evidence?: Prisma.InputJsonValue;
   },
   actor: WorkOrderActor
 ) => {
@@ -76,9 +86,11 @@ export const createWorkOrder = async (
     title: input.title,
     description: input.description ?? "",
     priority: input.priority ?? "normal",
-    status: "open",
+    status: input.assigneeUserId ? "assigned" : "open",
     createdById: actor.id,
-    assigneeUserId: input.assigneeUserId ?? actor.id
+    assigneeUserId: input.assigneeUserId ?? actor.id,
+    notes: input.notes ?? "",
+    evidence: input.evidence ?? []
   };
   if (input.organisationId) data.organisationId = input.organisationId;
   if (input.siteId) data.siteId = input.siteId;
@@ -116,6 +128,10 @@ export const updateWorkOrder = async (
     notes?: string;
     description?: string;
     dueAt?: string | null;
+    completionNotes?: string;
+    evidence?: Prisma.InputJsonValue;
+    approvalStatus?: string;
+    escalate?: boolean;
   },
   actor: WorkOrderActor
 ) => {
@@ -128,12 +144,25 @@ export const updateWorkOrder = async (
     if (patch.status === "closed" || patch.status === "completed") {
       data.closedAt = new Date();
     }
+    if (patch.status === "completed") {
+      data.approvalStatus = current.approvalStatus === "none" ? "pending" : current.approvalStatus;
+    }
   }
   if (patch.priority !== undefined) data.priority = patch.priority;
   if (patch.assigneeUserId !== undefined) data.assigneeUserId = patch.assigneeUserId;
   if (patch.notes !== undefined) data.notes = patch.notes;
   if (patch.description !== undefined) data.description = patch.description;
   if (patch.dueAt !== undefined) data.dueAt = patch.dueAt ? new Date(patch.dueAt) : null;
+  if (patch.completionNotes !== undefined) data.completionNotes = patch.completionNotes;
+  if (patch.evidence !== undefined) data.evidence = patch.evidence;
+  if (patch.approvalStatus !== undefined) data.approvalStatus = patch.approvalStatus;
+  if (patch.escalate) {
+    data.escalatedAt = new Date();
+    data.priority = "urgent";
+    if (current.status === "open" || current.status === "assigned") {
+      data.status = "escalated";
+    }
+  }
 
   const row = await prisma.workOrder.update({
     where: { id },

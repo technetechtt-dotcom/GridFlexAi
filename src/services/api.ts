@@ -720,7 +720,7 @@ let accessToken: string | null = null;
 const DEFAULT_FORECAST_CAPACITY_KW = 120;
 
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   headers?: Record<string, string>;
   auth?: boolean;
@@ -1010,7 +1010,13 @@ export type WorkOrderDto = {
   assigneeName: string | null;
   createdByName: string | null;
   dueAt: string | null;
+  escalatedAt?: string | null;
   notes: string;
+  completionNotes?: string;
+  evidence?: string[];
+  approvalStatus?: string;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -1025,6 +1031,11 @@ export async function createWorkOrder(payload: {
   description?: string;
   priority?: string;
   dueAt?: string;
+  assigneeUserId?: string;
+  relatedEntityType?: string;
+  relatedEntityId?: string;
+  notes?: string;
+  evidence?: string[];
 }): Promise<WorkOrderDto> {
   const response = await apiRequest<ApiEnvelope<WorkOrderDto>>('/work-orders', {
     method: 'POST',
@@ -1036,7 +1047,17 @@ export async function createWorkOrder(payload: {
 
 export async function updateWorkOrder(
   id: string,
-  payload: { status?: string; notes?: string; priority?: string }
+  payload: {
+    status?: string;
+    notes?: string;
+    priority?: string;
+    assigneeUserId?: string | null;
+    dueAt?: string | null;
+    completionNotes?: string;
+    evidence?: string[];
+    approvalStatus?: string;
+    escalate?: boolean;
+  }
 ): Promise<WorkOrderDto> {
   const response = await apiRequest<ApiEnvelope<WorkOrderDto>>(`/work-orders/${encodeURIComponent(id)}`, {
     method: 'PATCH',
@@ -1058,6 +1079,7 @@ export type AlarmRuleDto = {
   severity: string;
   enabled: boolean;
   cooldownSeconds: number;
+  notificationDestinations?: Array<{ channel: string; target: string }>;
   updatedAt: string;
 };
 
@@ -1077,6 +1099,7 @@ export async function createAlarmRule(payload: {
   severity?: string;
   enabled?: boolean;
   cooldownSeconds?: number;
+  notificationDestinations?: Array<{ channel: string; target: string }>;
 }): Promise<AlarmRuleDto> {
   const response = await apiRequest<ApiEnvelope<AlarmRuleDto>>('/alarm-rules', {
     method: 'POST',
@@ -1097,6 +1120,7 @@ export async function updateAlarmRule(
     severity: string;
     enabled: boolean;
     cooldownSeconds: number;
+    notificationDestinations: Array<{ channel: string; target: string }>;
   }>
 ): Promise<AlarmRuleDto> {
   const response = await apiRequest<ApiEnvelope<AlarmRuleDto>>(
@@ -1383,7 +1407,14 @@ export type AlarmCentreEvent = {
   message: string;
   metricKey?: string | null;
   metricValue?: number | null;
+  threshold?: number | null;
+  escalationLevel?: number;
+  resolutionNotes?: string | null;
+  assigneeUserId?: string | null;
+  assignee?: { id: string; name: string; email: string } | null;
   startedAt: string;
+  clearedAt?: string | null;
+  reopenedAt?: string | null;
 };
 
 export type AlarmCentreIncident = {
@@ -1413,6 +1444,126 @@ export async function acknowledgeAlarmEvent(alarmEventId: string, note?: string)
     method: 'POST',
     auth: true,
     body: note ? { note } : {}
+  });
+  return response.data;
+}
+
+export async function assignAlarmEvent(
+  alarmEventId: string,
+  assigneeUserId: string,
+  note?: string
+): Promise<unknown> {
+  const response = await apiRequest<ApiEnvelope<unknown>>(
+    `/alarm-events/${encodeURIComponent(alarmEventId)}/assign`,
+    { method: 'POST', auth: true, body: { assigneeUserId, note } }
+  );
+  return response.data;
+}
+
+export async function escalateAlarmEvent(alarmEventId: string, note?: string): Promise<unknown> {
+  const response = await apiRequest<ApiEnvelope<unknown>>(
+    `/alarm-events/${encodeURIComponent(alarmEventId)}/escalate`,
+    { method: 'POST', auth: true, body: note ? { note } : {} }
+  );
+  return response.data;
+}
+
+export async function reopenAlarmEvent(alarmEventId: string, note?: string): Promise<unknown> {
+  const response = await apiRequest<ApiEnvelope<unknown>>(
+    `/alarm-events/${encodeURIComponent(alarmEventId)}/reopen`,
+    { method: 'POST', auth: true, body: note ? { note } : {} }
+  );
+  return response.data;
+}
+
+export type DataQualityExceptionDto = {
+  id: string;
+  exceptionType: string;
+  title: string;
+  detail: string;
+  provenance: string;
+  quality: string;
+  status: string;
+  resolutionNotes: string;
+  resolvedByName: string | null;
+  resolvedAt: string | null;
+  approvedByName: string | null;
+  approvedAt: string | null;
+  history: Array<{ at: string; actor: string; note: string; status: string }>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listDataQualityExceptions(params?: {
+  status?: string;
+  bootstrap?: boolean;
+}): Promise<DataQualityExceptionDto[]> {
+  const search = new URLSearchParams();
+  if (params?.status) search.set('status', params.status);
+  if (params?.bootstrap) search.set('bootstrap', '1');
+  const q = search.toString();
+  const response = await apiRequest<ApiEnvelope<DataQualityExceptionDto[]>>(
+    `/data-quality${q ? `?${q}` : ''}`,
+    { auth: true }
+  );
+  return response.data;
+}
+
+export async function createDataQualityException(payload: {
+  exceptionType: string;
+  title: string;
+  detail?: string;
+  provenance?: string;
+  quality?: string;
+}): Promise<DataQualityExceptionDto> {
+  const response = await apiRequest<ApiEnvelope<DataQualityExceptionDto>>('/data-quality', {
+    method: 'POST',
+    auth: true,
+    body: payload
+  });
+  return response.data;
+}
+
+export async function updateDataQualityException(
+  id: string,
+  payload: { status?: string; resolutionNotes?: string; approvedByName?: string }
+): Promise<DataQualityExceptionDto> {
+  const response = await apiRequest<ApiEnvelope<DataQualityExceptionDto>>(
+    `/data-quality/${encodeURIComponent(id)}`,
+    { method: 'PATCH', auth: true, body: payload }
+  );
+  return response.data;
+}
+
+export type OnboardingStepDto = {
+  id: string;
+  stepId: string;
+  title: string;
+  detail?: string;
+  status: string;
+  notes: string;
+  completedAt: string | null;
+  updatedByName: string | null;
+};
+
+export async function listOnboardingSteps(organisationId?: string): Promise<OnboardingStepDto[]> {
+  const q = organisationId ? `?organisationId=${encodeURIComponent(organisationId)}` : '';
+  const response = await apiRequest<ApiEnvelope<OnboardingStepDto[]>>(`/pilot-onboarding${q}`, {
+    auth: true
+  });
+  return response.data;
+}
+
+export async function updateOnboardingStep(payload: {
+  stepId: string;
+  status: 'open' | 'complete' | 'blocked';
+  notes?: string;
+  organisationId?: string;
+}): Promise<OnboardingStepDto> {
+  const response = await apiRequest<ApiEnvelope<OnboardingStepDto>>('/pilot-onboarding/steps', {
+    method: 'PUT',
+    auth: true,
+    body: payload
   });
   return response.data;
 }

@@ -5,3 +5,58 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 /* DO NOT DELETE THESE TAILWIND IMPORTS, OTHERWISE THE STYLING WILL NOT RENDER AT ALL - DO NOT DELETE THIS COMMENT */
+
+/* Responsive workflow hardening (360 / 390 / 768 / 1024 / 1440) */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .gf-page {
+    @apply space-y-6 p-4 pb-20 sm:p-6;
+  }
+
+  .gf-form-grid {
+    @apply grid gap-3 sm:grid-cols-2;
+  }
+
+  .gf-form-grid > .gf-span-all {
+    @apply sm:col-span-2;
+  }
+
+  .gf-touch-target {
+    @apply min-h-11 min-w-11;
+  }
+
+  .gf-table-wrap {
+    @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0;
+  }
+
+  .gf-table-wrap table {
+    @apply min-w-[36rem] sm:min-w-full;
+  }
+
+  .gf-chart-legend {
+    @apply flex flex-wrap gap-x-3 gap-y-2 text-xs sm:text-sm;
+  }
+
+  .gf-page-header-title {
+    @apply break-words text-xl font-semibold leading-snug sm:text-2xl;
+  }
+
+  .gf-modal-body {
+    @apply max-h-[85vh] overflow-y-auto p-4 sm:p-6;
+  }
+}
+
+@media (max-width: 390px) {
+  .recharts-legend-wrapper {
+    max-width: 100% !important;
+  }
+}
