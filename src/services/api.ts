@@ -2324,7 +2324,7 @@ region = 'Free State')
       lat: -30.6499,
       lon: 24.0123
     },
-    Prieska: {
+    'NC Demo': {
       lat: -29.6699,
       lon: 22.7447
     }

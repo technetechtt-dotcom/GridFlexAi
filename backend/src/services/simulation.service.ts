@@ -34,7 +34,7 @@ const fallbackProfiles: SimulationNodeProfile[] = [
     capacity: 180
   },
   {
-    name: "Prieska",
+    name: "NC Demo",
     lat: -29.6699,
     lon: 22.7447,
     capacity: 140

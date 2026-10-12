@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "commitSha": "35400d704251b5e3577c26a33f7b0ed79ceb09df",
+  "repository": "technetechtt-dotcom/GridFlexAi",
+  "workflowRun": {
+    "id": "38242990580",
+    "attempt": "1",
+    "url": "https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/38242990580"
+  },
+  "generatedAt": "2026-10-12T11:31:51.525Z",
+  "artifacts": [
+    {
+      "path": "backend-image-digest.txt",
+      "bytes": 72,
+      "sha256": "0633bb0453543351a4f6a70c2c4c10a7ab8ff9ca35a6a8d61d849a563986bfd7"
+    },
+    {
+      "path": "backend-image.spdx.json",
+      "bytes": 3096436,
+      "sha256": "9630b0e50b8ce78b1f30007dcedf23b5b126b6369b87a8d49e7378182faa7779"
+    },
+    {
+      "path": "release-metadata.json",
+      "bytes": 314,
+      "sha256": "d906cca27da236a59f35c3d841630b5b099f2cba6e93f08d71299c1a09af5f8f"
+    }
+  ]
+}

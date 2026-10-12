@@ -80,7 +80,7 @@ export function PilotReportModal({ isOpen, onClose }: PilotReportModalProps) {
                     Pilot Performance Report
                   </h2>
                   <p className="text-sm text-slate-400 mt-1">
-                    Northern Cape Pilot — Prieska • Kathu • Boegoebaai
+                    Northern Cape synthetic demonstration portfolio
                   </p>
                 </div>
                 <button

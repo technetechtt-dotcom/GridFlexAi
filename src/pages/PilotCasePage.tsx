@@ -4,13 +4,13 @@ import { FileDown, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ProvenanceBadge } from '../components/ProvenanceBadge';
-import { PRIESKA_RETROSPECTIVE_PILOT } from '../lib/pilotCase';
+import { FROZEN_DEMO_PACK_VERSION, FROZEN_RETROSPECTIVE_PILOT } from '../lib/pilotCase';
 import { openVerifiedPilotReport } from '../lib/verifiedPilotReport';
 import { loadOfflineDemoPack } from '../lib/offlineDemoPack';
 
 export function PilotCasePage() {
   const navigate = useNavigate();
-  const pilot = PRIESKA_RETROSPECTIVE_PILOT;
+  const pilot = FROZEN_RETROSPECTIVE_PILOT;
   const offline = loadOfflineDemoPack();
 
   const rows: Array<{ label: string; value: string; kind?: React.ComponentProps<typeof ProvenanceBadge>['kind'] }> = [
@@ -55,7 +55,7 @@ export function PilotCasePage() {
     <div className="gf-page gf-projector-text">
       <PageHeader
         title="Pilot case evidence"
-        description="One clear solar installation story for GCIP judges — retrospective, labelled, and auditable"
+        description={`Frozen pack ${FROZEN_DEMO_PACK_VERSION} — synthetic retrospective site, labelled impact classes, internal reviewer only`}
         breadcrumbs={
           <Breadcrumbs
             items={[
