@@ -389,10 +389,19 @@ const mockApi = async (page: Page): Promise<MockControl> => {
       return;
     }
 
+    if (path.endsWith("/api/auth/sessions") || path.includes("/api/auth/login-history")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [] })
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ data: {} })
+      body: JSON.stringify({ data: [] })
     });
   });
 
@@ -474,12 +483,10 @@ test("settings icon opens account settings", async ({ page }) => {
   await signIn(page);
   await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 
-  // Client-side nav — sidebar icon click is viewport-flaky under parallel CI workers.
-  await page.evaluate(() => {
-    window.history.pushState({}, "", "/settings");
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  });
-  await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible();
+  await openNavIfNeeded(page);
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Account settings" })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "Profile summary" })).toBeVisible();
 });
 
 test("GCIP showcase presents the judge journey and safety state", async ({ page }) => {
