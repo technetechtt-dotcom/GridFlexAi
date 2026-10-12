@@ -12,8 +12,8 @@
 | Freeze demonstration data | **Done** | `FROZEN_DEMO_PACK_VERSION=gcip-demo-2026-10-12.1` |
 | Offline fallback rehearsal | **Done** | Embedded pack + validation script + GCIP offline panel |
 | Screenshot / backup harness | **Done** | `npm run capture:gcip-demo` → `docs/competition/evidence/screens/` (6 PNGs) |
-| Create signed image from known commit | **Done** | Run [38242990580](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/38242990580) Cosign-signed `sha256:a2d8c9b8…7c09` for `35400d7` |
-| Digest pin in Blueprint | **Done** | `render.yaml` → `gridflex-backend-prod` |
+| Create signed image from corrected latest commit | **Done** | Run [38247083265](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/38247083265) Cosign-signed `sha256:d4921bde…fb0d` for `1f76258` |
+| Digest pin in Blueprint | **Done** | `render.yaml` → `gridflex-backend-prod` @ new digest |
 | Require release identity (prod service) | **Done** | `REQUIRE_RELEASE_IDENTITY=true` + SHA/digest in Blueprint |
 | GCIP + critical-path e2e | **Done** | 13/13 pass (`critical-path` + `gcip-responsive`) |
 | End-to-end responsive testing | **Done** | chromium + tablet + mobile GCIP specs |
@@ -24,7 +24,7 @@
 |------|--------|-------|
 | Deploy digest image on Render | **Operator** | Manual deploy of `gridflex-backend-prod` with GHCR creds |
 | Cosign verify on workstation | **Operator** | `IMAGE_DIGEST=sha256:a2d8c9b8… npm run verify:cosign-image` (needs `cosign` binary) |
-| Re-sign after honesty fixes land | **Follow-up** | After this push, re-run **Release Backend Image** and re-pin digest |
+| Re-sign after honesty fixes land | **Done** | Run 38247083265; Blueprint re-pinned |
 | Full GCIP journey with real demo account | **Operator** | Create `gcip.demo@…` via invite; walk `/gcip?demo=1` |
 | PDF on presentation laptop | **Operator** | `/pilot-case` → Verified pilot PDF → Print |
 | Signed-ingest load | **Blocked** | Needs device credential + secret (`load/sign-gridflex-v1.mjs`) |
@@ -43,12 +43,10 @@
 - [ ] Invitation expiry / revoke policy confirmed
 - [ ] Demo account credentials rotated after GCIP if shared verbally
 
-## Production identity to set on Render (from signed run 38242990580)
+## Production identity to set on Render (from signed run 38247083265)
 
 ```
 REQUIRE_RELEASE_IDENTITY=true
-RELEASE_GIT_SHA=35400d704251b5e3577c26a33f7b0ed79ceb09df
-RELEASE_IMAGE_DIGEST=sha256:a2d8c9b833dedab8ed5b7d7f45dd7288502aa93daf6d22d890c5edab549d7c09
+RELEASE_GIT_SHA=1f7625888ffd25e2d588c109741217666486c9d8
+RELEASE_IMAGE_DIGEST=sha256:d4921bde8c89d599a0af9d49e7be337cac29b414a216db8383f69f202456fb0d
 ```
-
-Re-pin both values after the next Release Backend Image run for the honesty/test commit.
