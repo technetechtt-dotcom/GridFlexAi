@@ -56,7 +56,7 @@
     "ai": "^7.0.137",
     "clsx": "latest",
     "framer-motion": "^11.5.4",
-    "lucide-react": "0.522.0",
+    "lucide-react": "1.54.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "7.18.2",
