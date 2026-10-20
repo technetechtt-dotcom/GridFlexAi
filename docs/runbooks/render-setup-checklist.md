@@ -16,7 +16,9 @@ After first sync, open the backend and frontend services and set:
 
 - Backend (`gridflex-backend`)
   - `DATABASE_URL=<pooled Neon connection string for application traffic>`
-  - `DIRECT_URL=<direct, non-pooler Neon connection string for Prisma migrations>`
+    (required — staging boot derives migrate `DIRECT_URL` from this)
+  - `DIRECT_URL=<direct, non-pooler Neon connection string>` (optional on staging;
+    kept for prod / tools; staging `render-boot.mjs` overrides it from `DATABASE_URL`)
   - `CORS_ORIGIN=https://<frontend-domain>`
   - `ADMIN_ALLOWED_EMAILS=<comma-separated-admin-emails>`
   - `OPENWEATHER_API_KEY=<key>`
