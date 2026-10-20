@@ -6,7 +6,7 @@ import { prisma } from "../lib/prisma.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 type DependencyStatus = {
-  database: "up";
+  database: "up" | "down";
   redis: "up" | "down" | "disabled";
 };
 
@@ -55,7 +55,14 @@ export const getHealth = asyncHandler(async (
   _req: Request<Record<string, never>, HealthResponse>,
   res: Response<HealthResponse>
 ) => {
-  await prisma.$queryRaw`SELECT 1`;
+  let databaseStatus: DependencyStatus["database"] = "down";
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    databaseStatus = "up";
+  } catch {
+    databaseStatus = "down";
+  }
+
   let redisStatus: DependencyStatus["redis"] = "disabled";
   if (env.NODE_ENV !== "test") {
     const redisClient = getRedisClient();
@@ -78,20 +85,21 @@ export const getHealth = asyncHandler(async (
   const required = releaseIdentityRequired();
   const valid = releaseIdentityValid(release);
   const identityOk = !required || valid;
+  const depsOk = databaseStatus === "up";
 
   const payload: HealthResponse = {
-    status: identityOk ? "ok" : "degraded",
+    status: depsOk && identityOk ? "ok" : "degraded",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     release,
     dependencies: {
-      database: "up",
+      database: databaseStatus,
       redis: redisStatus
     },
     releaseIdentityRequired: required,
     releaseIdentityValid: valid
   };
 
-  // Fail closed for readiness probes when production requires digest-pinned identity.
-  res.status(identityOk ? 200 : 503).json(payload);
+  // Fail closed when DB is unreachable or production requires digest-pinned identity.
+  res.status(depsOk && identityOk ? 200 : 503).json(payload);
 });
