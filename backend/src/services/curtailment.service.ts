@@ -20,7 +20,7 @@ const assertPlantAccess = async (plantId: string, actor?: AccessActor) => {
   const scope = await getOptionalSiteAccessScope(actor);
   const plant = await prisma.plant.findUnique({ where: { id: plantId } });
   if (!plant) throw new AppError("Plant not found.", 404);
-  if (scope.kind === "site" && plant.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(plant.siteId ?? "")) {
     throw new AppError("Cross-tenant plant access denied.", 403);
   }
   return plant;
@@ -40,7 +40,10 @@ export const listCurtailmentEvents = async (
   const where: Prisma.CurtailmentEventWhereInput = {};
 
   if (scope.kind === "site") {
-    where.siteId = scope.siteId;
+    if (filters.siteId && !scope.siteIds.includes(filters.siteId)) {
+      throw new AppError("Cross-tenant site access denied.", 403);
+    }
+    where.siteId = filters.siteId ?? { in: scope.siteIds };
   } else if (filters.siteId) {
     where.siteId = filters.siteId;
   }
@@ -75,7 +78,7 @@ export const getCurtailmentEvent = async (eventId: string, actor?: AccessActor) 
     }
   });
   if (!event) throw new AppError("Curtailment event not found.", 404);
-  if (scope.kind === "site" && event.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(event.siteId ?? "")) {
     throw new AppError("Cross-tenant curtailment access denied.", 403);
   }
   return event;

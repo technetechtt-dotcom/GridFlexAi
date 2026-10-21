@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Grid, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { requestPasswordReset } from '../services/api';
 export function LoginPage() {
   const { login, register, isLoading } = useAuth();

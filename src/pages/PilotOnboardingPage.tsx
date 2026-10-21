@@ -4,7 +4,7 @@ import { CheckCircle2, Circle, Ban } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { listOnboardingSteps, updateOnboardingStep, type OnboardingStepDto } from '../services/api';
-import { useToast } from '../components/Toast';
+import { useToast } from '../components/useToast';
 import { DataStateBanner } from '../components/DataFetchState';
 
 const HREF: Record<string, string> = {

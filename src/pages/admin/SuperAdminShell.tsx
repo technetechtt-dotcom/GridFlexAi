@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { SuperAdminSidebar } from '../../components/SuperAdminSidebar';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 
 export function SuperAdminShell() {
   const { user } = useAuth();

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { Role } from "@prisma/client";
 import { env } from "../config/env.js";
+import { defaultTelemetryEnvironmentFilter } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { resolveAccessScope } from "../middleware/permissions.js";
 import type { AiChatBody } from "../schemas/request.schemas.js";
@@ -133,7 +134,7 @@ const resolveScopedNodes = async (targets: ScopedNodeTarget[], actor?: AccessAct
 
   const ids = targets.map((target) => target.id).filter((value): value is string => Boolean(value));
   const names = targets.map((target) => target.name).filter(Boolean);
-  const where: Prisma.EdgeNodeWhereInput = scope.kind === "site" ? { siteId: scope.siteId } : {};
+  const where: Prisma.EdgeNodeWhereInput = scope.kind === "site" ? { siteId: { in: scope.siteIds } } : {};
   const targetMatchers: Prisma.EdgeNodeWhereInput[] = [];
   if (ids.length) {
     targetMatchers.push({ id: { in: ids } });
@@ -275,7 +276,11 @@ const getLiveReadings = async (nodeId: string, actor?: AccessActor) => {
   await assertNodeSiteAccess(nodeId, actor);
 
   const readings = await prisma.sensorReading.findMany({
-    where: { nodeId },
+    where: {
+      nodeId,
+      environment: defaultTelemetryEnvironmentFilter() as "live" | "simulation" | "hil",
+      ...(defaultTelemetryEnvironmentFilter() === "live" ? { sourceType: { not: "simulated" as const } } : {})
+    },
     orderBy: [{ timestamp: "desc" }],
     take: 10,
     select: {
@@ -310,7 +315,7 @@ const getNodeStatus = async (actor?: AccessActor) => {
   const scope = await getOptionalSiteAccessScope(actor);
 
   const nodes = await prisma.edgeNode.findMany({
-    where: scope.kind === "site" ? { siteId: scope.siteId } : {},
+    where: scope.kind === "site" ? { siteId: { in: scope.siteIds } } : {},
     orderBy: [{ createdAt: "desc" }],
     take: 50,
     select: {
@@ -337,13 +342,15 @@ const analyzeCurtailment = async (nodeId: string | undefined, windowHours: numbe
   const scope = await getOptionalSiteAccessScope(actor);
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
   const where: Prisma.SensorReadingWhereInput = {
+    environment: defaultTelemetryEnvironmentFilter() as "live" | "simulation" | "hil",
+    ...(defaultTelemetryEnvironmentFilter() === "live" ? { sourceType: { not: "simulated" as const } } : {}),
     timestamp: { gte: since },
     ...(nodeId ? { nodeId } : {})
   };
   if (scope.kind === "site") {
     where.node = {
       is: {
-        siteId: scope.siteId
+        siteId: { in: scope.siteIds }
       }
     };
   }

@@ -11,9 +11,9 @@ import {
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { DataStateBanner } from '../components/DataFetchState';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { persistDecision } from '../lib/decisionLog';
-import { useToast } from '../components/Toast';
+import { useToast } from '../components/useToast';
 
 type DecisionForm = {
   reason: string;

@@ -431,6 +431,32 @@ test("login reaches dashboard with provider status", async ({ page }) => {
   await expect(page.getByText("openweathermap", { exact: true })).toBeVisible();
 });
 
+test("dashboard distinguishes fresh fleet generation from unverified commercial figures", async ({ page }) => {
+  await mockApi(page);
+  const timestamp = new Date().toISOString();
+  await page.route("**/api/dashboard/summary", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ data: {
+      nodes: { total: 2, online: 2, offline: 0 },
+      readingsWindow: 2,
+      averages: { voltage: 400, current: 10, power: 150, inverterPower: 100, curtailment: 0 },
+      latestTimestamp: timestamp,
+      currentPower: {
+        totalKw: 300, inverterKw: 200, curtailmentKw: 0, nodesReporting: 2, freshnessSeconds: 60, asOf: timestamp,
+        readings: [{ nodeId: "a", power: 100, timestamp }, { nodeId: "b", power: 200, timestamp }]
+      }
+    } })
+  }));
+  await signIn(page);
+  const generation = page.getByRole('group', { name: 'Total Generation', exact: true });
+  await expect(generation).toContainText('300');
+  await expect(generation).toContainText('kW');
+  const revenue = page.getByRole('group', { name: 'Revenue Today', exact: true });
+  await expect(revenue).toContainText('Unavailable');
+  await expect(page.getByText('R2.4M', { exact: true })).toHaveCount(0);
+});
+
 test("forecast navigation path works after login", async ({ page }) => {
   await mockApi(page);
   await signIn(page);

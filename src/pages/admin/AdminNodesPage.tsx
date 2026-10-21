@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Plus, RotateCcw, Save, Server, Wrench } from 'lucide-react';
 import { NodeTable } from '../../components/nodes/NodeTable';
 import { StatusBadge } from '../../components/StatusBadge';
-import { useRealTime } from '../../context/RealTimeContext';
+import { useRealTime } from '../../context/useRealTime';
 import {
   createNode,
   deleteNode,
@@ -18,7 +18,7 @@ import {
   type DeviceCredentialSummary,
   type NodeStatus
 } from '../../services/api';
-import { useAdminRefresh } from './AdminLayout';
+import { useAdminRefresh } from './useAdminRefresh';
 
 const POLL_MS = 15000;
 

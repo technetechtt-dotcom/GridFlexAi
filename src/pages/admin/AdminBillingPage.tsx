@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { CreditCard, Trash2, Edit2, Plus, Download, Mail } from 'lucide-react';
+import { CreditCard, Trash2, Edit2, Plus, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  fetchAdminBillingAccounts,
-  createAdminBillingAccount,
-  updateAdminBillingAccount,
-  deleteAdminBillingAccount,
-  fetchAdminClients,
-  type AdminBillingAccount,
-  type AdminClient
-} from '../../services/api';
+import { fetchAdminBillingAccounts, createAdminBillingAccount, updateAdminBillingAccount, deleteAdminBillingAccount, fetchAdminClients, type AdminBillingAccount, type AdminClient } from '../../services/api';
 
 export function AdminBillingPage() {
   const [accounts, setAccounts] = useState<AdminBillingAccount[]>([]);
@@ -137,7 +129,7 @@ export function AdminBillingPage() {
                 <label className="block text-xs font-medium text-slate-400 mb-1">Plan</label>
                 <select
                   value={form.plan}
-                  onChange={e => setForm(f => ({ ...f, plan: e.target.value as any }))}
+                  onChange={e => setForm(f => ({ ...f, plan: e.target.value as typeof form.plan }))}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
                 >
                   <option value="starter">Starter</option>
@@ -149,7 +141,7 @@ export function AdminBillingPage() {
                 <label className="block text-xs font-medium text-slate-400 mb-1">Status</label>
                 <select
                   value={form.status}
-                  onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))}
+                  onChange={e => setForm(f => ({ ...f, status: e.target.value as typeof form.status }))}
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
                 >
                   <option value="active">Active</option>

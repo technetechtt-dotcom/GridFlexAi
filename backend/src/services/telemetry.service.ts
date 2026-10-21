@@ -207,7 +207,7 @@ export const listTelemetryReadings = async (
   }
 
   if (scope.kind === "site") {
-    where.siteId = scope.siteId;
+    where.siteId = { in: scope.siteIds };
   }
 
   const [total, rows] = await Promise.all([
@@ -262,7 +262,7 @@ export const aggregateTelemetryBuckets = async (filters: {
   if (!asset) {
     throw new AppError("Asset not found.", 404);
   }
-  if (scope.kind === "site" && asset.plant.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(asset.plant.siteId ?? "")) {
     throw new AppError("Cross-tenant telemetry access denied.", 403);
   }
 

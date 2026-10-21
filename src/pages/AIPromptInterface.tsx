@@ -12,7 +12,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
 import { cn } from '../lib/utils';
 import { Page } from '../components/Sidebar';
-import { useRealTime } from '../context/RealTimeContext';
+import { useRealTime } from '../context/useRealTime';
 import { buildForecastProfilesFromNodes, getAuthToken } from '../services/api';
 interface AIPromptInterfaceProps {
   onNavigate: (page: Page) => void;

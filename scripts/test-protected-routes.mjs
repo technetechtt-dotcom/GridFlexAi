@@ -20,7 +20,7 @@ const SPA_ROUTES = [
   "/approvals",
   "/diagnostics",
   "/recovery",
-  "/recovery-cases",
+  "/recovery/cases",
   "/operator-tasks",
   "/reports",
   "/pilot-onboarding",
@@ -35,7 +35,7 @@ const SPA_ROUTES = [
   "/ai-evidence",
   "/dispatch",
   "/scenario",
-  "/ai-assistant"
+  "/ai"
 ];
 
 const API_ROUTES = ["/api/health/live", "/api/health", "/api/operating-mode"];

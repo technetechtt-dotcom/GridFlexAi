@@ -25,7 +25,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { canAccessOpsCenter, isPlantManager } from '../lib/roles';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
 export type Page =
   | 'dashboard'

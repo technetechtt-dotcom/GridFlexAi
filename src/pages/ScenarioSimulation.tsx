@@ -1,27 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Sliders,
-  Play,
-  Save,
-  RotateCcw,
-  TrendingUp,
-  ArrowRight,
-  Droplet,
-  Zap,
-  Activity } from
-'lucide-react';
+import { Sliders, Play, RotateCcw, TrendingUp, ArrowRight, Droplet } from 'lucide-react';
 import { PromptInput } from '../components/PromptInput';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer } from
-'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Page } from '../components/Sidebar';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';

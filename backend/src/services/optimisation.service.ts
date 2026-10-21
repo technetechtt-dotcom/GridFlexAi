@@ -41,7 +41,7 @@ const assertAssetAccess = async (assetId: string, actor?: AccessActor) => {
     }
   });
   if (!asset) throw new AppError("Asset not found.", 404);
-  if (scope.kind === "site" && asset.plant.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(asset.plant.siteId ?? "")) {
     throw new AppError("Cross-tenant asset access denied.", 403);
   }
   return asset;
@@ -51,7 +51,7 @@ const assertPlantAccess = async (plantId: string, actor?: AccessActor) => {
   const scope = await getOptionalSiteAccessScope(actor);
   const plant = await prisma.plant.findUnique({ where: { id: plantId } });
   if (!plant) throw new AppError("Plant not found.", 404);
-  if (scope.kind === "site" && plant.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(plant.siteId ?? "")) {
     throw new AppError("Cross-tenant plant access denied.", 403);
   }
   return plant;
@@ -587,7 +587,10 @@ export const listOptimisationRuns = async (
   const where: Prisma.OptimizationRunWhereInput = { advisory: true };
 
   if (scope.kind === "site") {
-    where.siteId = scope.siteId;
+    if (filters.siteId && !scope.siteIds.includes(filters.siteId)) {
+      throw new AppError("Cross-tenant site access denied.", 403);
+    }
+    where.siteId = filters.siteId ?? { in: scope.siteIds };
   } else if (filters.siteId) {
     where.siteId = filters.siteId;
   }
@@ -621,7 +624,7 @@ export const getOptimisationRun = async (runId: string, actor?: AccessActor) => 
     }
   });
   if (!run) throw new AppError("Optimisation run not found.", 404);
-  if (scope.kind === "site" && run.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(run.siteId ?? "")) {
     throw new AppError("Cross-tenant optimisation access denied.", 403);
   }
   return {

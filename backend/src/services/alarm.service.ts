@@ -20,12 +20,7 @@ const tenantWhereFromScope = (scope: AccessScope): Prisma.AlarmEventWhereInput =
   if (scope.kind === "global") return {};
   if (scope.kind === "none") return { organisationId: "__none__" };
   if (scope.kind === "site") {
-    return {
-      OR: [
-        { siteId: { in: scope.siteIds } },
-        { organisationId: { in: scope.organisationIds } }
-      ]
-    };
+    return { siteId: { in: scope.siteIds } };
   }
   return { organisationId: { in: scope.organisationIds } };
 };
@@ -48,12 +43,7 @@ const incidentWhereFromScope = (scope: AccessScope): Prisma.IncidentWhereInput =
   if (scope.kind === "global") return {};
   if (scope.kind === "none") return { organisationId: "__none__" };
   if (scope.kind === "site") {
-    return {
-      OR: [
-        { siteId: { in: scope.siteIds } },
-        { organisationId: { in: scope.organisationIds } }
-      ]
-    };
+    return { siteId: { in: scope.siteIds } };
   }
   return { organisationId: { in: scope.organisationIds } };
 };
@@ -95,6 +85,8 @@ export const createAlarmRule = async (
   assertOrganisationAccess(scope, input.organisationId);
   if (input.siteId) {
     await assertSiteAccess(scope, input.siteId);
+  } else if (scope.kind === "site") {
+    throw new AppError("Organisation-wide alarm rules require organisation access.", 403);
   }
 
   const data: Prisma.AlarmRuleUncheckedCreateInput = {
@@ -445,6 +437,11 @@ export const updateAlarmRule = async (
   const existing = await prisma.alarmRule.findUnique({ where: { id: ruleId } });
   if (!existing) throw new AppError("Alarm rule not found.", 404);
   assertOrganisationAccess(scope, existing.organisationId);
+  if (existing.siteId) {
+    await assertSiteAccess(scope, existing.siteId);
+  } else if (scope.kind === "site") {
+    throw new AppError("Organisation-wide alarm rules require organisation access.", 403);
+  }
 
   const data: Prisma.AlarmRuleUncheckedUpdateInput = {};
   if (input.name !== undefined) data.name = input.name;

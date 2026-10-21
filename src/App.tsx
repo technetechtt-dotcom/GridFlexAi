@@ -6,8 +6,10 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useNavigat
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { Page, Sidebar } from './components/Sidebar';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { RealTimeProvider, useRealTime } from './context/RealTimeContext';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/useAuth';
+import { RealTimeProvider } from './context/RealTimeContext';
+import { useRealTime } from './context/useRealTime';
 import { canAccessOpsCenter, isPlantManager } from './lib/roles';
 import { PilotReportModal } from './components/PilotReportModal';
 import { OperatingModeBanner } from './components/OperatingModeBanner';

@@ -5,7 +5,7 @@ import { fetchPlatformHealth } from '../services/api';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { DataStateBanner } from '../components/DataFetchState';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { canAccessOpsCenter } from '../lib/roles';
 import { getFrontendReleaseIdentity } from '../lib/frontendRelease';
 

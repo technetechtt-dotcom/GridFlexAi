@@ -17,7 +17,7 @@ const assertPlantAccess = async (plantId: string, actor?: AccessActor) => {
   const scope = await getOptionalSiteAccessScope(actor);
   const plant = await prisma.plant.findUnique({ where: { id: plantId } });
   if (!plant) throw new AppError("Plant not found.", 404);
-  if (scope.kind === "site" && plant.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(plant.siteId ?? "")) {
     throw new AppError("Cross-tenant plant access denied.", 403);
   }
   return plant;
@@ -76,7 +76,7 @@ export const listForecastRuns = async (
 ) => {
   const scope = await getOptionalSiteAccessScope(actor);
   const where: Prisma.ForecastRunWhereInput = {};
-  if (scope.kind === "site") where.siteId = scope.siteId;
+  if (scope.kind === "site") where.siteId = { in: scope.siteIds };
   if (filters.plantId) where.plantId = filters.plantId;
 
   return prisma.forecastRun.findMany({
@@ -175,7 +175,7 @@ export const listForecastAccuracyScores = async (
     await assertPlantAccess(filters.plantId, actor);
     where.plantId = filters.plantId;
   } else if (scope.kind === "site") {
-    where.plant = { siteId: scope.siteId };
+    where.plant = { siteId: { in: scope.siteIds } };
   }
 
   if (typeof filters.horizonMinutes === "number") {

@@ -11,8 +11,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Page } from '../components/Sidebar';
-import { useToast } from '../components/Toast';
-import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/useToast';
+import { useAuth } from '../context/useAuth';
 import { listDecisions, persistDecision, type DecisionStage } from '../lib/decisionLog';
 import { listOperatorDecisions } from '../services/api';
 

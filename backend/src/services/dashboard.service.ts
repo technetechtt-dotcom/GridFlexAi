@@ -15,7 +15,7 @@ const liveEnvironmentWhere = (): Prisma.SensorReadingWhereInput => {
 
 export const getDashboardOverview = async (actor?: AccessActor) => {
   const scope = await getOptionalSiteAccessScope(actor);
-  const nodeWhere: Prisma.EdgeNodeWhereInput = scope.kind === "site" ? { siteId: scope.siteId } : {};
+  const nodeWhere: Prisma.EdgeNodeWhereInput = scope.kind === "site" ? { siteId: { in: scope.siteIds } } : {};
   const readingWhere: Prisma.SensorReadingWhereInput = {
     ...liveEnvironmentWhere(),
     // Live KPIs never mix simulated rows into measured aggregates unless mode is SIMULATION.
@@ -26,14 +26,15 @@ export const getDashboardOverview = async (actor?: AccessActor) => {
       ? {
           node: {
             is: {
-              siteId: scope.siteId
+              siteId: { in: scope.siteIds }
             }
           }
         }
       : {})
   };
 
-  const [totalNodes, onlineNodes, latestReadings] = await Promise.all([
+  const snapshotAt = new Date();
+  const [totalNodes, onlineNodes, latestReadings, currentReadings] = await Promise.all([
     prisma.edgeNode.count({ where: nodeWhere }),
     prisma.edgeNode.count({
       where: {
@@ -53,6 +54,17 @@ export const getDashboardOverview = async (actor?: AccessActor) => {
         curtailment: true,
         timestamp: true
       }
+    }),
+    // One fresh reading per node. A historical sample average is not fleet output.
+    prisma.sensorReading.findMany({
+      where: {
+        ...readingWhere,
+        timestamp: { gte: new Date(snapshotAt.getTime() - 60_000), lte: snapshotAt },
+        node: { is: { ...nodeWhere, isActive: true } }
+      },
+      distinct: ["nodeId"],
+      orderBy: [{ timestamp: "desc" }, { id: "desc" }],
+      select: { nodeId: true, power: true, inverterPower: true, curtailment: true, timestamp: true }
     })
   ]);
 
@@ -77,6 +89,15 @@ export const getDashboardOverview = async (actor?: AccessActor) => {
       offline: Math.max(totalNodes - onlineNodes, 0)
     },
     readingsWindow: latestReadings.length,
+    currentPower: {
+      totalKw: currentReadings.reduce((sum, row) => sum + row.power, 0),
+      inverterKw: currentReadings.reduce((sum, row) => sum + (row.inverterPower ?? 0), 0),
+      curtailmentKw: currentReadings.reduce((sum, row) => sum + (row.curtailment ?? 0), 0),
+      nodesReporting: currentReadings.length,
+      freshnessSeconds: 60,
+      asOf: snapshotAt,
+      readings: currentReadings
+    },
     averages: {
       voltage: Number((totals.voltage / count).toFixed(2)),
       current: Number((totals.current / count).toFixed(2)),

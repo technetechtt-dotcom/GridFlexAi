@@ -1,30 +1,20 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import { AdminRefreshContext } from './useAdminRefresh';
+import React, { useMemo, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { RefreshCcw } from 'lucide-react';
 
-type AdminRefreshContextValue = {
-  autoRefresh: boolean;
-  setAutoRefresh: (value: boolean) => void;
-  refreshTick: number;
-  triggerRefresh: () => void;
-};
 
-const AdminRefreshContext = createContext<AdminRefreshContextValue | undefined>(undefined);
 
-export function useAdminRefresh() {
-  const context = useContext(AdminRefreshContext);
-  if (!context) {
-    throw new Error('useAdminRefresh must be used inside AdminLayout');
-  }
-  return context;
-}
+
+
+
 
 const navItemClass = ({ isActive }: { isActive: boolean }) =>
 `px-3 py-2 rounded-lg text-sm transition-colors ${
   isActive ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-300 hover:bg-slate-800'
 }`;
 
-import { AdminBillingPage } from './AdminBillingPage';
+
 
 export function AdminLayout() {
   const [autoRefresh, setAutoRefresh] = useState(true);

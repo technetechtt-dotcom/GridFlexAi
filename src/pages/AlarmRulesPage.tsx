@@ -18,8 +18,8 @@ import {
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { DataStateBanner } from '../components/DataFetchState';
-import { useToast } from '../components/Toast';
-import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/useToast';
+import { useAuth } from '../context/useAuth';
 
 export function AlarmRulesPage() {
   const navigate = useNavigate();

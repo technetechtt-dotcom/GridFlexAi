@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
-import { useToast } from '../components/Toast';
+import { useToast } from '../components/useToast';
 import {
   fetchCurtailmentEvents,
   fetchDashboardSummary,

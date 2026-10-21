@@ -413,15 +413,11 @@ const buildNodeWhere = (filters: NodeQuery = {}): Prisma.EdgeNodeWhereInput => {
 
 export const listNodesWithLastReading = async (filters: NodeQuery = {}, actor?: AccessActor) => {
   const scopedSiteId = await resolveScopedSiteId(actor, filters.siteId);
-  const scopedFilters = {
-    ...filters
-  };
-  if (scopedSiteId) {
-    scopedFilters.siteId = scopedSiteId;
-  }
+  const where = buildNodeWhere(filters);
+  if (scopedSiteId) where.siteId = scopedSiteId;
 
   const nodes = await prisma.edgeNode.findMany({
-    where: buildNodeWhere(scopedFilters),
+    where,
     orderBy: [{ createdAt: "desc" }],
     include: nodeListInclude
   });
@@ -489,7 +485,7 @@ export const getNodeDetail = async (id: string, actor?: AccessActor) => {
   }
 
   const scope = await getOptionalSiteAccessScope(actor);
-  if (scope.kind === "site" && node.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(node.siteId ?? "")) {
     throw new AppError("You can only access nodes for your assigned site/plant.", 403);
   }
 
@@ -743,7 +739,7 @@ export const createNodeMaintenanceRequest = async (
   }
 
   const scope = await getOptionalSiteAccessScope(actor);
-  if (scope.kind === "site" && node.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(node.siteId ?? "")) {
     throw new AppError("You can only request maintenance for nodes at your assigned site/plant.", 403);
   }
 

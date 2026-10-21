@@ -37,6 +37,8 @@ export const KPICard = memo(function KPICard({
   };
   return (
     <motion.div
+      role="group"
+      aria-label={title}
       initial={{
         opacity: 0,
         y: 20

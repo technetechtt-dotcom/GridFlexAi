@@ -1,25 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Calendar,
-  Filter,
-  Download,
-  ArrowRight,
-  Activity,
-  Droplet } from
-'lucide-react';
+import { Calendar, Download, ArrowRight, Activity, Droplet } from 'lucide-react';
 import { HeatmapGrid } from '../components/HeatmapGrid';
 import { PromptInput } from '../components/PromptInput';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer } from
-'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Page } from '../components/Sidebar';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
@@ -40,7 +24,6 @@ type TrendPoint = {
 
 export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
   const { submitPrompt } = usePilotStore();
-  const [filterNode, setFilterNode] = useState('All');
   const [showHyShift, setShowHyShift] = useState(false);
   const [enableDlr, setEnableDlr] = useState(true);
   const [dlrRows, setDlrRows] = useState<Awaited<ReturnType<typeof fetchDynamicLineRatings>>>([]);
@@ -239,7 +222,7 @@ export function CongestionForecast({ onNavigate }: CongestionForecastProps) {
             label: horizon72 ? 'Show 24 Hours' : 'Next 72 Hours',
             onClick: () => {
               setHorizon72((v) => !v);
-              setExportNote((prev) =>
+              setExportNote(() =>
                 horizon72
                   ? 'Switched to 24-hour congestion view.'
                   : 'Switched to 72-hour demonstration horizon (extrapolated from 24h feed).'

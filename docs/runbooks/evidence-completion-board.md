@@ -1,5 +1,7 @@
 # Evidence completion board (pilot)
 
+> 2026-10-21: Current local code changes and verification are tracked in `docs/releases/LOCAL-2026-10-21.md` and the generated `go-live-reports/local-verification.json`. Historical evidence below does not attest the current working tree or deployed state. Open external requirements remain open.
+
 This is the canonical release-gate ledger. Other readiness trackers summarize
 this board and must not mark a gate complete independently.
 

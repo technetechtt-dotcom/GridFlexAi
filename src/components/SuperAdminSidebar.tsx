@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
 import { Database, CreditCard } from 'lucide-react';
 

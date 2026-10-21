@@ -4,6 +4,10 @@ GridFlex AI is a real-time **advisory** energy operations platform for IPPs (Ind
 
 **GridFlex does not replace protection relays, PPC safety, or BMS protection.** Physical plant control stays disabled until HIL validation and plant approval.
 
+## Local verification
+
+Run `npm run verify:local` for types, zero-warning lint, backend regressions, production build and browser checks. Results and the source fingerprint are written to `go-live-reports/local-verification.json`. This verifies local code only; see `docs/releases/LOCAL-2026-10-21.md` for scope and external requirements.
+
 ## Purpose
 
 - Observe multi-tenant plant/site telemetry with provenance

@@ -10,6 +10,8 @@ jest.mock("../src/lib/prisma.js", () => ({
     },
     alarmRule: {
       findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
       create: jest.fn()
     },
     alarmAcknowledgement: {
@@ -57,6 +59,9 @@ jest.mock("../src/services/audit-log.service.js", () => ({
 import { prisma } from "../src/lib/prisma.js";
 import {
   alarmEventScopeWhere,
+  listIncidents,
+  updateAlarmRule,
+  createAlarmRule,
   listAlarmEvents,
   raiseAlarmEvent
 } from "../src/services/alarm.service.js";
@@ -96,6 +101,37 @@ describe("PR5 alarms tenant scope", () => {
     });
 
     expect(where).toEqual({ organisationId: { in: ["org-1"] } });
+  });
+
+  it("never broadens a site operator's alarm list to sibling sites", async () => {
+    await listAlarmEvents(actor);
+    expect(prisma.alarmEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { siteId: { in: ["site-1"] } }
+    }));
+    await listIncidents(actor);
+    expect(prisma.incident.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { siteId: { in: ["site-1"] } }
+    }));
+  });
+
+  it("denies changing a sibling site's alarm rule", async () => {
+    (prisma.alarmRule.findUnique as jest.Mock).mockResolvedValue({
+      id: "rule-2", organisationId: "org-1", siteId: "site-2"
+    });
+    await expect(updateAlarmRule("rule-2", { enabled: false }, actor)).rejects.toThrow();
+    expect(prisma.alarmRule.update).not.toHaveBeenCalled();
+  });
+
+  it("denies site operators creating or changing organisation-wide rules", async () => {
+    await expect(createAlarmRule({
+      organisationId: "org-1", name: "Global", metricKey: "power", threshold: 10
+    }, actor)).rejects.toThrow();
+    (prisma.alarmRule.findUnique as jest.Mock).mockResolvedValue({
+      id: "rule-org", organisationId: "org-1", siteId: null
+    });
+    await expect(updateAlarmRule("rule-org", { enabled: false }, actor)).rejects.toThrow();
+    expect(prisma.alarmRule.create).not.toHaveBeenCalled();
+    expect(prisma.alarmRule.update).not.toHaveBeenCalled();
   });
 
   it("raises alarm events within accessible sites", async () => {

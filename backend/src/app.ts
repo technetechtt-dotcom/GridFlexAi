@@ -100,8 +100,7 @@ export const createApp = () => {
 
   if (env.FORCE_HTTPS) {
     app.use((req, res, next) => {
-      const forwardedProto = req.header("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
-      const secure = req.secure || forwardedProto === "https";
+      const secure = req.secure;
 
       if (secure) {
         next();

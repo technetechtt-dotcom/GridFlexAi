@@ -1,6 +1,6 @@
 import cron, { type ScheduledTask } from "node-cron";
 
-import { env } from "../config/env.js";
+import { env, defaultTelemetryEnvironmentFilter } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { logger } from "../utils/logger.js";
 import { getHybridForecast } from "./forecast.service.js";
@@ -34,6 +34,10 @@ export const persistDailyForecastPredictions = async () => {
       latitude: true,
       longitude: true,
       readings: {
+        where: {
+          environment: defaultTelemetryEnvironmentFilter() as "live" | "simulation" | "hil",
+          ...(defaultTelemetryEnvironmentFilter() === "live" ? { sourceType: { not: "simulated" } } : {})
+        },
         orderBy: [{ timestamp: "desc" }],
         take: 1,
         select: {

@@ -11,7 +11,7 @@ import {
   updateAdminUserSite,
   updateManagerOperatorProvisioning
 } from '../../services/api';
-import { useAdminRefresh } from './AdminLayout';
+import { useAdminRefresh } from './useAdminRefresh';
 
 const POLL_MS = 20000;
 

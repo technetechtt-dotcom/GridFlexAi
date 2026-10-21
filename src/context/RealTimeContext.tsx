@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useState, createContext, useContext, type ReactNode } from 'react';
+import { RealTimeContext, type GridMetrics } from './useRealTime';
+import React, { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { sumCurrentNodePower, type NodePowerSample } from '../lib/powerSnapshot';
 import {
   fetchNodes,
   fetchDashboardSummary,
@@ -18,33 +20,11 @@ import {
   getSimulationSocketClient,
   type NodeStatusUpdatePayload } from
 '../services/socket';
-import { buildProvenance, type Provenance } from '../lib/operatingMode';
-import { useAuth } from './AuthContext';
-interface GridMetrics {
-  frequency: number;
-  voltage: number;
-  totalGeneration: number;
-  demand: number;
-  lastUpdated: Date;
-  provenance: Provenance;
-}
-interface RealTimeContextType {
-  metrics: GridMetrics;
-  isConnected: boolean;
-  metricsStale: boolean;
-  proactiveAlerts: ProactiveAlert[];
-  iotAssets: IoTEdgeAsset[];
-  backendNodes: BackendNode[];
-  availableNodeNames: string[];
-  selectedNodeNames: string[];
-  setSelectedNodeNames: (nodes: string[]) => void;
-  toggleSelectedNode: (nodeName: string) => void;
-  microgridMode: boolean;
-  setMicrogridMode: (enabled: boolean) => void;
-}
-const RealTimeContext = createContext<RealTimeContextType | undefined>(
-  undefined
-);
+import { buildProvenance } from '../lib/operatingMode';
+import { useAuth } from './useAuth';
+
+
+
 
 const healthFromNodeStatus = (status: NodeStatus | undefined): IoTEdgeAsset['health'] => {
   if (status === 'offline') return 'critical';
@@ -52,9 +32,10 @@ const healthFromNodeStatus = (status: NodeStatus | undefined): IoTEdgeAsset['hea
   return 'good';
 };
 
+const DEFAULT_NODE_SELECTION = ['All Nodes'];
+
 export function RealTimeProvider({ children }: {children: ReactNode;}) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const DEFAULT_NODE_SELECTION = ['All Nodes'];
   const [metrics, setMetrics] = useState<GridMetrics>({
     frequency: 50.0,
     voltage: 0,
@@ -72,6 +53,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
   });
   const [isConnected, setIsConnected] = useState(false);
   const [nowTick, setNowTick] = useState(() => Date.now());
+  const powerByNode = useRef(new Map<string, NodePowerSample>());
   const [proactiveAlerts, setProactiveAlerts] = useState<ProactiveAlert[]>([]);
   const [iotAssets, setIotAssets] = useState<IoTEdgeAsset[]>([]);
   const [backendNodes, setBackendNodes] = useState<BackendNode[]>([]);
@@ -99,7 +81,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
 
   const metricsStale = useMemo(() => {
     if (metrics.lastUpdated.getTime() <= 0) return true;
-    return Date.now() - metrics.lastUpdated.getTime() > 60_000;
+    return nowTick - metrics.lastUpdated.getTime() > 60_000;
   }, [metrics.lastUpdated, nowTick]);
 
   useEffect(() => {
@@ -143,6 +125,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
 
   useEffect(() => {
     let mounted = true;
+    powerByNode.current.clear();
 
     if (authLoading || !isAuthenticated) {
       return () => {
@@ -162,8 +145,13 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
         setProactiveAlerts(alerts);
         setIotAssets(assets);
         setBackendNodes(nodes);
-        const measuredAt = summary.latestTimestamp ? new Date(summary.latestTimestamp) : new Date();
-        const hasMeasuredPower = summary.averages.power > 0;
+        for (const sample of summary.currentPower?.readings ?? []) {
+          const previous = powerByNode.current.get(sample.nodeId);
+          if (!previous || Date.parse(previous.timestamp) <= Date.parse(sample.timestamp)) powerByNode.current.set(sample.nodeId, sample);
+        }
+        const latestSnapshot = summary.currentPower?.readings[0]?.timestamp;
+        const measuredAt = latestSnapshot ? new Date(latestSnapshot) : new Date(0);
+        const hasMeasuredPower = (summary.currentPower?.nodesReporting ?? 0) > 0;
         const sourceType =
           modeInfo.defaultTelemetryEnvironment === 'simulation'
             ? 'simulated'
@@ -173,11 +161,11 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
         setMetrics((prev) => ({
           ...prev,
           // Do not invent demand/frequency from forecast ratios.
-          voltage: summary.averages.voltage || prev.voltage,
-          totalGeneration: summary.averages.power || prev.totalGeneration,
+          voltage: summary.averages.voltage,
+          totalGeneration: sumCurrentNodePower(powerByNode.current.values()),
           demand: prev.demand,
           frequency: prev.frequency,
-          lastUpdated: hasMeasuredPower ? measuredAt : prev.lastUpdated,
+          lastUpdated: hasMeasuredPower ? measuredAt : new Date(0),
           provenance: buildProvenance({
             sourceType,
             sourceId: modeInfo.simulationRunId ?? 'dashboard-summary',
@@ -220,11 +208,14 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
     const applyReading = (reading: BackendReading, sourceType: 'measured' | 'simulated') => {
       if (!mounted) return;
       const measuredAt = new Date(reading.timestamp);
+      const previous = powerByNode.current.get(reading.nodeId);
+      if (previous && Date.parse(previous.timestamp) > measuredAt.getTime()) return;
+      powerByNode.current.set(reading.nodeId, reading);
       setMetrics((prev) => ({
         // Hold last frequency — readings do not include measured Hz; do not invent from power delta.
         frequency: prev.frequency,
         voltage: reading.voltage,
-        totalGeneration: reading.power,
+        totalGeneration: sumCurrentNodePower(powerByNode.current.values()),
         // Hold last demand — no measured demand field on ingest readings.
         demand: prev.demand,
         lastUpdated: measuredAt,
@@ -249,7 +240,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
             type: 'microgrid',
             location,
             health: 'good',
-            powerMw: Number(reading.power.toFixed(1)),
+            powerMw: reading.power / 1000,
             edgeForecastConfidence: 0.92
           }, ...prev];
         }
@@ -257,7 +248,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
         asset.id === reading.nodeId ?
         {
           ...asset,
-          powerMw: Number(reading.power.toFixed(1)),
+          powerMw: reading.power / 1000,
           health: healthFromNodeStatus(reading.node?.status)
         } :
         asset
@@ -406,7 +397,7 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
   return (
     <RealTimeContext.Provider
       value={{
-        metrics,
+        metrics: { ...metrics, totalGeneration: sumCurrentNodePower(powerByNode.current.values()) },
         isConnected,
         metricsStale,
         proactiveAlerts,
@@ -423,11 +414,4 @@ export function RealTimeProvider({ children }: {children: ReactNode;}) {
       {children}
     </RealTimeContext.Provider>);
 
-}
-export function useRealTime() {
-  const context = useContext(RealTimeContext);
-  if (context === undefined) {
-    throw new Error('useRealTime must be used within a RealTimeProvider');
-  }
-  return context;
 }

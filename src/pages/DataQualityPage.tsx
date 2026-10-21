@@ -10,9 +10,9 @@ import {
   updateDataQualityException,
   type DataQualityExceptionDto
 } from '../services/api';
-import { useToast } from '../components/Toast';
+import { useToast } from '../components/useToast';
 import { DataStateBanner } from '../components/DataFetchState';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
 const TYPES = [
   'missing_readings',

@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { NodeCard } from '../components/nodes/NodeCard';
 import { StatusBadge } from '../components/StatusBadge';
-import { useRealTime } from '../context/RealTimeContext';
+import { useRealTime } from '../context/useRealTime';
 import {
   fetchNodeDetail,
   fetchNodes,
