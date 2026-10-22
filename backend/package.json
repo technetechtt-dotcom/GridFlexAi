@@ -22,11 +22,11 @@
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^3.0.53",
+    "@ai-sdk/openai": "^3.0.131",
     "@aws-sdk/client-kms": "^3.1090.0",
     "@prisma/client": "^6.6.0",
     "@socket.io/redis-adapter": "^8.3.0",
-    "ai": "^6.0.164",
+    "ai": "^6.0.312",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -63,6 +63,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "overrides": {
+    "handlebars": "4.7.10",
     "js-yaml": "4.3.2",
     "@babel/core": "7.29.6",
     "form-data": "4.0.6",
