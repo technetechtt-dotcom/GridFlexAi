@@ -21,6 +21,12 @@ type HealthResponse = {
   timestamp: string;
   release: ReleaseIdentity;
   dependencies: DependencyStatus;
+  safety?: {
+    operatingMode: string;
+    pilotLockPhysicalExecution: boolean;
+    physicalCommandExecutionEnabled: boolean;
+    hilPlantApprovalConfirmed: boolean;
+  };
   releaseIdentityRequired?: boolean;
   releaseIdentityValid?: boolean;
 };
@@ -37,7 +43,8 @@ const releaseIdentityRequired = (): boolean => {
 };
 
 const releaseIdentityValid = (release: ReleaseIdentity): boolean =>
-  Boolean(release.gitSha && release.imageDigest);
+  /^[a-f0-9]{7,64}$/i.test(release.gitSha ?? "") &&
+  /^sha256:[a-f0-9]{64}$/i.test(release.imageDigest ?? "");
 
 export const getLiveness = asyncHandler(async (
   _req: Request<Record<string, never>, Omit<HealthResponse, "dependencies">>,
@@ -85,7 +92,8 @@ export const getHealth = asyncHandler(async (
   const required = releaseIdentityRequired();
   const valid = releaseIdentityValid(release);
   const identityOk = !required || valid;
-  const depsOk = databaseStatus === "up";
+  const redisRequired = env.NODE_ENV === "production" || env.EDGE_REPLAY_REQUIRE_REDIS;
+  const depsOk = databaseStatus === "up" && (!redisRequired || redisStatus === "up");
 
   const payload: HealthResponse = {
     status: depsOk && identityOk ? "ok" : "degraded",
@@ -97,7 +105,13 @@ export const getHealth = asyncHandler(async (
       redis: redisStatus
     },
     releaseIdentityRequired: required,
-    releaseIdentityValid: valid
+    releaseIdentityValid: valid,
+    safety: {
+      operatingMode: env.GRIDFLEX_OPERATING_MODE,
+      pilotLockPhysicalExecution: env.PILOT_LOCK_PHYSICAL_EXECUTION,
+      physicalCommandExecutionEnabled: env.PHYSICAL_COMMAND_EXECUTION_ENABLED,
+      hilPlantApprovalConfirmed: env.HIL_PLANT_APPROVAL_CONFIRMED
+    }
   };
 
   // Fail closed when DB is unreachable or production requires digest-pinned identity.

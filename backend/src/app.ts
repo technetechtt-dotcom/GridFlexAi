@@ -21,6 +21,9 @@ const apiLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  // Platform probes must not consume or be denied by a user's API quota.
+  skip: (req) => (req.method === "GET" || req.method === "HEAD") &&
+    (req.path === "/health" || req.path === "/health/live"),
   message: {
     message: "Too many API requests. Please retry shortly."
   }

@@ -1,7 +1,6 @@
 /**
  * Render staging boot: derive DIRECT_URL from DATABASE_URL (Neon pooler → direct),
- * then migrate, vault-verify, and start. Ignores a stale dashboard DIRECT_URL so
- * operators only need to keep DATABASE_URL current.
+ * then migrate, vault-verify, and start. An explicit DIRECT_URL takes precedence.
  */
 import { spawnSync } from "node:child_process";
 import { URL } from "node:url";
@@ -27,14 +26,17 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
-const derived = deriveDirectUrl(databaseUrl);
-const previous = process.env.DIRECT_URL?.trim();
-if (previous && previous !== derived) {
-  console.warn(
-    "[render-boot] Overriding stale DIRECT_URL for migrate (host differed from DATABASE_URL)."
-  );
+process.env.DIRECT_URL = process.env.DIRECT_URL?.trim() || deriveDirectUrl(databaseUrl);
+
+// This entry point builds from source. Registry identity belongs exclusively to
+// the signed-image entry point, never to a stale dashboard value.
+delete process.env.RELEASE_IMAGE_DIGEST;
+process.env.REQUIRE_RELEASE_IDENTITY = "false";
+if (process.env.RENDER_GIT_COMMIT?.trim()) {
+  process.env.RELEASE_GIT_SHA = process.env.RENDER_GIT_COMMIT.trim();
+} else {
+  delete process.env.RELEASE_GIT_SHA;
 }
-process.env.DIRECT_URL = derived;
 
 const run = (command, args) => {
   const result = spawnSync(command, args, {
