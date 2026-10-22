@@ -1,0 +1,37 @@
+{
+  "scope": "Staging recovery observations; not production promotion approval",
+  "workspaceId": "tea-d7gi9k3bc2fs73aofn4g",
+  "serviceId": "srv-d92frp28qa3s73db8k7g",
+  "deployId": "dep-dbctpmlg1s2s73eh0dvg",
+  "deployedSourceCommit": "30642b8d8ae2836ce0bdcd93ea0103a16d81b9aa",
+  "deployStatus": "live",
+  "finishedAt": "2026-10-22T09:53:30.366846Z",
+  "change": "Merged staging DATABASE_URL and DIRECT_URL from the active application's working configuration; values omitted",
+  "healthAfterRecovery": {
+    "livenessHttpStatus": 200,
+    "readinessHttpStatus": 200,
+    "status": "ok",
+    "database": "up",
+    "redis": "up"
+  },
+  "vaultObservation": {
+    "logId": "5e231b63-eb2f-4e32-978d-ae9e5419151c",
+    "timestamp": "2026-10-22T09:53:20.641377189Z",
+    "event": "device_secret_vault.round_trip_ok",
+    "provider": "aws_kms"
+  },
+  "safetyObservation": {
+    "logId": "4af883a0-95e3-4110-901e-c8eda0fe768c",
+    "timestamp": "2026-10-22T09:53:22.725536438Z",
+    "physicalExecutionArmed": false,
+    "physicalCommandExecutionEnabled": false,
+    "hilPlantApprovalConfirmed": false,
+    "pilotLockPhysicalExecution": true,
+    "operatingMode": "PILOT_LIVE"
+  },
+  "limitations": [
+    "Current source-build health still advertises old release metadata; code remediation awaits deployment",
+    "No authenticated user journey, device rotation, alert acknowledgement, signed-ingest soak or physical bench result is claimed",
+    "Independent reviewer and production approval are pending"
+  ]
+}

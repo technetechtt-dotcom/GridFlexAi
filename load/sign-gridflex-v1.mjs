@@ -15,7 +15,7 @@ const get = (flag) => {
 
 const deviceId = get("--device");
 const credentialId = get("--credential");
-const secretB64 = get("--secret");
+const secretB64 = process.env.DEVICE_SECRET_B64URL || get("--secret");
 const bodyPath = get("--body");
 const seq = get("--seq") || "1";
 const keyVersion = get("--key-version") || "1";
@@ -28,7 +28,7 @@ if (!deviceId || !credentialId || !secretB64 || !bodyPath) {
 }
 
 const body = readFileSync(bodyPath);
-const timestamp = Math.floor(Date.now() / 1000).toString();
+const timestamp = Date.now().toString();
 const nonce = randomBytes(16).toString("base64url");
 const bodyHash = createHash("sha256").update(body).digest("hex");
 const canonical = [

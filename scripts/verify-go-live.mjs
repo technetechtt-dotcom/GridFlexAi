@@ -11,7 +11,8 @@ const config = {
   lon: Number.parseFloat(process.env.GO_LIVE_FORECAST_LON ?? "21.2561"),
   capacity: Number.parseFloat(process.env.GO_LIVE_FORECAST_CAPACITY ?? "220"),
   outputFile: process.env.GO_LIVE_OUTPUT_FILE ?? "",
-  requireAuthFlow: false
+  requireAuthFlow: false,
+  frontendOrigin: process.env.GO_LIVE_FRONTEND_ORIGIN
 };
 
 const writeOutputFileIfNeeded = async () => {

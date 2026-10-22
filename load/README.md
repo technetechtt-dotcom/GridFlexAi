@@ -39,3 +39,18 @@ Only run against **authorized** staging/HIL environments.
 Use a dedicated load-test device credential, supply secrets through the runner's
 secret store, never command history or committed files, and revoke it after the
 test.
+
+For concurrent accepted-ingest tests, set `DEVICE_CREDENTIALS_FILE` to a private
+JSON file containing one entry per worker:
+`[{"deviceId":"...","credentialId":"...","keyVersion":1,"secretB64Url":"...","sequenceBase":100000}]`.
+Use distinct devices and credentials, with sequence bases above their existing
+watermarks. Keep this file outside the repository or in an ignored local folder.
+The worker limit defaults to the credential count; a single supplied credential
+uses one worker. Dropped iterations fail the test, so insufficient worker
+capacity cannot produce a passing load result. Provision enough test devices
+for the target rate and the deployment's configured device and API rate limits.
+
+The standalone signer accepts `DEVICE_SECRET_B64URL` from the environment and
+uses milliseconds, as required by the API. Replay testing first requires a
+successful signed ingest, then requires 409 responses; authentication failures
+and rate limiting do not count as replay protection evidence.

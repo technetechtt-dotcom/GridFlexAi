@@ -4,6 +4,7 @@ on:
   push:
     branches: ["**"]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -184,6 +185,7 @@ jobs:
       - name: Validate, typecheck, and build frontend
         run: |
           set -o pipefail
+          node --test scripts/tests/*.test.mjs
           npm run check:env-parity 2>&1 | tee ci-evidence/frontend/env-parity.log
           npm run lint 2>&1 | tee ci-evidence/frontend/lint.log
           npm run typecheck 2>&1 | tee ci-evidence/frontend/typecheck.log
