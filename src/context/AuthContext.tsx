@@ -1,29 +1,10 @@
-import React, { useEffect, useState, createContext, useContext, type ReactNode } from 'react';
+import { AuthContext, type User } from './useAuth';
+import React, { useEffect, useState, type ReactNode } from 'react';
 import { auditLogger } from '../lib/auditLogger';
-import {
-  clearAuthToken,
-  getAuthToken,
-  getSessionUserFromToken,
-  loginWithPassword,
-  logoutSession,
-  registerWithPassword,
-  tryRefreshAccessToken } from
-'../services/api';
-interface User {
-  id: string;
-  name: string;
-  role: 'operator' | 'manager' | 'admin' | 'developer';
-  email: string;
-}
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, inviteToken?: string) => Promise<void>;
-  logout: () => Promise<void>;
-  isLoading: boolean;
-}
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { clearAuthToken, getAuthToken, getSessionUserFromToken, loginWithPassword, logoutSession, registerWithPassword, tryRefreshAccessToken } from '../services/api';
+
+
+
 
 export function AuthProvider({ children }: {children: ReactNode;}) {
   const [user, setUser] = useState<User | null>(null);
@@ -31,7 +12,7 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     const hydrateSession = async () => {
-      if (!token) {
+      if (!getAuthToken()) {
         const refreshed = await tryRefreshAccessToken();
         if (!refreshed) {
           setUser(null);
@@ -104,12 +85,12 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
         setToken(refreshed);
         const refreshedUser = getSessionUserFromToken(refreshed);
         if (refreshedUser) {
-          setUser((prev) => ({
+          setUser({
             id: refreshedUser.id,
             name: refreshedUser.name,
             role: refreshedUser.role,
             email: refreshedUser.email
-          }));
+          });
         }
       });
     }, 10 * 60 * 1000);
@@ -176,11 +157,4 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
       {children}
     </AuthContext.Provider>);
 
-}
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }

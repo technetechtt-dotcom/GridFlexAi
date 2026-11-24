@@ -1,37 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Battery,
-  Zap,
-  Activity,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  Play,
-  RotateCcw,
-  Server } from
-'lucide-react';
+import { Battery, Zap, Activity, CheckCircle2, AlertTriangle, Clock, RotateCcw, Server } from 'lucide-react';
 import { motion } from 'framer-motion';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer } from
-'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { StatusBadge } from '../components/StatusBadge';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '../components/Sidebar';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
-import {
-  fetchDispatchRecommendations,
-  fetchNodes,
-  fetchReadings,
-  type BackendNode,
-  type DispatchRecommendation } from
-'../services/api';
+import { fetchDispatchRecommendations, fetchNodes, fetchReadings, type BackendNode, type DispatchRecommendation } from '../services/api';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
 interface DispatchStatusProps {
   onNavigate: (page: Page) => void;
@@ -455,7 +431,7 @@ export function DispatchStatus({ onNavigate }: DispatchStatusProps) {
                       <p className="text-xs text-slate-500">{asset.type}</p>
                     </div>
                     <StatusBadge
-                    status={asset.status as any}
+                    status={asset.status as React.ComponentProps<typeof StatusBadge>["status"]}
                     label={asset.status} />
 
                   </div>

@@ -6,7 +6,7 @@ import { prisma } from "../lib/prisma.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 type DependencyStatus = {
-  database: "up";
+  database: "up" | "down";
   redis: "up" | "down" | "disabled";
 };
 
@@ -21,6 +21,12 @@ type HealthResponse = {
   timestamp: string;
   release: ReleaseIdentity;
   dependencies: DependencyStatus;
+  safety?: {
+    operatingMode: string;
+    pilotLockPhysicalExecution: boolean;
+    physicalCommandExecutionEnabled: boolean;
+    hilPlantApprovalConfirmed: boolean;
+  };
   releaseIdentityRequired?: boolean;
   releaseIdentityValid?: boolean;
 };
@@ -37,7 +43,8 @@ const releaseIdentityRequired = (): boolean => {
 };
 
 const releaseIdentityValid = (release: ReleaseIdentity): boolean =>
-  Boolean(release.gitSha && release.imageDigest);
+  /^[a-f0-9]{7,64}$/i.test(release.gitSha ?? "") &&
+  /^sha256:[a-f0-9]{64}$/i.test(release.imageDigest ?? "");
 
 export const getLiveness = asyncHandler(async (
   _req: Request<Record<string, never>, Omit<HealthResponse, "dependencies">>,
@@ -55,7 +62,14 @@ export const getHealth = asyncHandler(async (
   _req: Request<Record<string, never>, HealthResponse>,
   res: Response<HealthResponse>
 ) => {
-  await prisma.$queryRaw`SELECT 1`;
+  let databaseStatus: DependencyStatus["database"] = "down";
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    databaseStatus = "up";
+  } catch {
+    databaseStatus = "down";
+  }
+
   let redisStatus: DependencyStatus["redis"] = "disabled";
   if (env.NODE_ENV !== "test") {
     const redisClient = getRedisClient();
@@ -78,20 +92,28 @@ export const getHealth = asyncHandler(async (
   const required = releaseIdentityRequired();
   const valid = releaseIdentityValid(release);
   const identityOk = !required || valid;
+  const redisRequired = env.NODE_ENV === "production" || env.EDGE_REPLAY_REQUIRE_REDIS;
+  const depsOk = databaseStatus === "up" && (!redisRequired || redisStatus === "up");
 
   const payload: HealthResponse = {
-    status: identityOk ? "ok" : "degraded",
+    status: depsOk && identityOk ? "ok" : "degraded",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     release,
     dependencies: {
-      database: "up",
+      database: databaseStatus,
       redis: redisStatus
     },
     releaseIdentityRequired: required,
-    releaseIdentityValid: valid
+    releaseIdentityValid: valid,
+    safety: {
+      operatingMode: env.GRIDFLEX_OPERATING_MODE,
+      pilotLockPhysicalExecution: env.PILOT_LOCK_PHYSICAL_EXECUTION,
+      physicalCommandExecutionEnabled: env.PHYSICAL_COMMAND_EXECUTION_ENABLED,
+      hilPlantApprovalConfirmed: env.HIL_PLANT_APPROVAL_CONFIRMED
+    }
   };
 
-  // Fail closed for readiness probes when production requires digest-pinned identity.
-  res.status(identityOk ? 200 : 503).json(payload);
+  // Fail closed when DB is unreachable or production requires digest-pinned identity.
+  res.status(depsOk && identityOk ? 200 : 503).json(payload);
 });

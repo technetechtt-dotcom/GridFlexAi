@@ -21,6 +21,9 @@ const apiLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  // Platform probes must not consume or be denied by a user's API quota.
+  skip: (req) => (req.method === "GET" || req.method === "HEAD") &&
+    (req.path === "/health" || req.path === "/health/live"),
   message: {
     message: "Too many API requests. Please retry shortly."
   }
@@ -100,8 +103,7 @@ export const createApp = () => {
 
   if (env.FORCE_HTTPS) {
     app.use((req, res, next) => {
-      const forwardedProto = req.header("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
-      const secure = req.secure || forwardedProto === "https";
+      const secure = req.secure;
 
       if (secure) {
         next();
