@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Send, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { cn } from '../lib/utils';
 interface PromptTemplate {
   label: string;

@@ -15,7 +15,7 @@ import { getOptionalSiteAccessScope } from "./access-scope.service.js";
 
 const assertSiteAccess = async (siteId: string, actor?: AccessActor) => {
   const scope = await getOptionalSiteAccessScope(actor);
-  if (scope.kind === "site" && scope.siteId !== siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(siteId)) {
     throw new AppError("Cross-tenant site access denied.", 403);
   }
   const site = await prisma.site.findUnique({ where: { id: siteId } });
@@ -36,7 +36,10 @@ export const listGridConstraints = async (
   const where: Prisma.GridConstraintWhereInput = {};
 
   if (scope.kind === "site") {
-    where.siteId = scope.siteId;
+    if (filters.siteId && !scope.siteIds.includes(filters.siteId)) {
+      throw new AppError("Cross-tenant site access denied.", 403);
+    }
+    where.siteId = filters.siteId ?? { in: scope.siteIds };
   } else if (filters.siteId) {
     where.siteId = filters.siteId;
   }
@@ -139,7 +142,7 @@ export const updateGridConstraint = async (
   const scope = await getOptionalSiteAccessScope(actor);
   const existing = await prisma.gridConstraint.findUnique({ where: { id: constraintId } });
   if (!existing) throw new AppError("Grid constraint not found.", 404);
-  if (scope.kind === "site" && existing.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(existing.siteId ?? "")) {
     throw new AppError("Cross-tenant constraint access denied.", 403);
   }
 
@@ -183,7 +186,7 @@ export const deleteGridConstraint = async (
   const scope = await getOptionalSiteAccessScope(actor);
   const existing = await prisma.gridConstraint.findUnique({ where: { id: constraintId } });
   if (!existing) throw new AppError("Grid constraint not found.", 404);
-  if (scope.kind === "site" && existing.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(existing.siteId ?? "")) {
     throw new AppError("Cross-tenant constraint access denied.", 403);
   }
 

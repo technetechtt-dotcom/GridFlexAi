@@ -15,11 +15,6 @@ export const HeatmapGrid = memo(function HeatmapGrid({
   timeLabels,
   title
 }: HeatmapGridProps) {
-  const getColor = (value: number) => {
-    if (value < 50) return 'bg-emerald-500/20 text-emerald-500'; // Low
-    if (value < 75) return 'bg-amber-500/20 text-amber-500'; // Medium
-    return 'bg-red-500/20 text-red-500'; // High
-  };
   const getIntensity = (value: number) => {
     // Return opacity based on value for the background
     return value / 100;
