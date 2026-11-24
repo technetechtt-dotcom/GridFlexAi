@@ -63,7 +63,7 @@
     "react-router-dom": "7.18.2",
     "recharts": "^2.12.7",
     "socket.io-client": "^4.8.4",
-    "tailwind-merge": "latest",
+    "tailwind-merge": "^3.7.0",
     "zustand": "latest"
   },
   "overrides": {
