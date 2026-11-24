@@ -19,4 +19,5 @@ if [ -z "${RELEASE_IMAGE_DIGEST:-}" ] && [ -n "${IMAGE_DIGEST:-}" ]; then
 fi
 
 ./node_modules/.bin/prisma migrate deploy
+node dist/scripts/verify-device-secret-vault.js
 exec node dist/server.js
