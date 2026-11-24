@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Database, Download, Search, Server } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Download, Server } from 'lucide-react';
 import { fetchReadings, fetchNodes, type BackendReading, type BackendNode } from '../../services/api';
 
 export function AdminDataPage() {
@@ -10,7 +10,7 @@ export function AdminDataPage() {
   const [selectedNode, setSelectedNode] = useState<string>('');
   const [limit, setLimit] = useState<number>(50);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchReadings({ nodeId: selectedNode || undefined, limit });
@@ -20,12 +20,12 @@ export function AdminDataPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedNode, limit]);
 
   useEffect(() => {
     void fetchNodes().then(setNodes);
     void loadData();
-  }, [selectedNode, limit]);
+  }, [loadData]);
 
   const handleExport = () => {
     const csvContent = [
