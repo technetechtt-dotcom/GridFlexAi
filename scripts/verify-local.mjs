@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const backend = path.join(root, 'backend');
 const steps = [
+  ['Release verifier regression tests', root, 'scripts/tests/go-live-verifier.test.mjs'],
   ['Frontend types', root, 'node_modules/typescript/bin/tsc', '-b'],
   ['Backend types', backend, 'node_modules/typescript/bin/tsc', '--noEmit', '-p', 'tsconfig.json'],
   ['Lint', root, 'node_modules/eslint/bin/eslint.js', '.', '--ext', '.js,.jsx,.ts,.tsx', '--max-warnings', '0'],
@@ -19,14 +20,18 @@ const steps = [
 const collect = (directory, sourceFiles) => {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const full = path.join(directory, entry.name);
-    if (entry.isDirectory()) collect(full, sourceFiles);
-    else if (/\.(?:ts|tsx|js|mjs|json|prisma|sql)$/.test(entry.name)) sourceFiles.push(full);
+    if (entry.isDirectory() && !['node_modules', '.git', '.pio', 'dist'].includes(entry.name)) collect(full, sourceFiles);
+    else if (entry.isFile() && (/\.(?:ts|tsx|js|mjs|cjs|json|prisma|sql|yml|yaml|sh|ini|ino|h|cpp)$/.test(entry.name) || entry.name === 'Dockerfile')) sourceFiles.push(full);
   }
 };
 const fingerprint = () => {
   const sourceFiles = [];
-  for (const directory of ['src', 'backend/src', 'backend/tests', 'backend/prisma', 'e2e', 'scripts']) collect(path.join(root, directory), sourceFiles);
+  for (const directory of ['src', 'backend/src', 'backend/scripts', 'backend/tests', 'backend/prisma', 'e2e', 'scripts', 'load', 'firmware', '.github']) {
+    const full = path.join(root, directory);
+    if (fs.existsSync(full)) collect(full, sourceFiles);
+  }
   for (const file of ['package.json', 'package-lock.json', 'backend/package.json', 'backend/package-lock.json', 'playwright.config.ts', '.eslintrc.cjs', 'tsconfig.json', 'tsconfig.node.json', 'backend/tsconfig.json', 'backend/tsconfig.test.json', 'backend/jest.config.cjs', 'vite.config.ts']) sourceFiles.push(path.join(root, file));
+  for (const file of ['backend/Dockerfile', 'backend/.dockerignore', 'docker-compose.yml', 'render.yaml', 'security/vulnerability-exceptions.json']) sourceFiles.push(path.join(root, file));
   const hash = createHash('sha256');
   for (const file of sourceFiles.sort()) {
     hash.update(path.relative(root, file).replaceAll('\\', '/'));

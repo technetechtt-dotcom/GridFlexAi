@@ -1,5 +1,13 @@
 # Evidence completion board (pilot)
 
+> 2026-10-22: See `docs/releases/LOCAL-2026-10-22.md` for the current engineering
+> remediation and staging recovery. Staging's obsolete database endpoint was
+> corrected; deploy `dep-dbctpmlg1s2s73eh0dvg` is live with DB/Redis up. A live
+> AWS KMS round trip and locked physical execution were observed in boot logs.
+> Fresh isolated-database migration replay/status/drift checks passed. These
+> observations do not close release promotion, rotation, load, field or external
+> approval gates without their full evidence and review requirements.
+
 > 2026-10-21: Current local code changes and verification are tracked in `docs/releases/LOCAL-2026-10-21.md` and the generated `go-live-reports/local-verification.json`. Historical evidence below does not attest the current working tree or deployed state. Open external requirements remain open.
 
 This is the canonical release-gate ledger. Other readiness trackers summarize

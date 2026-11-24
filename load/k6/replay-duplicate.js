@@ -12,12 +12,14 @@ import { baseUrl } from "./lib.js";
 const replays = new Counter("replay_attempts");
 const acceptedRequests = new Counter("accepted_requests");
 const unexpectedAccept = new Rate("unexpected_accept");
+const invalidRejection = new Rate("invalid_rejection");
 
 export const options = {
   vus: Number(__ENV.VUS || 20),
   duration: __ENV.DURATION || "1m",
   thresholds: {
     unexpected_accept: ["rate==0"],
+    invalid_rejection: ["rate==0"],
     accepted_requests: ["count<=1"]
   }
 };
@@ -60,7 +62,7 @@ export function setup() {
     "base64rawurl"
   );
 
-  return {
+  const request = {
     body,
     headers: {
       "Content-Type": "application/json",
@@ -73,6 +75,9 @@ export function setup() {
       "x-gridflex-signature": signature
     }
   };
+  const initial = http.post(`${baseUrl()}/api/edge-data`, request.body, { headers: request.headers });
+  if (initial.status !== 201) throw new Error(`Replay precondition failed: initial signed ingest returned ${initial.status}`);
+  return request;
 }
 
 export default function (request) {
@@ -81,11 +86,12 @@ export default function (request) {
     headers: request.headers
   });
   const accepted = res.status >= 200 && res.status < 300;
-  if (accepted) acceptedRequests.add(1);
-  unexpectedAccept.add(accepted && __ITER > 0);
+  acceptedRequests.add(accepted ? 1 : 0);
+  unexpectedAccept.add(accepted);
+  invalidRejection.add(res.status !== 409);
   check(res, {
     "initial request accepted or replay rejected": (r) =>
-      (r.status >= 200 && r.status < 300) || r.status === 409,
-    "not silently duplicating": () => !(accepted && __ITER > 0)
+      r.status === 409,
+    "not silently duplicating": () => !accepted
   });
 }
