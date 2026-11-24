@@ -5,7 +5,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { URL } from "node:url";
-import { pinConfiguredPostgresHosts } from "./pin-postgres-ipv4.mjs";
+import { useIpv4PostgresUrls } from "./pin-postgres-ipv4.mjs";
 
 const deriveDirectUrl = (databaseUrl) => {
   const url = new URL(databaseUrl);
@@ -78,7 +78,8 @@ const run = (command, args) => {
 };
 
 const main = async () => {
-  await pinConfiguredPostgresHosts();
+  await useIpv4PostgresUrls();
+  console.log(`[render-boot] Connecting to Postgres at ${new URL(process.env.DIRECT_URL).hostname} over IPv4.`);
   run("npx", ["prisma", "migrate", "deploy"]);
   run("npm", ["run", "vault:verify"]);
   run("npm", ["run", "start"]);

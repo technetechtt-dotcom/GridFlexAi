@@ -24,7 +24,7 @@ case " ${RES_OPTIONS:-} " in
   *" no-aaaa "*) ;;
   *) export RES_OPTIONS="${RES_OPTIONS:+$RES_OPTIONS }no-aaaa" ;;
 esac
-node scripts/pin-postgres-ipv4.mjs
+eval "$(node scripts/pin-postgres-ipv4.mjs --export)"
 
 ./node_modules/.bin/prisma migrate deploy
 exec node dist/server.js
