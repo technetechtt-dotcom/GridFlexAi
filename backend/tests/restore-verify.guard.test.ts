@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../src/lib/prisma.js";
 
 /**
  * Unit-level guard for restore:verify script behaviour (allow flag).
@@ -10,7 +10,7 @@ describe("restore verify guard", () => {
   });
 
   it("Prisma client exposes tables used by restore smoke", () => {
-    const prisma = new PrismaClient();
+    const prisma = createPrismaClient();
     expect(typeof prisma.organisation.count).toBe("function");
     expect(typeof prisma.user.count).toBe("function");
     expect(typeof prisma.edgeNode.count).toBe("function");

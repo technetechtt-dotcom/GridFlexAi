@@ -11,14 +11,15 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { DeviceCredentialStatus, PrismaClient } from "@prisma/client";
+import { DeviceCredentialStatus } from "@prisma/client";
+import { createPrismaClient } from "../src/lib/prisma.js";
 
 if (process.env.EXPORT_ACCESS_REVIEW_ALLOW !== "true") {
   process.stderr.write("Refusing to run without EXPORT_ACCESS_REVIEW_ALLOW=true\n");
   process.exit(2);
 }
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 const outputFile = path.resolve(process.cwd(), "..", "go-live-reports", "access-review-privileged-export.json");
 
 const PRIVILEGED_USER_ROLES = new Set(["admin", "manager", "developer"]);
