@@ -8,7 +8,7 @@
  *   RESTORE_VERIFY_ALLOW=true DATABASE_URL=... npx tsx scripts/restore-verify.ts
  */
 
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../src/lib/prisma.js";
 
 const allow = process.env.RESTORE_VERIFY_ALLOW === "true";
 if (!allow) {
@@ -23,7 +23,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(2);
 }
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 const main = async () => {
   const started = Date.now();
