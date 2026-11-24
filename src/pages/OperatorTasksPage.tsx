@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { createWorkOrder, listWorkOrders, updateWorkOrder, type WorkOrderDto } from '../services/api';
-import { useToast } from '../components/Toast';
+import { useToast } from '../components/useToast';
 import { DataStateBanner } from '../components/DataFetchState';
 
 export function OperatorTasksPage() {

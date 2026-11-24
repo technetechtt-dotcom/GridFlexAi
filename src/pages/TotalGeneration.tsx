@@ -44,7 +44,7 @@ export function TotalGeneration({ onNavigate }: TotalGenerationProps) {
         setSummary(dashboard);
         setNodes(backendNodes);
         const rows = readings.slice(-12).map((row) => {
-          const solar = (row.inverterPower ?? row.power * 0.75);
+          const solar = Math.max(0, Math.min(row.power, row.inverterPower ?? 0));
           const wind = Math.max(0, row.power - solar);
           return {
             time: new Date(row.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -71,17 +71,17 @@ export function TotalGeneration({ onNavigate }: TotalGenerationProps) {
     };
   }, [refreshKey]);
 
-  const currentOutput = summary?.averages.power ?? 0;
-  const solarShare = summary && summary.averages.power > 0 ? (summary.averages.inverterPower / summary.averages.power) * 100 : 0;
-  const windShare = 100 - solarShare;
+  const currentOutput = summary?.currentPower?.totalKw ?? 0;
+  const solarShare = currentOutput > 0 ? ((summary?.currentPower?.inverterKw ?? 0) / currentOutput) * 100 : 0;
+  const windShare = currentOutput > 0 ? 100 - solarShare : 0;
   const assetRows = useMemo(
     () =>
       nodes.map((node) => ({
         name: node.name,
-        type: node.location.toLowerCase().includes('wind') ? 'Wind' : 'Solar PV',
-        cap: `${Math.round((node.lastReading?.power ?? 0) * 1.2)} MW`,
-        curr: `${Math.round(node.lastReading?.power ?? 0)} MW`,
-        status: node.status === 'online' ? 'optimal' : 'warning'
+        type: 'Edge node',
+        cap: 'Not configured',
+        curr: node.lastReading ? `${Math.round(node.lastReading.power)} kW` : "Unavailable",
+        status: node.status === 'online' ? 'optimal' as const : 'warning' as const
       })),
     [nodes]
   );
@@ -100,7 +100,7 @@ export function TotalGeneration({ onNavigate }: TotalGenerationProps) {
             Total Generation
           </h2>
           <p className="text-slate-400">
-            Detailed breakdown of generation sources
+            Fresh fleet output and recent readings. Inverter power does not identify generation technology.
           </p>
         </div>
       </div>
@@ -121,23 +121,23 @@ export function TotalGeneration({ onNavigate }: TotalGenerationProps) {
             <span className="text-slate-400 text-sm">Current Output</span>
             <Zap className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="text-3xl font-bold text-slate-100">{Math.round(currentOutput)} MW</div>
-          <div className="text-sm text-emerald-400 mt-1">+12% vs yesterday</div>
+          <div className="text-3xl font-bold text-slate-100">{summary?.currentPower?.nodesReporting ? `${Math.round(currentOutput)} kW` : 'Unavailable'}</div>
+          <div className="text-sm text-emerald-400 mt-1">Fresh readings only; missing nodes are excluded</div>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-400 text-sm">Solar Contribution</span>
+            <span className="text-slate-400 text-sm">Inverter Contribution</span>
             <Sun className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="text-3xl font-bold text-slate-100">{Math.round(summary?.averages.inverterPower ?? 0)} MW</div>
+          <div className="text-3xl font-bold text-slate-100">{Math.round(summary?.currentPower?.inverterKw ?? 0)} kW</div>
           <div className="text-sm text-slate-500 mt-1">{Math.max(0, Math.round(solarShare))}% of total</div>
         </div>
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-400 text-sm">Wind Contribution</span>
+            <span className="text-slate-400 text-sm">Other Generation</span>
             <Wind className="w-4 h-4 text-cyan-500" />
           </div>
-          <div className="text-3xl font-bold text-slate-100">{Math.max(0, Math.round(currentOutput - (summary?.averages.inverterPower ?? 0)))} MW</div>
+          <div className="text-3xl font-bold text-slate-100">{Math.max(0, Math.round(currentOutput - (summary?.currentPower?.inverterKw ?? 0)))} kW</div>
           <div className="text-sm text-slate-500 mt-1">{Math.max(0, Math.round(windShare))}% of total</div>
         </div>
       </div>
@@ -154,7 +154,7 @@ export function TotalGeneration({ onNavigate }: TotalGenerationProps) {
         className="bg-slate-800 border border-slate-700 rounded-xl p-6">
 
         <h3 className="text-lg font-semibold text-slate-100 mb-6">
-          Generation Mix (24h)
+          Recent generation readings (kW)
         </h3>
         <div className="h-[400px] w-full">
           {loading ?
@@ -210,7 +210,7 @@ export function TotalGeneration({ onNavigate }: TotalGenerationProps) {
                 stackId="1"
                 stroke="#f59e0b"
                 fill="url(#colorSolar)"
-                name="Solar PV" />
+                name="Inverter power" />
 
               <Area
                 type="monotone"
@@ -218,7 +218,7 @@ export function TotalGeneration({ onNavigate }: TotalGenerationProps) {
                 stackId="1"
                 stroke="#06b6d4"
                 fill="url(#colorWind)"
-                name="Wind" />
+                name="Other power (calculated)" />
 
             </AreaChart>
           </ResponsiveContainer>
@@ -252,7 +252,7 @@ export function TotalGeneration({ onNavigate }: TotalGenerationProps) {
                 <td className="px-6 py-4 text-slate-400">{row.cap}</td>
                 <td className="px-6 py-4 text-emerald-400">{row.curr}</td>
                 <td className="px-6 py-4">
-                  <StatusBadge status={row.status as any} />
+                  <StatusBadge status={row.status} />
                 </td>
               </tr>
             )}
