@@ -52,7 +52,7 @@ export function PlatformBlueprint({ onNavigate }: PlatformBlueprintProps) {
         {tabs.map((tab) =>
         <button
           key={tab.id}
-          onClick={() => setActiveTab(tab.id as any)}
+          onClick={() => setActiveTab(tab.id as typeof activeTab)}
           className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === tab.id ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'}`}>
 
             {tab.label}

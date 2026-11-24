@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FolderKanban } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import {
   advanceRecoveryCase,
   createRecoveryCase,
@@ -12,7 +12,7 @@ import {
   type RecoveryCaseStatus
 } from '../lib/recoveryCases';
 import { persistDecision } from '../lib/decisionLog';
-import { useToast } from '../components/Toast';
+import { useToast } from '../components/useToast';
 import { DataStateBanner } from '../components/DataFetchState';
 
 const STATUS_FLOW: RecoveryCaseStatus[] = [

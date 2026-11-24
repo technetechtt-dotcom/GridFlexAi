@@ -17,6 +17,9 @@ export const isPlatformAdminRole = (role: Role | undefined): boolean =>
   Boolean(role && PLATFORM_ROLES.includes(role));
 
 export const resolveAccessScope = async (userId: string, role: Role): Promise<AccessScope> => {
+  if (!userId || !["admin", "developer", "manager", "operator"].includes(role)) {
+    throw new AppError("Authentication required.", 401);
+  }
   if (isPlatformAdminRole(role)) {
     return { kind: "global", reason: "platform_admin" };
   }
@@ -41,6 +44,8 @@ export const resolveAccessScope = async (userId: string, role: Role): Promise<Ac
       }
     })
   ]);
+
+  if (!user) return { kind: "none" };
 
   const organisationIds = new Set(orgMemberships.map((row) => row.organisationId));
   const siteIds = new Set(siteMemberships.map((row) => row.siteId));

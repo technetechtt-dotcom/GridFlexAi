@@ -1,23 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ArrowLeft,
-  Bot,
-  Sparkles,
-  TrendingUp,
-  AlertTriangle,
-  Zap,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  ArrowRight,
-  Droplet } from
-'lucide-react';
+import { ArrowLeft, Bot, Sparkles, TrendingUp, AlertTriangle, Zap, Clock, CheckCircle2, ArrowRight, Droplet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Page } from '../components/Sidebar';
 import { SimulationBanner } from '../components/SimulationBanner';
-import { useRealTime } from '../context/RealTimeContext';
-import { useAuth } from '../context/AuthContext';
+import { useRealTime } from '../context/useRealTime';
+import { useAuth } from '../context/useAuth';
 import { recordDecision } from '../lib/decisionLog';
 import { buildForecastProfilesFromNodes, fetchForecast, fetchForecastProvidersStatus } from '../services/api';
 interface AIInsightsProps {

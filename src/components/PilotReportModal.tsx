@@ -1,17 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X,
-  FileDown,
-  CheckCircle2,
-  Droplet,
-  Zap,
-  TrendingUp,
-  Activity,
-  Wind } from
-'lucide-react';
+import { X, FileDown, Droplet, Zap, TrendingUp, Wind } from 'lucide-react';
 import { generatePilotReport, PilotReport } from '../services/api';
-import { cn } from '../lib/utils';
+
 import { SimulationBanner } from './SimulationBanner';
 import { openVerifiedPilotReport } from '../lib/verifiedPilotReport';
 interface PilotReportModalProps {
