@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
-import { NodeStatus, PrismaClient, Role } from "@prisma/client";
+import { NodeStatus, Role } from "@prisma/client";
+import { createPrismaClient } from "../src/lib/prisma.js";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 const defaultPassword = (): string => randomBytes(12).toString("base64url");
 
 const run = async () => {

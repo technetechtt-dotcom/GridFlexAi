@@ -328,10 +328,10 @@ jobs:
           npx prisma migrate deploy 2>&1 | tee ../ci-evidence/backend/migrate-deploy.log
           npx prisma migrate deploy 2>&1 | tee ../ci-evidence/backend/migrate-idempotence.log
           npx prisma migrate status 2>&1 | tee ../ci-evidence/backend/migrate-status.log
+          SHADOW_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/gridflex_shadow \
           npx prisma migrate diff \
             --from-migrations prisma/migrations \
-            --to-schema-datamodel prisma/schema.prisma \
-            --shadow-database-url postgresql://postgres:postgres@localhost:5432/gridflex_shadow \
+            --to-schema prisma/schema.prisma \
             --exit-code 2>&1 | tee ../ci-evidence/backend/migrate-diff.log
 
       - name: Typecheck and build backend
