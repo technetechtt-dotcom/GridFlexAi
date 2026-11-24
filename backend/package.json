@@ -24,7 +24,8 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.131",
     "@aws-sdk/client-kms": "^3.1090.0",
-    "@prisma/client": "^7.10.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "@socket.io/redis-adapter": "^8.3.0",
     "ai": "^6.0.312",
     "bcryptjs": "^2.4.3",
@@ -39,7 +40,7 @@
     "morgan": "1.12.1",
     "node-cache": "^5.1.2",
     "node-cron": "^4.6.0",
-    "prisma": "6.19.3",
+    "prisma": "^7.10.1",
     "socket.io": "^4.8.4",
     "zod": "^4.6.7"
   },
@@ -59,9 +60,6 @@
     "tsx": "^4.23.15",
     "typescript": "^5.8.2"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "overrides": {
     "handlebars": "4.7.10",
     "js-yaml": "4.3.2",
@@ -74,6 +72,7 @@
     "deepmerge-ts": "8.0.2",
     "proxy-addr": "2.0.8",
     "engine.io": "6.6.11",
-    "qs": "6.16.0"
+    "qs": "6.16.0",
+    "effect": "3.22.1"
   }
 }

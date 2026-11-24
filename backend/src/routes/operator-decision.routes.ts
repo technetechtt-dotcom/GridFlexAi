@@ -25,7 +25,7 @@ const createDecisionBodySchema = z.object({
   modelVersion: z.string().max(120).optional(),
   organisationId: z.string().optional(),
   siteId: z.string().optional(),
-  metadata: z.record(z.unknown()).optional()
+  metadata: z.record(z.string(), z.unknown()).optional()
 });
 
 const listDecisionsQuerySchema = z.object({
