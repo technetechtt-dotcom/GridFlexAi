@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../src/lib/prisma.js";
 
 const email = process.env.RESTORE_SMOKE_EMAIL ?? "admin@gridflex.ai";
 const password = process.env.RESTORE_SMOKE_PASSWORD;
@@ -9,7 +9,7 @@ const main = async () => {
     throw new Error("RESTORE_SMOKE_PASSWORD is required");
   }
 
-  const prisma = new PrismaClient();
+  const prisma = createPrismaClient();
   try {
     const hash = await bcrypt.hash(password, 12);
     const user = await prisma.user.update({

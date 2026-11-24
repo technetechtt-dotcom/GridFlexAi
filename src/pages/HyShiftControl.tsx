@@ -1,27 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Droplet,
-  Zap,
-  Wind,
-  Sun,
-  Activity,
-  ArrowRight,
-  Settings,
-  AlertTriangle,
-  CheckCircle2,
-  TrendingDown } from
-'lucide-react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend } from
-'recharts';
+import { Droplet, Zap, Wind, Sun, Activity, ArrowRight, Settings, AlertTriangle, TrendingDown } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Page } from '../components/Sidebar';
 import { KPICard } from '../components/KPICard';
 import { StatusBadge } from '../components/StatusBadge';
@@ -30,11 +10,7 @@ import { PromptInput } from '../components/PromptInput';
 import { cn } from '../lib/utils';
 import { usePilotStore } from '../store/pilotStore';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
-import {
-  fetchHydrogenTwinState,
-  fetchReadings,
-  type BackendReading } from
-'../services/api';
+import { fetchHydrogenTwinState, fetchReadings, type BackendReading } from '../services/api';
 interface HyShiftControlProps {
   onNavigate: (page: Page) => void;
 }
@@ -97,7 +73,7 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
         ]);
         if (!active) return;
         setTwinState(nextTwin);
-        setFlowRows(buildFlowData(readings, rampRate));
+        setFlowRows(buildFlowData(readings, 65));
         setMode(nextTwin.mode);
         setError(null);
       } catch (err) {
@@ -257,7 +233,7 @@ export function HyShiftControl({ onNavigate }: HyShiftControlProps) {
                   map((option) =>
                   <button
                     key={option.id}
-                    onClick={() => setMode(option.id as any)}
+                    onClick={() => setMode(option.id as typeof mode)}
                     className={cn(
                       'flex flex-col items-start p-3 rounded-lg border transition-all text-left',
                       mode === option.id ?

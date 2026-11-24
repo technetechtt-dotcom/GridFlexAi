@@ -12,7 +12,8 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { DeviceCredentialStatus, PrismaClient } from "@prisma/client";
+import { DeviceCredentialStatus } from "@prisma/client";
+import { createPrismaClient } from "../src/lib/prisma.js";
 
 import { provisionDeviceCredential } from "../src/services/device-credential.service.js";
 
@@ -21,7 +22,7 @@ if (process.env.LOADTEST_CRED_ALLOW !== "true") {
   process.exit(2);
 }
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 const edgeNodeId = process.env.EDGE_NODE_ID ?? "upington-solar-farm-node";
 const actorEmail = process.env.LOADTEST_ACTOR_EMAIL ?? "admin@gridflex.ai";
 const evidenceFile =

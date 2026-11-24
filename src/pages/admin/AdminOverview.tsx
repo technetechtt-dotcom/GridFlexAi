@@ -9,7 +9,7 @@ import {
   type AdminAuditLog,
   type AdminPlatformOverview } from
 '../../services/api';
-import { useAdminRefresh } from './AdminLayout';
+import { useAdminRefresh } from './useAdminRefresh';
 
 const POLL_MS = 15000;
 

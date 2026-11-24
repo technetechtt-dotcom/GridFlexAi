@@ -26,7 +26,7 @@ export const listPlants = async (actor?: AccessActor) => {
   const scope = await getOptionalSiteAccessScope(actor);
   const where: Prisma.PlantWhereInput = {};
   if (scope.kind === "site") {
-    where.siteId = scope.siteId;
+    where.siteId = { in: scope.siteIds };
   }
   return prisma.plant.findMany({
     where,
@@ -94,7 +94,7 @@ export const listAssets = async (plantId: string, actor?: AccessActor) => {
   const scope = await getOptionalSiteAccessScope(actor);
   const plant = await prisma.plant.findUnique({ where: { id: plantId } });
   if (!plant) throw new AppError("Plant not found.", 404);
-  if (scope.kind === "site" && plant.siteId !== scope.siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(plant.siteId ?? "")) {
     throw new AppError("Cross-tenant plant access denied.", 403);
   }
 

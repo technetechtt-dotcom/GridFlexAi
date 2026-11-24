@@ -21,7 +21,7 @@ router.put(
       stepId: z.enum(stepIds),
       status: z.enum(["open", "complete", "blocked"]),
       notes: z.string().max(5000).optional(),
-      evidence: z.record(z.unknown()).optional()
+      evidence: z.record(z.string(), z.unknown()).optional()
     })
   }),
   putOnboardingStepHandler

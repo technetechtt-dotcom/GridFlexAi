@@ -15,7 +15,8 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { DeviceCredentialStatus, PrismaClient } from "@prisma/client";
+import { DeviceCredentialStatus } from "@prisma/client";
+import { createPrismaClient } from "../src/lib/prisma.js";
 
 import {
   completeCredentialRotation,
@@ -33,7 +34,7 @@ if (!allow) {
   process.exit(2);
 }
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 const main = async () => {
   const actorEmail = process.env.RESTORE_CRED_ACTOR_EMAIL ?? "admin@gridflex.ai";
