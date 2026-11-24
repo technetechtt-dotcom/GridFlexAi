@@ -10,6 +10,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY tsconfig.json ./
+COPY prisma.config.ts ./
 COPY prisma ./prisma
 COPY scripts ./scripts
 COPY src ./src
@@ -33,6 +34,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
+COPY prisma.config.ts ./
 COPY prisma ./prisma
 COPY scripts ./scripts
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

@@ -110,7 +110,7 @@ export const proposeCommandInputSchema = z.object({
   plantId: z.string().optional(),
   assetId: z.string().optional(),
   commandType: z.string().min(1).max(120),
-  parameters: z.record(z.unknown()).optional(),
+  parameters: z.record(z.string(), z.unknown()).optional(),
   rationale: z.string().min(1).max(2000)
 });
 

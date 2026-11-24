@@ -9,10 +9,11 @@
  * Never commit output. Flash each new secret into GridFlexEdge config.h / secure element.
  */
 
-import { DeviceCredentialStatus, PrismaClient } from "@prisma/client";
+import { DeviceCredentialStatus } from "@prisma/client";
+import { createPrismaClient } from "../src/lib/prisma.js";
 import { provisionDeviceCredential } from "../src/services/device-credential.service.js";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 const dryRun = process.argv.includes("--dry-run") || !process.argv.includes("--execute");
 const allow = process.env.ROTATE_DEVICES_ALLOW === "true";
