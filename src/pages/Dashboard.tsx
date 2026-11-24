@@ -1,43 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Zap,
-  Battery,
-  DollarSign,
-  Target,
-  AlertTriangle,
-  CheckCircle2,
-  Wifi,
-  Droplet,
-  Cpu,
-  RadioTower,
-  Bot,
-  ChevronRight,
-  Siren } from
-'lucide-react';
+import { Zap, Battery, DollarSign, Target, AlertTriangle, CheckCircle2, Wifi, Droplet, Cpu, RadioTower, Bot, ChevronRight, Siren } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { KPICard } from '../components/KPICard';
 import { HeatmapGrid } from '../components/HeatmapGrid';
-import { StatusBadge } from '../components/StatusBadge';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer } from
-'recharts';
+
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Page } from '../components/Sidebar';
-import { useRealTime } from '../context/RealTimeContext';
+import { useRealTime } from '../context/useRealTime';
 import { ForecastProvidersStatusWidget } from '../components/ForecastProvidersStatusWidget';
-import {
-  buildForecastProfilesFromNodes,
-  fetchCongestionNodes,
-  fetchForecast,
-  fetchOperatingMode,
-  fetchReadings,
-  type CongestionNode
-} from '../services/api';
+import { buildForecastProfilesFromNodes, fetchCongestionNodes, fetchForecast, fetchOperatingMode, fetchReadings, type CongestionNode } from '../services/api';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
 import { SimulationBanner } from '../components/SimulationBanner';
 
@@ -55,6 +26,7 @@ type ChartPoint = {
 export function Dashboard({ onNavigate }: DashboardProps) {
   const {
     metrics,
+    metricsStale,
     isConnected,
     proactiveAlerts,
     iotAssets,
@@ -211,7 +183,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const filteredChartData = useMemo(() => chartData, [chartData]);
 
   const operationalAlerts = useMemo(() => {
-    const lowPowerThreshold = metrics.totalGeneration > 0 ? metrics.totalGeneration * 0.18 : 20;
+    const lowPowerThreshold = metrics.totalGeneration > 0 ? metrics.totalGeneration / 1000 * 0.18 : 0.02;
     const scopedAssets = hasSpecificNodeScope ? iotAssets.filter((asset) => selectedNodeNames.includes(asset.name)) : iotAssets;
     const nodeAlerts = scopedAssets.flatMap((asset) => {
       const items: Array<{id: string;title: string;detail: string;severity: 'high' | 'medium';page: Page;}> = [];
@@ -341,10 +313,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
           <KPICard
             title="Total Generation"
-            value={Math.round(metrics.totalGeneration).toString()}
-            unit="MW"
-            trend="up"
-            trendValue="12%"
+            value={metricsStale ? "Unavailable" : Math.round(metrics.totalGeneration).toString()}
+            unit="kW"
             icon={Zap}
             accentColor="emerald"
             delay={0.1} />
@@ -356,10 +326,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
           <KPICard
             title="Curtailment Rate"
-            value="4.2"
+            value="Unavailable"
             unit="%"
-            trend="down"
-            trendValue="0.8%"
             icon={AlertTriangle}
             accentColor="amber"
             delay={0.2} />
@@ -371,9 +339,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
           <KPICard
             title="Revenue Today"
-            value="R2.4M"
-            trend="up"
-            trendValue="R150k"
+            value="Unavailable"
             icon={DollarSign}
             accentColor="cyan"
             delay={0.3} />
@@ -385,10 +351,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
           <KPICard
             title="Forecast Accuracy"
-            value="94.7"
+            value="Unavailable"
             unit="%"
-            trend="neutral"
-            trendValue="0.1%"
             icon={Target}
             accentColor="purple"
             delay={0.4} />
@@ -397,10 +361,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         <div onClick={() => onNavigate('hyshift')} className="cursor-pointer">
           <KPICard
             title="H₂ Production Today"
-            value="1,240"
+            value="Unavailable"
             unit="kg"
-            trend="up"
-            trendValue="18%"
             icon={Droplet}
             accentColor="purple"
             delay={0.5} />
@@ -512,7 +474,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(value) => `${value} MW`} />
+                    tickFormatter={(value) => `${value} kW`} />
 
                   <Tooltip
                     contentStyle={{
@@ -718,7 +680,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       <Zap className="w-3 h-3 mr-2" /> Frequency
                     </span>
                     <span className="font-mono text-emerald-400">
-                      {metrics.frequency.toFixed(2)} Hz
+                      Not measured
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
@@ -726,7 +688,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       <Zap className="w-3 h-3 mr-2" /> Voltage
                     </span>
                     <span className="font-mono text-emerald-400">
-                      {metrics.voltage.toFixed(1)} kV
+                      {metrics.voltage.toFixed(1)} V
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
@@ -734,7 +696,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       <Battery className="w-3 h-3 mr-2" /> Demand
                     </span>
                     <span className="font-mono text-amber-400">
-                      {Math.round(metrics.demand)} MW
+                      Not measured
                     </span>
                   </div>
                 </div>

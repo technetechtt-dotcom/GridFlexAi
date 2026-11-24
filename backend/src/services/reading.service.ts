@@ -117,7 +117,7 @@ const applyReadingAccessScope = async (
   if (scope.kind === "site") {
     where.node = {
       is: {
-        siteId: scope.siteId
+        siteId: { in: scope.siteIds }
       }
     };
   }

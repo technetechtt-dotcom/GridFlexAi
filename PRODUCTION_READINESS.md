@@ -5,14 +5,14 @@ Do **not** mark ops / plant / POPIA items complete without dated evidence artifa
 Canonical ledger: [`docs/runbooks/evidence-completion-board.md`](./docs/runbooks/evidence-completion-board.md).
 Active release candidate: [`docs/releases/RC-2026-07-23.md`](./docs/releases/RC-2026-07-23.md) (supersedes [`RC-2026-07-22B`](./docs/releases/RC-2026-07-22B.md) / [`RC-2026-07-22`](./docs/releases/RC-2026-07-22.md)).
 
-## Current Snapshot
+## Current local assessment — 2026-10-21
 
-- Estimated readiness: **~88% code/CI frameworks**; **ops / plant / external evidence still open**.
-- Last updated: **2026-07-23**.
-- Active release candidate: **`RC-2026-07-23`** @ `cdcd3e7` — see [`docs/releases/RC-2026-07-23.md`](./docs/releases/RC-2026-07-23.md).
-- CI: [`29988892052`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/29988892052) all required jobs green; manifest SHA-256 `37cd37f0b13d39550be465a29c93d34bc0d4cdba5e49274a5a8792e8d8916d72`.
-- Signed image: `ghcr.io/technetechtt-dotcom/gridflex-backend@sha256:accf07fc8326ffa15dd4df647af3175bb36b2d9b587270234247324c7e57c718` ([release `30032427639`](https://github.com/technetechtt-dotcom/GridFlexAi/actions/runs/30032427639)).
-- **Superseded:** `d1a7363` / `RC-2026-07-22` and interim `RC-2026-07-22B` docs — do not deploy older RCs for new environments.- Canonical layout: frontend `src/`, backend `backend/`, firmware `firmware/GridFlexEdge/`.
+- Active working source: `Grid Flex/` under the outer workspace, with frontend `src/`, backend `backend/`, and firmware `firmware/GridFlexEdge/`.
+- Local remediation: [`docs/releases/LOCAL-2026-10-21.md`](./docs/releases/LOCAL-2026-10-21.md).
+- Reproduce code verification with `npm run verify:local`; the exact-source result is recorded in `go-live-reports/local-verification.json`.
+- Production readiness is **not established**. No percentage is assigned: hardware, deployment, operations and external sign-offs require separate evidence.
+- The evidence board remains the canonical operational ledger. Historical release and CI entries below do not validate the current uncommitted source or its deployed state.
+- The former `RC-2026-07-23` record and its signed image are historical references, not a release identity for this remediation.
 
 ## P0 - Go-Live Blockers (live hardware pilot)
 
@@ -53,4 +53,4 @@ Active release candidate: [`docs/releases/RC-2026-07-23.md`](./docs/releases/RC-
 
 - [x] `*.tsbuildinfo` gitignored; CODEOWNERS added
 - [x] GitHub issues for every open release blocker *(#43–#50)*
-- [x] Duplicate project directory and repository ZIP archive removed; canonical roots only
+- [ ] Workspace archive consolidation: sibling working copies and ZIP remain; active source is explicitly identified in the outer README. Preserve unique work before removal.

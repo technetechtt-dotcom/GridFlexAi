@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { fetchAdminMetrics, type AdminMetricsSnapshot } from '../../services/api';
-import { useAdminRefresh } from './AdminLayout';
+import { useAdminRefresh } from './useAdminRefresh';
 
 const POLL_MS = 12000;
 
