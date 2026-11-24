@@ -1,9 +1,11 @@
 /**
  * Render staging boot: derive DIRECT_URL from DATABASE_URL (Neon pooler → direct),
- * then migrate, vault-verify, and start. An explicit DIRECT_URL takes precedence.
+ * pin those hosts to IPv4, then migrate, vault-verify, and start.
+ * An explicit DIRECT_URL takes precedence over the derived one.
  */
 import { spawnSync } from "node:child_process";
 import { URL } from "node:url";
+import { useIpv4PostgresUrls } from "./pin-postgres-ipv4.mjs";
 
 const deriveDirectUrl = (databaseUrl) => {
   const url = new URL(databaseUrl);
@@ -20,13 +22,36 @@ const deriveDirectUrl = (databaseUrl) => {
   return databaseUrl;
 };
 
+const withNeonConnectOptions = (connectionString) => {
+  let url;
+  try {
+    url = new URL(connectionString);
+  } catch {
+    return connectionString;
+  }
+  if (!url.hostname.toLowerCase().endsWith(".neon.tech")) return connectionString;
+
+  let changed = false;
+  if (!url.searchParams.has("sslmode")) {
+    url.searchParams.set("sslmode", "require");
+    changed = true;
+  }
+  if (!url.searchParams.has("connect_timeout")) {
+    url.searchParams.set("connect_timeout", "30");
+    changed = true;
+  }
+  return changed ? url.toString() : connectionString;
+};
+
 const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) {
   console.error("[render-boot] DATABASE_URL is required.");
   process.exit(1);
 }
 
-process.env.DIRECT_URL = process.env.DIRECT_URL?.trim() || deriveDirectUrl(databaseUrl);
+const explicitDirect = process.env.DIRECT_URL?.trim();
+process.env.DATABASE_URL = withNeonConnectOptions(databaseUrl);
+process.env.DIRECT_URL = withNeonConnectOptions(explicitDirect || deriveDirectUrl(databaseUrl));
 
 // This entry point builds from source. Registry identity belongs exclusively to
 // the signed-image entry point, never to a stale dashboard value.
@@ -49,6 +74,16 @@ const run = (command, args) => {
   }
 };
 
-run("npx", ["prisma", "migrate", "deploy"]);
-run("npm", ["run", "vault:verify"]);
-run("npm", ["run", "start"]);
+const main = async () => {
+  await useIpv4PostgresUrls();
+  console.log(`[render-boot] Connecting to Postgres at ${new URL(process.env.DIRECT_URL).hostname} over IPv4.`);
+  run("npx", ["prisma", "migrate", "deploy"]);
+  run("npm", ["run", "vault:verify"]);
+  run("npm", ["run", "start"]);
+};
+
+main().catch((error) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[render-boot] ${message}`);
+  process.exit(1);
+});
