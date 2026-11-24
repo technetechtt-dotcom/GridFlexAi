@@ -18,5 +18,13 @@ if [ -z "${RELEASE_IMAGE_DIGEST:-}" ] && [ -n "${IMAGE_DIGEST:-}" ]; then
   export RELEASE_IMAGE_DIGEST="$IMAGE_DIGEST"
 fi
 
+# Neon is dual-stack. Prisma dials AAAA first and does not fall back, which
+# is an immediate P1001 on IPv6-less hosts such as Render.
+case " ${RES_OPTIONS:-} " in
+  *" no-aaaa "*) ;;
+  *) export RES_OPTIONS="${RES_OPTIONS:+$RES_OPTIONS }no-aaaa" ;;
+esac
+node scripts/pin-postgres-ipv4.mjs
+
 ./node_modules/.bin/prisma migrate deploy
 exec node dist/server.js
