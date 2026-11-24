@@ -1,0 +1,89 @@
+/**
+ * Render staging boot: derive DIRECT_URL from DATABASE_URL (Neon pooler → direct),
+ * pin those hosts to IPv4, then migrate, vault-verify, and start.
+ * An explicit DIRECT_URL takes precedence over the derived one.
+ */
+import { spawnSync } from "node:child_process";
+import { URL } from "node:url";
+import { useIpv4PostgresUrls } from "./pin-postgres-ipv4.mjs";
+
+const deriveDirectUrl = (databaseUrl) => {
+  const url = new URL(databaseUrl);
+  const host = url.hostname.toLowerCase();
+
+  if (host.endsWith("-pooler.neon.tech") || (host.includes("-pooler.") && host.endsWith(".neon.tech"))) {
+    url.hostname = url.hostname.replace("-pooler", "");
+    return url.toString();
+  }
+  if (host.includes("-pooler.")) {
+    url.hostname = url.hostname.replace("-pooler", "");
+    return url.toString();
+  }
+  return databaseUrl;
+};
+
+const withNeonConnectOptions = (connectionString) => {
+  let url;
+  try {
+    url = new URL(connectionString);
+  } catch {
+    return connectionString;
+  }
+  if (!url.hostname.toLowerCase().endsWith(".neon.tech")) return connectionString;
+
+  let changed = false;
+  if (!url.searchParams.has("sslmode")) {
+    url.searchParams.set("sslmode", "require");
+    changed = true;
+  }
+  if (!url.searchParams.has("connect_timeout")) {
+    url.searchParams.set("connect_timeout", "30");
+    changed = true;
+  }
+  return changed ? url.toString() : connectionString;
+};
+
+const databaseUrl = process.env.DATABASE_URL?.trim();
+if (!databaseUrl) {
+  console.error("[render-boot] DATABASE_URL is required.");
+  process.exit(1);
+}
+
+const explicitDirect = process.env.DIRECT_URL?.trim();
+process.env.DATABASE_URL = withNeonConnectOptions(databaseUrl);
+process.env.DIRECT_URL = withNeonConnectOptions(explicitDirect || deriveDirectUrl(databaseUrl));
+
+// This entry point builds from source. Registry identity belongs exclusively to
+// the signed-image entry point, never to a stale dashboard value.
+delete process.env.RELEASE_IMAGE_DIGEST;
+process.env.REQUIRE_RELEASE_IDENTITY = "false";
+if (process.env.RENDER_GIT_COMMIT?.trim()) {
+  process.env.RELEASE_GIT_SHA = process.env.RENDER_GIT_COMMIT.trim();
+} else {
+  delete process.env.RELEASE_GIT_SHA;
+}
+
+const run = (command, args) => {
+  const result = spawnSync(command, args, {
+    stdio: "inherit",
+    env: process.env,
+    shell: process.platform === "win32"
+  });
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+};
+
+const main = async () => {
+  await useIpv4PostgresUrls();
+  console.log(`[render-boot] Connecting to Postgres at ${new URL(process.env.DIRECT_URL).hostname} over IPv4.`);
+  run("npx", ["prisma", "migrate", "deploy"]);
+  run("npm", ["run", "vault:verify"]);
+  run("npm", ["run", "start"]);
+};
+
+main().catch((error) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[render-boot] ${message}`);
+  process.exit(1);
+});

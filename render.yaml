@@ -16,7 +16,8 @@ services:
     autoDeploy: true
     healthCheckPath: /api/health/live
     buildCommand: npm install --include=dev && npm run prisma:generate && npm run build
-    startCommand: npx prisma migrate deploy && npm run vault:verify && npm run start
+    # Derive DIRECT_URL from DATABASE_URL so a stale dashboard DIRECT_URL cannot block migrate.
+    startCommand: node scripts/render-boot.mjs
     envVars:
       - key: NODE_ENV
         value: production

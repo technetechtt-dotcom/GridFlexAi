@@ -9,7 +9,7 @@ import {
   fetchDashboardSummary
 } from '../services/api';
 import { recordDecision } from '../lib/decisionLog';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
 type CheckResult = {
   id: string;
@@ -91,7 +91,7 @@ export function DiagnosticsResultsPage() {
       const gaps = readings.length > 1
         ? readings.slice(0, -1).filter((row, idx) => {
             const newer = Date.parse(row.timestamp);
-            const older = Date.parse(readings[idx + 1]!.timestamp);
+            const older = Date.parse(readings[idx + 1]?.timestamp ?? '');
             return newer - older > 20 * 60 * 1000;
           }).length
         : 0;

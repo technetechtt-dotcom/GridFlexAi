@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { randomUUID } from "node:crypto";
 import type { Role } from "@prisma/client";
 
 import { env } from "../config/env.js";
@@ -31,7 +32,7 @@ export const resetJwtKeyringForTests = (): void => {
   cachedKeyring = null;
 };
 
-const signWithKeyring = (payload: JwtPayload, expiresIn: NonNullable<jwt.SignOptions["expiresIn"]>): string => {
+const signWithKeyring = (payload: JwtPayload, expiresIn: NonNullable<jwt.SignOptions["expiresIn"]>, tokenUse: "access" | "refresh"): string => {
   const keyring = getJwtKeyring();
   const secret = keyring.secretsByKid[keyring.activeKid];
   if (!secret) {
@@ -42,10 +43,10 @@ const signWithKeyring = (payload: JwtPayload, expiresIn: NonNullable<jwt.SignOpt
     keyid: keyring.activeKid,
     algorithm: "HS256"
   };
-  return jwt.sign(payload, secret, signOptions);
+  return jwt.sign({ ...payload, tokenUse, jti: randomUUID() }, secret, signOptions);
 };
 
-const verifyWithKeyring = (token: string): JwtPayload => {
+const verifyWithKeyring = (token: string, tokenUse: "access" | "refresh"): JwtPayload => {
   const keyring = getJwtKeyring();
   const decoded = jwt.decode(token, { complete: true });
   const kid =
@@ -65,7 +66,16 @@ const verifyWithKeyring = (token: string): JwtPayload => {
   let lastError: unknown;
   for (const entry of trySecrets) {
     try {
-      return jwt.verify(token, entry.secret, { algorithms: ["HS256"] }) as JwtPayload;
+      const payload = jwt.verify(token, entry.secret, { algorithms: ["HS256"] });
+      if (
+        typeof payload === "string" || payload.tokenUse !== tokenUse ||
+        typeof payload.sub !== "string" || !payload.sub ||
+        typeof payload.email !== "string" || !payload.email ||
+        typeof payload.name !== "string" || !payload.name ||
+        !["operator", "manager", "admin", "developer"].includes(payload.role) ||
+        !Number.isFinite(payload.exp) || !Number.isFinite(payload.iat)
+      ) throw new AppError("Invalid token purpose or claims. Please log in again.", 401);
+      return payload as JwtPayload;
     } catch (error) {
       lastError = error;
     }
@@ -79,17 +89,17 @@ const verifyWithKeyring = (token: string): JwtPayload => {
 
 export const signAccessToken = (payload: JwtPayload): string => {
   const expiresIn = env.JWT_ACCESS_EXPIRES_IN as NonNullable<jwt.SignOptions["expiresIn"]>;
-  return signWithKeyring(payload, expiresIn);
+  return signWithKeyring(payload, expiresIn, "access");
 };
 
-export const verifyAccessToken = (token: string): JwtPayload => verifyWithKeyring(token);
+export const verifyAccessToken = (token: string): JwtPayload => verifyWithKeyring(token, "access");
 
 export const signRefreshToken = (payload: JwtPayload): string => {
   const expiresIn = env.JWT_REFRESH_EXPIRES_IN as NonNullable<jwt.SignOptions["expiresIn"]>;
-  return signWithKeyring(payload, expiresIn);
+  return signWithKeyring(payload, expiresIn, "refresh");
 };
 
-export const verifyRefreshToken = (token: string): JwtPayload => verifyWithKeyring(token);
+export const verifyRefreshToken = (token: string): JwtPayload => verifyWithKeyring(token, "refresh");
 
 /** Decode header kid without verifying (ops / rotation diagnostics). */
 export const peekTokenKid = (token: string): string | undefined => {

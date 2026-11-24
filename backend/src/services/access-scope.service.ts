@@ -1,4 +1,5 @@
-import { Role } from "@prisma/client";
+import { Role, type Prisma } from "@prisma/client";
+import { resolveAccessScope } from "../middleware/permissions.js";
 
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../utils/AppError.js";
@@ -10,70 +11,53 @@ export type AccessActor = {
 
 export type SiteAccessScope =
   | { kind: "global" }
-  | { kind: "site"; siteId: string };
+  | { kind: "site"; siteIds: string[] };
 
 export const isGlobalAccessRole = (role: string | undefined): boolean =>
   role === Role.admin || role === Role.developer;
 
 export const getSiteAccessScope = async (actor: AccessActor | undefined): Promise<SiteAccessScope> => {
-  if (!actor) {
+  if (!actor?.id || !Object.values(Role).includes(actor.role as Role)) {
     throw new AppError("Authentication required.", 401);
   }
 
-  if (isGlobalAccessRole(actor.role)) {
+  const scope = await resolveAccessScope(actor.id, actor.role as Role);
+  if (scope.kind === "global") {
     return { kind: "global" };
   }
 
-  const [user, siteMembership] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: actor.id },
-      select: { siteId: true }
-    }),
-    prisma.siteMembership.findFirst({
-      where: { userId: actor.id, status: "active" },
-      select: { siteId: true },
-      orderBy: { createdAt: "asc" }
-    })
-  ]);
-
-  if (!user) {
-    throw new AppError("User not found.", 401);
-  }
-
-  const siteId = user.siteId ?? siteMembership?.siteId;
-  if (!siteId) {
+  if (scope.kind === "none") {
     throw new AppError("No site/plant is assigned to this account. Contact Ops Center.", 403);
   }
 
-  return {
-    kind: "site",
-    siteId
-  };
+  if (scope.kind === "site") return { kind: "site", siteIds: scope.siteIds };
+  const sites = await prisma.site.findMany({
+    where: { organisationId: { in: scope.organisationIds } },
+    select: { id: true }
+  });
+  return { kind: "site", siteIds: sites.map((site) => site.id) };
 };
 
 export const getOptionalSiteAccessScope = async (actor: AccessActor | undefined): Promise<SiteAccessScope> => {
-  if (!actor) {
-    return { kind: "global" };
-  }
-
+  // Compatibility name only: request-facing access always requires an identity.
   return getSiteAccessScope(actor);
 };
 
 export const resolveScopedSiteId = async (
   actor: AccessActor | undefined,
   requestedSiteId: string | null | undefined
-): Promise<string | undefined> => {
+): Promise<string | Prisma.StringFilter | undefined> => {
   const scope = await getOptionalSiteAccessScope(actor);
 
   if (scope.kind === "global") {
     return requestedSiteId ?? undefined;
   }
 
-  if (requestedSiteId && requestedSiteId !== scope.siteId) {
+  if (requestedSiteId && !scope.siteIds.includes(requestedSiteId)) {
     throw new AppError("You can only access data for your assigned site/plant.", 403);
   }
 
-  return scope.siteId;
+  return requestedSiteId ?? { in: scope.siteIds };
 };
 
 export const assertNodeSiteAccess = async (
@@ -94,7 +78,7 @@ export const assertNodeSiteAccess = async (
     throw new AppError("Node not found.", 404);
   }
 
-  if (node.siteId !== scope.siteId) {
+  if (!node.siteId || !scope.siteIds.includes(node.siteId)) {
     throw new AppError("You can only access nodes for your assigned site/plant.", 403);
   }
 };

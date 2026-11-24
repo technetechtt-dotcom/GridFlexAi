@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-10-22T09:54:36.271Z",
+  "scope": "Fresh isolated database; no production data migrated",
+  "database": "gridflex_verify_1792662876265",
+  "checks": [
+    {
+      "name": "apply migrations",
+      "exitCode": 0,
+      "passed": true
+    },
+    {
+      "name": "idempotent migration replay",
+      "exitCode": 0,
+      "passed": true
+    },
+    {
+      "name": "migration status",
+      "exitCode": 0,
+      "passed": true
+    },
+    {
+      "name": "deployed database schema drift",
+      "exitCode": 0,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "cleanup": true
+}

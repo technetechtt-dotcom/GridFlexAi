@@ -63,13 +63,13 @@ const ADMIN_ALLOWED_EMAILS = new Set(
 );
 
 const requestIsSecure = (req: Request): boolean => {
-  const forwardedProto = req.header("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
-  return req.secure || forwardedProto === "https";
+  return req.secure;
 };
 
 const getClientIp = (req: Request): string => {
-  const forwarded = req.header("x-forwarded-for")?.split(",")[0] ?? req.ip ?? "";
-  return normalizeIp(forwarded).toLowerCase();
+  // Express resolves the client according to the configured trusted proxy hops.
+  // Reading the raw header here would let callers choose their allowlisted IP.
+  return normalizeIp(req.ip ?? req.socket.remoteAddress ?? "").toLowerCase();
 };
 
 const isIpAllowedForAdmin = (ipAddress: string): boolean => {

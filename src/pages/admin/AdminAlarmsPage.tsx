@@ -7,7 +7,7 @@ import {
   type AlarmCentreEvent,
   type AlarmCentreIncident
 } from '../../services/api';
-import { useAdminRefresh } from './AdminLayout';
+import { useAdminRefresh } from './useAdminRefresh';
 
 const POLL_MS = 20000;
 

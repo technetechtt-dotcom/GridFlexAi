@@ -24,7 +24,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { fetchForecast, fetchNodes, fetchReadings, type BackendNode } from '../services/api';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { persistDecision } from '../lib/decisionLog';
 interface GenerationVsForecastProps {
   onNavigate: (page: Page) => void;
@@ -478,7 +478,7 @@ export function GenerationVsForecast({
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={row.status as any} />
+                      <StatusBadge status={row.status as React.ComponentProps<typeof StatusBadge>["status"]} />
                     </td>
                   </tr>
                 )}
