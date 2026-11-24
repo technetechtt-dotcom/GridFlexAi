@@ -1,31 +1,14 @@
-import React, { useEffect, useState, createElement } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Calendar, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend } from
-'recharts';
+import { Download, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { AreaChart, Area, BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Page } from '../components/Sidebar';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { auditLogger } from '../lib/auditLogger';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
-import {
-  fetchDashboardSummary,
-  fetchESGMetrics,
-  fetchReadingsSummary } from
-'../services/api';
+import { fetchDashboardSummary, fetchESGMetrics, fetchReadingsSummary } from '../services/api';
 interface KPIReportingProps {
   onNavigate: (page: Page) => void;
 }
