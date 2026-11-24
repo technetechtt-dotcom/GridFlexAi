@@ -127,7 +127,7 @@ const loadCommandOrThrow = async (id: string) => {
 
 const assertSiteAccess = async (actor: AccessActor | undefined, siteId: string) => {
   const scope = await getOptionalSiteAccessScope(actor);
-  if (scope.kind === "site" && scope.siteId !== siteId) {
+  if (scope.kind === "site" && !scope.siteIds.includes(siteId)) {
     throw new AppError("Cross-tenant command access denied.", 403);
   }
 };
@@ -250,7 +250,10 @@ export const listCommandRequests = async (
   const scope = await getOptionalSiteAccessScope(actor);
   const where: Prisma.CommandRequestWhereInput = {};
   if (scope.kind === "site") {
-    where.siteId = scope.siteId;
+    if (filters.siteId && !scope.siteIds.includes(filters.siteId)) {
+      throw new AppError("Cross-tenant site access denied.", 403);
+    }
+    where.siteId = filters.siteId ?? { in: scope.siteIds };
   } else if (filters.siteId) {
     where.siteId = filters.siteId;
   }

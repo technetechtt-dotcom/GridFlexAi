@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, KeyRound, MonitorSmartphone, Shield, User } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { PageHeader } from '../components/PageHeader';
 import { Breadcrumbs } from '../components/Breadcrumbs';
-import { useToast } from '../components/Toast';
+import { useToast } from '../components/useToast';
 import {
   acknowledgeAdminMfa,
   changePassword,

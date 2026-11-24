@@ -258,6 +258,15 @@ export type DashboardSummary = {
     offline: number;
   };
   readingsWindow: number;
+  currentPower?: {
+    totalKw: number;
+    inverterKw: number;
+    curtailmentKw: number;
+    nodesReporting: number;
+    freshnessSeconds: number;
+    asOf: string;
+    readings: Array<{ nodeId: string; power: number; timestamp: string }>;
+  };
   averages: {
     voltage: number;
     current: number;
@@ -2294,19 +2303,6 @@ export async function fetchPlatformHealth(): Promise<PlatformHealth> {
   return apiRequest<PlatformHealth>('/health', { auth: false });
 }
 
-export async function submitAIPrompt(
-prompt: string,
-context?: string)
-: Promise<{response: string;confidence: number;}> {
-  // Simulate AI processing
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-
-  return {
-    response: `Analysis for "${prompt}": Based on current grid conditions in the Northern Cape, increasing electrolyzer load at Upington would reduce curtailment by 18% while maintaining grid stability within 50.05Hz limits.`,
-    confidence: 0.94
-  };
-}
-
 export async function fetchAIInsightForecast(
 prompt: string,
 region = 'Free State')
@@ -2500,7 +2496,7 @@ export async function fetchIoTEdgeAssets(): Promise<IoTEdgeAsset[]> {
     type: 'microgrid',
     location: node.location,
     health: node.status === 'offline' ? 'critical' : node.status === 'maintenance' || (node.alerts?.length ?? 0) > 0 ? 'degraded' : 'good',
-    powerMw: Number((node.lastReading?.power ?? 0).toFixed(1)),
+    powerMw: (node.lastReading?.power ?? 0) / 1000,
     edgeForecastConfidence: node.status === 'online' ? Math.max(0.72, (node.healthScore ?? 0) / 100) : 0.74
   }));
 }

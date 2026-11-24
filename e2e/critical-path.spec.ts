@@ -431,6 +431,32 @@ test("login reaches dashboard with provider status", async ({ page }) => {
   await expect(page.getByText("openweathermap", { exact: true })).toBeVisible();
 });
 
+test("dashboard distinguishes fresh fleet generation from unverified commercial figures", async ({ page }) => {
+  await mockApi(page);
+  const timestamp = new Date().toISOString();
+  await page.route("**/api/dashboard/summary", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ data: {
+      nodes: { total: 2, online: 2, offline: 0 },
+      readingsWindow: 2,
+      averages: { voltage: 400, current: 10, power: 150, inverterPower: 100, curtailment: 0 },
+      latestTimestamp: timestamp,
+      currentPower: {
+        totalKw: 300, inverterKw: 200, curtailmentKw: 0, nodesReporting: 2, freshnessSeconds: 60, asOf: timestamp,
+        readings: [{ nodeId: "a", power: 100, timestamp }, { nodeId: "b", power: 200, timestamp }]
+      }
+    } })
+  }));
+  await signIn(page);
+  const generation = page.getByRole('group', { name: 'Total Generation', exact: true });
+  await expect(generation).toContainText('300');
+  await expect(generation).toContainText('kW');
+  const revenue = page.getByRole('group', { name: 'Revenue Today', exact: true });
+  await expect(revenue).toContainText('Unavailable');
+  await expect(page.getByText('R2.4M', { exact: true })).toHaveCount(0);
+});
+
 test("forecast navigation path works after login", async ({ page }) => {
   await mockApi(page);
   await signIn(page);
@@ -456,8 +482,11 @@ test("dispatch retry banner recovers from transient API failure", async ({ page 
 
   const retry = page.getByRole("button", { name: "Retry sync" });
   await expect(retry).toBeVisible();
+  // Check actionability while failure is held. Releasing it also permits the
+  // background poll to recover and remove this self-dismissing control.
+  await retry.click({ trial: true });
   control.blockReadings = false;
-  await retry.click({ force: true }).catch(() => undefined);
+  await retry.dispatchEvent("click");
   await expect(page.getByText("Synthetic dispatch failure")).toHaveCount(0, { timeout: 15000 });
   await expect(page.getByRole("heading", { name: "Advisory Dispatch Profile" })).toBeVisible();
 });
@@ -474,7 +503,7 @@ test("unknown route shows page not found with path", async ({ page }) => {
   });
   await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
   await expect(page.getByText("/this-route-does-not-exist")).toBeVisible();
-  await page.getByRole("link", { name: "Return to dashboard" }).click({ force: true });
+  await page.getByRole("link", { name: "Return to dashboard" }).click();
   await expect(page.getByRole("heading", { name: "System Overview" })).toBeVisible();
 });
 

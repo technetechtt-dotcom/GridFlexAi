@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { fetchAdminAuditLogs, fetchAdminUsers, type AdminAuditLog, type AdminUser } from '../../services/api';
-import { useAdminRefresh } from './AdminLayout';
+import { useAdminRefresh } from './useAdminRefresh';
 
 const POLL_MS = 15000;
 

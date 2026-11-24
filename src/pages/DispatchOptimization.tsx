@@ -1,43 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Battery,
-  Zap,
-  ArrowRight,
-  Check,
-  AlertTriangle,
-  Play,
-  TrendingUp,
-  Droplet } from
-'lucide-react';
+import { Battery, Zap, AlertTriangle, Play, TrendingUp, Droplet } from 'lucide-react';
 import { PromptInput } from '../components/PromptInput';
 import { StatusBadge } from '../components/StatusBadge';
-import {
-  createAdvisoryOptimisationRun,
-  fetchDispatchRecommendations,
-  fetchReadings,
-  type AdvisoryDispatchInterval,
-  type BackendReading,
-  type DispatchRecommendation } from
-'../services/api';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ComposedChart,
-  Line,
-  Area } from
-'recharts';
+import { createAdvisoryOptimisationRun, fetchDispatchRecommendations, fetchReadings, type AdvisoryDispatchInterval, type BackendReading, type DispatchRecommendation } from '../services/api';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line, Area } from 'recharts';
 import { Page } from '../components/Sidebar';
 import { usePilotStore } from '../store/pilotStore';
 import { ChartSkeleton, DataStateBanner } from '../components/DataFetchState';
 import { SimulationBanner } from '../components/SimulationBanner';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { recordDecision } from '../lib/decisionLog';
 interface DispatchOptimizationProps {
   onNavigate: (page: Page) => void;
